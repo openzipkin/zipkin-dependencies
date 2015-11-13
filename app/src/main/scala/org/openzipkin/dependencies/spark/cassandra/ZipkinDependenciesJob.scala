@@ -61,13 +61,18 @@ object ZipkinDependenciesJob {
 
   val keyspace = sys.env.getOrElse("ZIPKIN_KEYSPACE", "zipkin")
   val cassandraHost = sys.env.getOrElse("CASSANDRA_HOST", "127.0.0.1")
+  val cassandraUser = sys.env.getOrElse("CASSANDRA_USERNAME", "")
+  val cassandraPass = sys.env.getOrElse("CASSANDRA_PASSWORD", "")
   // local[*] master lets us run & test the job right in our IDE, meaning we don't explicitly have a spark master set up
   val sparkMaster = sys.env.getOrElse("SPARK_MASTER", "local[*]")
 
   def main(args: Array[String]): Unit = {
 
-    val conf = new SparkConf(true).set("spark.cassandra.connection.host", cassandraHost)
-      .setMaster(sparkMaster).setAppName(getClass.getName)
+    val conf = new SparkConf(true)
+        .set("spark.cassandra.connection.host", cassandraHost)
+        .set("spark.cassandra.auth.username", cassandraUser)
+        .set("spark.cassandra.auth.password", cassandraPass)
+        .setMaster(sparkMaster).setAppName(getClass.getName)
 
     val sc = new SparkContext(conf)
 
