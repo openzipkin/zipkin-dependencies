@@ -2,31 +2,32 @@ apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 mainClassName = 'org.openzipkin.dependencies.spark.cassandra.ZipkinDependenciesJob'
 
-if (!project.hasProperty("runArgs")) {
-    ext.runArgs = '-zipkin.storage.anormdb.install=true -genSampleTraces=true ' +
-            '-zipkin.web.resourcesRoot=' + project(':cassandra').projectDir + '/src/main/resources'
+ext {
+    versions = [
+            cassandraConnector: '1.5.0-M2'
+    ]
 }
-
-run {
-    workingDir project.buildDir
-    args runArgs.split()
-}
-
-tasks.build.dependsOn(shadowJar)
-
 repositories {
     // For dependencies of zipkin-cassandra
-    // via zipkin-tracegen -> (zipkin-query-service, zipkin-collector-service)
     maven { url 'http://conjars.org/repo' }
 }
 
 dependencies {
-    //compile project(':zipkin-query-service')
-    //compile "com.twitter:twitter-server_${scalaInterfaceVersion}:${commonVersions.twitterServer}"
-    //compile "com.twitter:finagle-zipkin_${scalaInterfaceVersion}:${commonVersions.finagle}"
-    //compile "com.twitter:finagle-stats_${scalaInterfaceVersion}:${commonVersions.finagle}"
-    //compile "com.timgroup:java-statsd-client:2.0.0"
-    //val Spark          = "1.3.1"
-    //val SparkCassandra = "1.3.0-M1"
+    spark "org.apache.spark:spark-core_${scalaInterfaceVersion}:${commonVersions.spark}"
+    compile "com.datastax.spark:spark-cassandra-connector_${scalaInterfaceVersion}:${versions.cassandraConnector}"
+    compile "io.zipkin:zipkin-scrooge:${commonVersions.zipkin}"
+    compile "io.zipkin:zipkin-cassandra:${commonVersions.zipkin}"
+}
 
+configurations.all {
+    resolutionStrategy {
+        eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'com.typesafe.akka' && details.requested.name == "akka-slf4j_${scalaInterfaceVersion}") {
+                details.useVersion commonVersions.akka
+            }
+            if (details.requested.group == 'com.typesafe.akka' && details.requested.name == "akka-remote_${scalaInterfaceVersion}") {
+                details.useVersion commonVersions.akka
+            }
+        }
+    }
 }
