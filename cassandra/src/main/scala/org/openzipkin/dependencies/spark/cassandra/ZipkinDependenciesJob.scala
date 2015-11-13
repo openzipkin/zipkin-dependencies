@@ -6,7 +6,6 @@ import com.datastax.spark.connector._
 import com.datastax.spark.connector.rdd.CassandraRDD
 import com.twitter.util.{Duration, Time}
 import com.twitter.zipkin.Constants
-import com.twitter.zipkin.common.{Dependencies, DependencyLink}
 import com.twitter.zipkin.conversions.thrift._
 import com.twitter.zipkin.storage.cassandra.{ScroogeThriftCodec, CassandraSpanStoreDefaults}
 import org.apache.spark.rdd.RDD
@@ -61,13 +60,18 @@ object ZipkinDependenciesJob {
 
   val keyspace = sys.env.getOrElse("ZIPKIN_KEYSPACE", "zipkin")
   val cassandraHost = sys.env.getOrElse("CASSANDRA_HOST", "127.0.0.1")
+  val cassandraUser = sys.env.getOrElse("CASSANDRA_USERNAME", "")
+  val cassandraPass = sys.env.getOrElse("CASSANDRA_PASSWORD", "")
   // local[*] master lets us run & test the job right in our IDE, meaning we don't explicitly have a spark master set up
   val sparkMaster = sys.env.getOrElse("SPARK_MASTER", "local[*]")
 
   def main(args: Array[String]): Unit = {
 
-    val conf = new SparkConf(true).set("spark.cassandra.connection.host", cassandraHost)
-      .setMaster(sparkMaster).setAppName(getClass.getName)
+    val conf = new SparkConf(true)
+        .set("spark.cassandra.connection.host", cassandraHost)
+        .set("spark.cassandra.auth.username", cassandraUser)
+        .set("spark.cassandra.auth.password", cassandraPass)
+        .setMaster(sparkMaster).setAppName(getClass.getName)
 
     val sc = new SparkContext(conf)
 
@@ -91,9 +95,9 @@ object ZipkinDependenciesJob {
       .map { case (parent, child) => ((parent, child), 1L) } // start the count
       .reduceByKey(_ + _) // add up the counts
 
-    val dependencies: Dependencies = aggregates
+    val dependencies: DependenciesInfo = aggregates
       .map { case ((parent: String, child: String), callCount: Long) =>
-        Dependencies(0, 0, Seq(DependencyLink(parent = parent, child = child, callCount = callCount)))
+        DependenciesInfo(0, 0, Seq(DependencyLinkInfo(parent = parent, child = child, callCount = callCount)))
       }
       .reduce(_ + _) // merge DLs under one Dependencies object, which overrides +
 
@@ -103,14 +107,15 @@ object ZipkinDependenciesJob {
     sc.stop()
   }
 
-  def saveToCassandra(sc: SparkContext, dependencies: Dependencies): Unit = {
+  def saveToCassandra(sc: SparkContext, dependencies: DependenciesInfo): Unit = {
     val day: Long = Time.now.floor(Duration.fromTimeUnit(1, DAYS)).inMilliseconds
 
-    val thrift = dependencies.toThrift
+    val thrift = dependencies.toDependencies.toThrift
     val blob: Array[Byte] = Codecs.dependenciesCodec.encode(thrift).array()
 
     val output = (day, blob)
 
     sc.parallelize(Seq(output)).saveToCassandra(keyspace, "dependencies", SomeColumns("day" as "_1", "dependencies" as "_2"))
   }
+
 }
