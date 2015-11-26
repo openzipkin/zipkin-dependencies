@@ -1,22 +1,20 @@
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 mainClassName = 'org.openzipkin.dependencies.spark.cassandra.ZipkinDependenciesJob'
+test.maxParallelForks = 1
 
 ext {
     versions = [
-            cassandraConnector: '1.5.0-M2'
+            cassandraConnector: '1.4.0' // zipkin uses datastax java driver 2.1
     ]
-}
-repositories {
-    // For dependencies of zipkin-cassandra
-    maven { url 'http://conjars.org/repo' }
 }
 
 dependencies {
     spark "org.apache.spark:spark-core_${scalaInterfaceVersion}:${commonVersions.spark}"
     compile "com.datastax.spark:spark-cassandra-connector_${scalaInterfaceVersion}:${versions.cassandraConnector}"
-    compile "io.zipkin:zipkin-scrooge:${commonVersions.zipkin}"
     compile "io.zipkin:zipkin-cassandra:${commonVersions.zipkin}"
+    testCompile "io.zipkin:zipkin-common:${commonVersions.zipkin}:test"
+    testCompile "org.apache.cassandra:cassandra-all:${commonVersions.cassandra}"
 }
 
 configurations.all {

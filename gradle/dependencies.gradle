@@ -9,6 +9,7 @@ ext {
             log4j: '1.2.17',
             spark: '1.5.2',
             zipkin: '1.25.1',
+            cassandra: '2.2.3', // to ensure tests match docker
             akka: '2.4.0'
     ]
 }
@@ -27,10 +28,15 @@ subprojects { subproject ->
                 if (details.requested.name == 'scala-library') {
                     details.useVersion scalaVersion
                 }
+                if (details.requested.group == 'org.apache.cassandra') {
+                    details.useVersion commonVersions.cassandra
+                }
             }
         }
 
         // Log4j is bound by Spark
         exclude group: "ch.qos.logback"
+        // don't loop slf4j-log4j-slf4j
+        exclude module: "slf4j-log4j12"
      }
 }
