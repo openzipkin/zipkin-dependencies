@@ -1,6 +1,7 @@
 language: java
 sudo: false
 dist: trusty
+language: java
 addons:
   apt:
     packages:
