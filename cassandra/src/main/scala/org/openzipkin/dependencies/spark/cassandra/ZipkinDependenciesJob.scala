@@ -7,7 +7,7 @@ import com.datastax.spark.connector.rdd.CassandraRDD
 import com.twitter.util.{Duration, Time}
 import com.twitter.zipkin.Constants
 import com.twitter.zipkin.conversions.thrift._
-import com.twitter.zipkin.storage.cassandra.{ScroogeThriftCodec, CassandraSpanStoreDefaults}
+import com.twitter.zipkin.storage.cassandra.{CassandraSpanStoreDefaults, ScroogeThriftCodec}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -44,7 +44,7 @@ object ZipkinDependenciesJob {
   }
 
   object Codecs {
-    import com.twitter.zipkin.thriftscala.{ Dependencies => ThriftDependencies }
+    import com.twitter.zipkin.thriftscala.{Dependencies => ThriftDependencies}
 
     def spanCodec = CassandraSpanStoreDefaults.SpanCodec
 
@@ -59,19 +59,27 @@ object ZipkinDependenciesJob {
   }
 
   val keyspace = sys.env.getOrElse("ZIPKIN_KEYSPACE", "zipkin")
-  val cassandraHost = sys.env.getOrElse("CASSANDRA_HOST", "127.0.0.1")
-  val cassandraUser = sys.env.getOrElse("CASSANDRA_USERNAME", "")
-  val cassandraPass = sys.env.getOrElse("CASSANDRA_PASSWORD", "")
+  val cassandraProperties = Map(
+    "spark.cassandra.connection.host" -> sys.env.getOrElse("CASSANDRA_HOST", "127.0.0.1"),
+    "spark.cassandra.connection.port" -> sys.env.getOrElse("CASSANDRA_PORT", "9042"),
+    "spark.cassandra.auth.username" -> sys.env.getOrElse("CASSANDRA_USERNAME", ""),
+    "spark.cassandra.auth.password" -> sys.env.getOrElse("CASSANDRA_PASSWORD", "")
+  )
   // local[*] master lets us run & test the job right in our IDE, meaning we don't explicitly have a spark master set up
   val sparkMaster = sys.env.getOrElse("SPARK_MASTER", "local[*]")
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]) = run(sparkMaster, cassandraProperties, keyspace)
 
+  // parameterized for testing
+  def run(
+    sparkMaster: String = sparkMaster,
+    cassandraProperties: Map[String, String] = cassandraProperties,
+    keyspace: String = keyspace
+  ) {
     val conf = new SparkConf(true)
-        .set("spark.cassandra.connection.host", cassandraHost)
-        .set("spark.cassandra.auth.username", cassandraUser)
-        .set("spark.cassandra.auth.password", cassandraPass)
-        .setMaster(sparkMaster).setAppName(getClass.getName)
+      .setAll(cassandraProperties)
+      .setMaster(sparkMaster)
+      .setAppName(getClass.getName)
 
     val sc = new SparkContext(conf)
 
@@ -101,13 +109,13 @@ object ZipkinDependenciesJob {
       }
       .reduce(_ + _) // merge DLs under one Dependencies object, which overrides +
 
-    saveToCassandra(sc, dependencies)
+    saveToCassandra(sc, keyspace, dependencies)
 
     println(s"Dependencies: $dependencies")
     sc.stop()
   }
 
-  def saveToCassandra(sc: SparkContext, dependencies: DependenciesInfo): Unit = {
+  def saveToCassandra(sc: SparkContext, keyspace: String, dependencies: DependenciesInfo): Unit = {
     val day: Long = Time.now.floor(Duration.fromTimeUnit(1, DAYS)).inMilliseconds
 
     val thrift = dependencies.toDependencies.toThrift
