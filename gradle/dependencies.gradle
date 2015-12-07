@@ -37,6 +37,6 @@ subprojects { subproject ->
         // Log4j is bound by Spark
         exclude group: "ch.qos.logback"
         // don't loop slf4j-log4j-slf4j
-        exclude module: "slf4j-log4j12"
+        exclude module: "log4j-over-slf4j"
      }
 }
