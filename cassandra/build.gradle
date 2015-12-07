@@ -1,7 +1,11 @@
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 mainClassName = 'org.openzipkin.dependencies.spark.cassandra.ZipkinDependenciesJob'
-test.maxParallelForks = 1
+
+test {
+    maxParallelForks 1
+    systemProperty 'log4j.configuration', 'org/apache/spark/log4j-defaults.properties'
+}
 
 ext {
     versions = [
