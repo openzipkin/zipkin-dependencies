@@ -1,11 +1,11 @@
-package org.openzipkin.dependencies.spark
+package io.zipkin.dependencies.spark
 
 import com.twitter.util.Await._
 import com.twitter.zipkin.common.Span
 import com.twitter.zipkin.storage.DependencyStoreSpec
 import com.twitter.zipkin.storage.cassandra.{CassandraDependencyStore, CassandraSpanStore}
+import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob
 import org.junit.{AssumptionViolatedException, BeforeClass, Ignore, Test}
-import org.openzipkin.dependencies.spark.cassandra.ZipkinDependenciesJob
 
 object ZipkinDependenciesJobSpec {
 
