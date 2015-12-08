@@ -9,7 +9,7 @@ test {
 
 ext {
     versions = [
-            cassandraConnector: '1.4.0' // zipkin uses datastax java driver 2.1
+            cassandraConnector: '1.4.1' // zipkin uses datastax java driver 2.1
     ]
 }
 
@@ -18,7 +18,6 @@ dependencies {
     compile "com.datastax.spark:spark-cassandra-connector_${scalaInterfaceVersion}:${versions.cassandraConnector}"
     compile "io.zipkin:zipkin-cassandra:${commonVersions.zipkin}"
     testCompile "io.zipkin:zipkin-common:${commonVersions.zipkin}:test"
-    testCompile "org.apache.cassandra:cassandra-all:${commonVersions.cassandra}"
 }
 
 configurations.all {
