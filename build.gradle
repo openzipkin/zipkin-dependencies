@@ -226,23 +226,6 @@ subprojects { subproject ->
         maven { url 'https://maven.twttr.com/' }
     }
 
-    configurations {
-        spark
-    }
-
-    idea {
-        module {
-            scopes.COMPILE.plus += [ configurations.spark ]
-        }
-    }
-
-    sourceSets {
-        main.compileClasspath += configurations.spark
-        main.runtimeClasspath += configurations.spark
-        test.compileClasspath += configurations.spark
-        test.runtimeClasspath += configurations.spark
-    }
-
     dependencies {
         testCompile 'junit:junit:4.12'
         testCompile 'org.mockito:mockito-all:1.10.19'

@@ -58,7 +58,7 @@ object ZipkinDependenciesJob {
     Span(id = span.id, traceId = span.traceId, parentId = span.parentId, serviceName = span.serviceName, annotations)
   }
 
-  val keyspace = sys.env.getOrElse("ZIPKIN_KEYSPACE", "zipkin")
+  val keyspace = sys.env.getOrElse("CASSANDRA_KEYSPACE", "zipkin")
   val cassandraProperties = Map(
     "spark.cassandra.connection.host" -> sys.env.getOrElse("CASSANDRA_HOST", "127.0.0.1"),
     "spark.cassandra.connection.port" -> sys.env.getOrElse("CASSANDRA_PORT", "9042"),

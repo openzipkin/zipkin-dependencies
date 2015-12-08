@@ -14,11 +14,18 @@ ext {
 }
 
 dependencies {
-    spark "org.apache.spark:spark-core_${scalaInterfaceVersion}:${commonVersions.spark}"
+    compile "org.apache.spark:spark-core_${scalaInterfaceVersion}:${commonVersions.spark}"
     compile "com.datastax.spark:spark-cassandra-connector_${scalaInterfaceVersion}:${versions.cassandraConnector}"
     compile "io.zipkin:zipkin-cassandra:${commonVersions.zipkin}"
     testCompile "io.zipkin:zipkin-common:${commonVersions.zipkin}:test"
 }
+
+shadowJar {
+    zip64 true // spark + zipkin-finagle + scala = lots and lots of classes!
+    append('reference.conf') // merge akka resources
+}
+tasks.build.dependsOn(shadowJar)
+artifacts.zipkinUpload shadowJar
 
 configurations.all {
     resolutionStrategy {
