@@ -4,18 +4,26 @@ import com.twitter.util.Await._
 import com.twitter.zipkin.common.Span
 import com.twitter.zipkin.storage.DependencyStoreSpec
 import com.twitter.zipkin.storage.cassandra.{CassandraDependencyStore, CassandraSpanStore}
-import org.junit.{BeforeClass, Ignore, Test}
+import org.junit.{AssumptionViolatedException, BeforeClass, Ignore, Test}
 import org.openzipkin.dependencies.spark.cassandra.ZipkinDependenciesJob
 
 object ZipkinDependenciesJobSpec {
 
-  @BeforeClass def ensureCassandra = CassandraFixture.cassandra
+  /** This intentionally silently aborts when cassandra is not running on localhost. */
+  @BeforeClass def ensureCassandra: Unit = {
+    try {
+      CassandraFixture.repository
+    } catch {
+      case e: Exception => throw new AssumptionViolatedException("Cassandra not running", e)
+    }
+  }
 }
 /**
  * Micro-integration test that shows [[ZipkinDependenciesJob]] is compatible
  * with other dependency store implementations, such as SQL.
  */
 class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
+
   val spanStore = new CassandraSpanStore {
     /** Deferred as repository creates network connections */
     override lazy val repository = CassandraFixture.repository
@@ -35,8 +43,9 @@ class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
 
     ZipkinDependenciesJob.run(
       cassandraProperties = Map(
+        "spark.ui.enabled" -> "false",
         "spark.cassandra.connection.host" -> "127.0.0.1",
-        "spark.cassandra.connection.port" -> "9142"
+        "spark.cassandra.connection.port" -> "9042"
       ),
       keyspace = CassandraFixture.keyspace
     )
