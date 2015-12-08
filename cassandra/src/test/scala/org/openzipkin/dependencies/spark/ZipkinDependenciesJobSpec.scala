@@ -35,6 +35,7 @@ class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
 
     ZipkinDependenciesJob.run(
       cassandraProperties = Map(
+        "spark.ui.enabled" -> "false",
         "spark.cassandra.connection.host" -> "127.0.0.1",
         "spark.cassandra.connection.port" -> "9142"
       ),
