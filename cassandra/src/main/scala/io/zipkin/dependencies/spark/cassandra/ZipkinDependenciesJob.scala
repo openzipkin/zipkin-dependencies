@@ -1,4 +1,4 @@
-package org.openzipkin.dependencies.spark.cassandra
+package io.zipkin.dependencies.spark.cassandra
 
 import java.util.concurrent.TimeUnit._
 

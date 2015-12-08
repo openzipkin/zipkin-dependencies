@@ -1,6 +1,6 @@
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
-mainClassName = 'org.openzipkin.dependencies.spark.cassandra.ZipkinDependenciesJob'
+mainClassName = 'io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob'
 
 test {
     maxParallelForks 1

@@ -1,4 +1,4 @@
-package org.openzipkin.dependencies.spark
+package io.zipkin.dependencies.spark
 
 import com.datastax.driver.core.Cluster
 import com.google.common.util.concurrent.Futures
