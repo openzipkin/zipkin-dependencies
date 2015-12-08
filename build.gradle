@@ -149,7 +149,7 @@ allprojects { thisProject ->
             licenses = ['Apache-2.0']
             repo = System.getenv('BINTRAY_ZIPKIN_REPO') ?: "maven"
             vcsUrl = project.repo
-            name = System.getenv('BINTRAY_ZIPKIN_PACKAGE') ?: "zipkin"
+            name = System.getenv('BINTRAY_ZIPKIN_PACKAGE') ?: "zipkin-dependencies-spark"
             userOrg = System.getenv('BINTRAY_ZIPKIN_ORG') ?: "openzipkin"
             version {
                 name = project.version
@@ -202,7 +202,7 @@ allprojects { thisProject ->
 
                     scm {
                         connection project.repo + '.git'
-                        developerConnection 'git@github.com:openzipkin/zipkin.git'
+                        developerConnection 'git@github.com:openzipkin/zipkin-dependencies-spark.git'
                         url project.repo
                     }
                 }
