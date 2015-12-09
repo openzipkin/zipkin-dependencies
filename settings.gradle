@@ -5,3 +5,7 @@ def includes = [
 ]
 
 include includes.toArray(new String[0])
+
+rootProject.children.each { childProject ->
+    childProject.name = rootProject.name + '-' + childProject.name
+}
