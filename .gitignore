@@ -7,3 +7,6 @@ build/
 *.iml
 *.ipr
 *.iws
+
+# Travis installation files
+dsc-cassandra-*/
