@@ -8,7 +8,7 @@ ext {
             slf4j: '1.7.12',
             log4j: '1.2.17',
             spark: '1.5.2',
-            zipkin: '1.25.3',
+            zipkin: '1.26.0',
             cassandra: '2.2.4', // to ensure tests match docker
             akka: '2.4.0'
     ]
