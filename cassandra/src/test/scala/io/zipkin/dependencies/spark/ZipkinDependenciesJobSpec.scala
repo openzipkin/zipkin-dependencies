@@ -89,35 +89,6 @@ class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
     )
   }
 
-  //  TODO this test is copied from https://github.com/openzipkin/zipkin/pull/922/files.
-  //  Once a new version of Zipkin (above 1.30.2) is released with the test included,
-  //  it should be removed from here.
-  /**
-   * This test shows that dependency links can be filtered at daily granularity.
-   * This allows the UI to look for dependency intervals besides today.
-   */
-  @Test def canSearchForIntervalsBesidesToday() = {
-    // Let's pretend we have two days of data processed
-    //  - Note: calling this twice allows test implementations to consider timestamps
-    processDependencies(subtractDay(trace))
-    processDependencies(trace)
-
-    // A user looks at today's links.
-    //  - Note: Using the smallest lookback avoids bumping into implementation around windowing.
-    result(store.getDependencies(dep.endTs, Some(dep.endTs - dep.startTs))) should be(dep.links)
-
-    // A user compares the links from those a day ago.
-    result(store.getDependencies(dep.endTs - day, Some(dep.endTs - dep.startTs))) should be(dep.links)
-
-    // A user looks at all links since data started
-    result(store.getDependencies(dep.endTs)) should be(
-      List(
-        new DependencyLink("zipkin-web", "zipkin-query", 2),
-        new DependencyLink("zipkin-query", "zipkin-jdbc", 2)
-      )
-    )
-  }
-
   /** rebases a trace backwards a day. */
   private def subtractDay(trace: List[Span]) = trace.map(s =>
     s.copy(
