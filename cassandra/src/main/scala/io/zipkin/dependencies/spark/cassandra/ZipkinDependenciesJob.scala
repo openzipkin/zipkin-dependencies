@@ -6,6 +6,7 @@ import com.datastax.spark.connector._
 import com.datastax.spark.connector.rdd.CassandraRDD
 import com.twitter.util.{Duration, Time}
 import com.twitter.zipkin.Constants
+import com.twitter.zipkin.common.{Span => CommonSpan}
 import com.twitter.zipkin.conversions.thrift._
 import com.twitter.zipkin.storage.cassandra.{CassandraSpanStoreDefaults, ScroogeThriftCodec}
 import org.apache.spark.rdd.RDD
@@ -50,25 +51,73 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
    * RDD needs the data objects to be serializable, at least at some points. The zipkin.common.Span is not serializable,
    * and has a lot of extra stuff not needed for pure dependency graph job. This class captures only what's needed.
    */
-  case class Span(id: Long, traceId: Long, parentId: Option[Long], timestamp: Option[Long], serviceName: Option[String], annotations: Seq[String]) {
+  case class Span(id: Long, traceId: Long, parentId: Option[Long], timestamp: Option[Long],
+                  annotations: Map[String, String], clientName: Option[String], serverName: Option[String]) {
     def mergeSpan(s: Span): Span = {
       val minTimestamp = Seq(timestamp, s.timestamp).flatten.reduceOption(_ min _)
-      Span(id, traceId, parentId, minTimestamp, (serviceName ++ s.serviceName).headOption, this.annotations ++ s.annotations)
+      Span(id, traceId, parentId, minTimestamp,
+        annotations = this.annotations ++ s.annotations,
+        clientName = (this.clientName ++ s.clientName).headOption,
+        serverName = (this.serverName ++ s.serverName).headOption
+      )
     }
 
     /**
-     * @return true if Span contains at most one of each core annotation, false otherwise
+     * Tries to extract the best name of the service in this span. Depends on logged annotations
+     * and prioritizes names logged by the service itself (via Core annotations) over names logged
+     * by the "other" service (via CoreAddress binary annotations).
+     */
+    lazy val serviceName: Option[String] = {
+      // Most authoritative is the label of any server annotation, logged by an instrumented server itself
+      Constants.CoreServer.flatMap(annotations.get).headOption orElse
+        // Next is the label of the server's endpoint
+        serverName orElse
+        // Next is the label of any client annotation, logged by an instrumented client
+        Constants.CoreClient.flatMap(annotations.get).headOption orElse
+        // Next is the label of the client's endpoint
+        clientName
+    }
+
+    /**
+     * Used to filter out spans from the final result. A span is considered valid if all of the following
+     * conditions are satisfied:
+     *
+     *   - it has a timestamp in the range [microsLower, microsUpper]  (atm this range is closed on both sides)
+     *   - it can provide a non-empty service name
+     *   - if it has Core annotations, each Core annotation is not repeated more than once.
+     *
+     * The last condition is legacy, (apparently) to protect against malformed spans. Multiple copies of the
+     * same core annotation indicate that something has probably gone wrong with the instrumentation.
      */
     def isValid: Boolean = {
       // TODO this has the potential to count the same span twice in runs with adjacent time windows.
       // Ideally, one of `<=` should be strict `<`. Depends on https://github.com/openzipkin/zipkin/issues/924.
       val inTimeRange: Boolean = timestamp.exists(t => microsLower <= t && t <= microsUpper)
-      if (!inTimeRange) {
-        println(s"Span id=$id, tid=$traceId, ts=$timestamp is outside of time range ($startTs, $endTs]")
-      }
-      inTimeRange && serviceName.isDefined && !Constants.CoreAnnotations.map { c =>
-        annotations.count(_ == c) // how many times this core annotation 'c' is mentioned
-      }.exists(_ > 1)
+      inTimeRange &&
+        !serviceName.forall(_.isEmpty) &&
+        !Constants.CoreAnnotations.map { c =>
+          annotations.count(_ == c) // how many times this core annotation 'c' is mentioned
+        }.exists(_ > 1)
+    }
+  }
+
+  // TODO these should be moved into common data model in Zipkin
+  sealed trait Instrumentation {
+    def +(other: Instrumentation): Instrumentation
+  }
+  case object ParentAndChild extends Instrumentation {
+    override def +(other: Instrumentation): Instrumentation = this
+  }
+  case object ParentOnly extends Instrumentation {
+    override def +(other: Instrumentation): Instrumentation = other match {
+      case ParentAndChild => other
+      case _ => this
+    }
+  }
+  case object ChildOnly extends Instrumentation {
+    override def +(other: Instrumentation): Instrumentation = other match {
+      case ParentAndChild => other
+      case _ => this
     }
   }
 
@@ -76,19 +125,80 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
     def mergeTrace(t: Trace): Trace = {
       Trace(id, spans ++ t.spans)
     }
-    def getLinks: Iterable[(String, String)] = {
-      spans.values
-        .filter(_.parentId.isDefined)
-        .flatMap(span => spans.get(span.parentId.get).map(parentSpan => (parentSpan.serviceName.get, span.serviceName.get)))
+
+    /**
+     * Extracts parent->child links from spans within this trace.
+     */
+    def getLinks: Iterable[(String, String, Instrumentation)] = {
+      val parentChildren: Map[Long, Set[Long]] = spans.values
+        .flatMap(span => span.parentId.flatMap(spans.get).map(parentSpan => (parentSpan.id, span.id)))
+        .groupBy(_._1).mapValues(_ map (_._2)).mapValues(_.toSet)
+
+      // for spans that have parents, collect links as (parent, child, instr, parentId, childId)
+      val parentAndChildInstrumented: Iterable[(String, String, Instrumentation, Long, Long)] = spans.values
+        .flatMap(span => span.parentId.flatMap(spans.get).map(
+        parentSpan => (parentSpan.serviceName.get, span.serviceName.get, ParentAndChild, parentSpan.id, span.id))
+        )
+
+      // we check these maps to ensure we don't double-count links already found as parent->child spans
+      val parentChildByParentId: Set[(Long, String, String)] =
+        parentAndChildInstrumented.map(t => (t._4, t._1, t._2)).toSet
+      val parentChildByChildId: Set[(Long, String, String)] =
+        parentAndChildInstrumented.map(t => (t._5, t._1, t._2)).toSet
+
+      // spans without children may know the server via ServerAddress
+      val clientOnlyInstrumentedMap: Map[Long, (String, String, Instrumentation)] = spans.values
+        .filter(span => parentChildren.get(span.id).isEmpty)
+        .flatMap(span => span.serverName.flatMap(serverName => span.clientName.flatMap(clientName =>
+          if (parentChildByChildId.contains((span.id, clientName, serverName))) {
+            None
+          } else {
+            Some(span.id ->(clientName, serverName, ChildOnly))
+          }
+        ))).toMap
+
+      // spans without parent may know the client via ClientAddress
+      val serverOnlyInstrumented: Iterable[(String, String, Instrumentation)] = spans.values
+        .filter(span => span.parentId.flatMap(spans.get).isEmpty && !clientOnlyInstrumentedMap.contains(span.id))
+        .flatMap(span => span.clientName.flatMap(
+          clientName => span.serverName.flatMap(serverName =>
+            if (parentChildByParentId.contains((span.id, clientName, serverName))) {
+              None
+            } else {
+              Some((clientName, serverName, ParentOnly))
+            }
+        )))
+
+      (parentAndChildInstrumented.map(t => (t._1, t._2, t._3)) ++
+        clientOnlyInstrumentedMap.values ++
+        serverOnlyInstrumented
+        ).filterNot(t => t._1.isEmpty || t._2.isEmpty)
     }
   }
+
+  val InterestingAnnotations: Set[String] = Constants.CoreClient ++ Constants.CoreServer
 
   private[this] def rowToSpan(row: CassandraRow): Span = {
     val thriftSpan = Codecs.spanCodec.decode(row.getBytes("span"))
     val span = thriftSpan.toSpan
-    val annotations = span.annotations.map(_.value)
+    val annotations: Map[String, String] = span.annotations
+      .filter(a => InterestingAnnotations.contains(a.value))
+      .flatMap(a => a.host.map(_.serviceName).filterNot(_.isEmpty).map(name => a.value -> name))
+      .toMap
     val timestamp: Option[Long] = span.timestamp orElse span.annotations.map(_.timestamp).sorted.headOption
-    Span(id = span.id, traceId = span.traceId, parentId = span.parentId, timestamp = timestamp, serviceName = span.serviceName, annotations)
+
+    def serviceNameCore(span: CommonSpan, keys: Set[String]): Option[String] = {
+      span.annotations.find(a => keys.contains(a.value)).flatMap(_.host).map(_.serviceName).filterNot(_.isEmpty)
+    }
+
+    def serviceNameBin(span: CommonSpan, key: String): Option[String] = {
+      span.binaryAnnotations.find(_.key == key).flatMap(_.host).map(_.serviceName).filterNot(_.isEmpty)
+    }
+
+    val clientName = (serviceNameCore(span, Constants.CoreClient) ++ serviceNameBin(span, Constants.ClientAddr)).headOption
+    val serverName = (serviceNameCore(span, Constants.CoreServer) ++ serviceNameBin(span, Constants.ServerAddr)).headOption
+    Span(id = span.id, traceId = span.traceId, parentId = span.parentId, timestamp = timestamp,
+      annotations = annotations, clientName, serverName)
   }
 
   def run() {
@@ -111,28 +221,36 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
       .filter { case (key, span) => span.isValid }
       .values
 
+    if (spans.isEmpty()) {
+      println(s"NO VALID SPANS FOUND IN THE TIME RANGE")
+    }
+
     val traces: RDD[Trace] = spans // guaranteed no duplicates of (trace id, span id)
       .map(span => (span.traceId, Trace(span.traceId, Map(span.id -> span)))) // (traceId -> Trace)
       .reduceByKey((t1, t2) => t1.mergeTrace(t2))
       .values
 
-    val aggregates: RDD[((String, String), Long)] = traces
+    case class Link(callCount: Long, instrumentation: Instrumentation) {
+      def +(link: Link): Link = {
+        Link(this.callCount + link.callCount, this.instrumentation + link.instrumentation)
+      }
+    }
+
+    val aggregates: RDD[((String, String), Link)] = traces
       .flatMap(_.getLinks)
-      .map { case (parent, child) => ((parent, child), 1L) } // start the count
+      .map { case (parent, child, instrumentation) => ((parent, child), Link(1L, instrumentation)) } // start the count
       .reduceByKey(_ + _) // add up the counts
 
     if (aggregates.isEmpty()) {
-      println(s"NO VALID SPANS FOUND IN THE TIME RANGE")
+      println(s"NO LINKS WERE GENERATED FROM SPANS")
     } else {
       val dependencies: DependenciesInfo = aggregates
-        .map { case ((parent: String, child: String), callCount: Long) =>
-        DependenciesInfo(Seq(DependencyLinkInfo(parent = parent, child = child, callCount = callCount)))
-      }
-        .reduce(_ + _) // merge DLs under one Dependencies object, which overrides +
+        .map { case ((parent: String, child: String), link: Link) =>
+        // TODO signal loss here - `instrumentation` is ignored
+        DependenciesInfo(Seq(DependencyLinkInfo(parent = parent, child = child, callCount = link.callCount)))
+      }.reduce(_ + _) // merge DLs under one Dependencies object, which overrides +
 
       saveToCassandra(sc, keyspace, dependencies)
-
-      println(s"Dependencies: $dependencies")
     }
     sc.stop()
   }
@@ -140,12 +258,13 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
   def saveToCassandra(sc: SparkContext, keyspace: String, dependencies: DependenciesInfo): Unit = {
     val thrift = dependencies.toDependencies(startTs = startTs, endTs = endTs).toThrift
     val blob: Array[Byte] = Codecs.dependenciesCodec.encode(thrift).array()
-
     val day = Time.fromMilliseconds(endTs).floor(Duration.fromTimeUnit(1, DAYS)).inMilliseconds
     val output = (day, blob)
 
-    sc.parallelize(Seq(output)).saveToCassandra(keyspace, "dependencies", SomeColumns("day" as "_1", "dependencies" as "_2"))
-    println(s"Saved with day=$day (${Time.fromMilliseconds(day)})")
+    sc.parallelize(Seq(output)).saveToCassandra(
+      keyspace, "dependencies", SomeColumns("day" as "_1", "dependencies" as "_2"))
+
+    println(s"Saved dependencies as of $day (${Time.fromMilliseconds(day)}}): $dependencies")
   }
 
   def floorToDay(ts: Long): Long = {
