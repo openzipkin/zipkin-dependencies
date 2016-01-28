@@ -1,7 +1,9 @@
 package io.zipkin.dependencies.spark
 
 import com.twitter.util.Await._
-import com.twitter.zipkin.common.{DependencyLink, Span, Trace}
+import com.twitter.zipkin.Constants
+import com.twitter.zipkin.adjuster.ApplyTimestampAndDuration
+import com.twitter.zipkin.common.{DependencyLink, Span, Trace, _}
 import com.twitter.zipkin.storage.DependencyStoreSpec
 import com.twitter.zipkin.storage.cassandra.{CassandraDependencyStore, CassandraSpanStore}
 import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob
@@ -64,10 +66,10 @@ class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
   override def clear = CassandraFixture.truncate
 
   @Test def testDefaultTimeWindow(): Unit = {
-    import ZipkinDependenciesJob.{ defaultEndTs, defaultLookback }
+    import ZipkinDependenciesJob.{defaultEndTs, defaultLookback}
     // verify we have the right data
-    dep.endTs shouldBe > (today)
-    dep.startTs shouldBe >= (today)
+    dep.endTs shouldBe >(today)
+    dep.startTs shouldBe >=(today)
 
     // Let's pretend we have two days of data processed, yesterday, and the day before.
     // We run the job with the default time window,
@@ -97,4 +99,64 @@ class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
       annotations = s.annotations.map(a => a.copy(timestamp = a.timestamp - (day * 1000)))
     )
   )
+
+  // TODO remove once this test is moved into DependencyStoreSpec in Zipkin
+  /**
+   * In some cases an RPC call is made where one of the two services is not instrumented.
+   * However, if the other service is able to emit "sa" or "ca" annotation with a service
+   * name, the link can still be constructed.
+   */
+  @Test def testGetDependenciesOnlyServerInstrumented(): Unit = {
+    val client = Endpoint(127 << 24 | 1, 9410, "not-instrumented-client")
+    val server = Endpoint(127 << 24 | 2, 9410, "instrumented-server")
+
+    val trace = ApplyTimestampAndDuration(List(
+      Span(10L, "get", 10L, annotations = List(
+        Annotation((today + 100) * 1000, Constants.ServerRecv, Some(server)),
+        Annotation((today + 350) * 1000, Constants.ServerSend, Some(server))),
+        binaryAnnotations = List(
+          BinaryAnnotation(Constants.ClientAddr, true, Some(client))))
+    ))
+    processDependencies(trace)
+
+    result(store.getDependencies(today + 1000)).sortBy(_.parent) should be(
+      List(
+        new DependencyLink("not-instrumented-client", "instrumented-server", 1)
+      )
+    )
+  }
+
+  // TODO remove once this test is moved into DependencyStoreSpec in Zipkin
+  /**
+   * In some cases an RPC call is made where one of the two services is not instrumented.
+   * However, if the other service is able to emit "sa" or "ca" annotation with a service
+   * name, the link can still be constructed.
+   */
+  @Test def testGetDependenciesOnlyClientInstrumented(): Unit = {
+    val client = Endpoint(127 << 24 | 1, 9410, "instrumented-client")
+    val server = Endpoint(127 << 24 | 2, 9410, "not-instrumented-server")
+
+    val trace = ApplyTimestampAndDuration(List(
+      Span(10L, "get", 10L, annotations = List(
+        Annotation((today + 100) * 1000, Constants.ClientSend, Some(client)),
+        Annotation((today + 350) * 1000, Constants.ClientRecv, Some(client))),
+        binaryAnnotations = List(
+          BinaryAnnotation(Constants.ServerAddr, true, Some(server))))
+    ))
+    processDependencies(trace)
+
+    result(store.getDependencies(today + 1000)).sortBy(_.parent) should be(
+      List(
+        new DependencyLink("instrumented-client", "not-instrumented-server", 1)
+      )
+    )
+  }
+
+  // TODO remove once fixed in zipkin: https://github.com/openzipkin/zipkin/issues/917
+  // Temporarily override this test from the main suite, because we can do a better job than what it expects.
+  @Test override def dependencies_headlessTrace {
+    processDependencies(List(trace(1), trace(2)))
+
+    result(store.getDependencies(today + 1000)) should be(dep.links)
+  }
 }
