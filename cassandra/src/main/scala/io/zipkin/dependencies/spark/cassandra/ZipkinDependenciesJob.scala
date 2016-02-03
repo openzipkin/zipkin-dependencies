@@ -63,9 +63,6 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
       // TODO this has the potential to count the same span twice in runs with adjacent time windows.
       // Ideally, one of `<=` should be strict `<`. Depends on https://github.com/openzipkin/zipkin/issues/924.
       val inTimeRange: Boolean = timestamp.exists(t => microsLower <= t && t <= microsUpper)
-      if (!inTimeRange) {
-        println(s"Span id=$id, tid=$traceId, ts=$timestamp is outside of time range ($startTs, $endTs]")
-      }
       inTimeRange && serviceName.isDefined && !Constants.CoreAnnotations.map { c =>
         annotations.count(_ == c) // how many times this core annotation 'c' is mentioned
       }.exists(_ > 1)
@@ -121,19 +118,21 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
       .map { case (parent, child) => ((parent, child), 1L) } // start the count
       .reduceByKey(_ + _) // add up the counts
 
-    if (aggregates.isEmpty()) {
-      println(s"NO VALID SPANS FOUND IN THE TIME RANGE")
-    } else {
-      val dependencies: DependenciesInfo = aggregates
-        .map { case ((parent: String, child: String), callCount: Long) =>
-        DependenciesInfo(Seq(DependencyLinkInfo(parent = parent, child = child, callCount = callCount)))
-      }
-        .reduce(_ + _) // merge DLs under one Dependencies object, which overrides +
-
-      saveToCassandra(sc, keyspace, dependencies)
-
-      println(s"Dependencies: $dependencies")
+    val toDepInfo: PartialFunction[Any, DependenciesInfo] = {
+      case ((parent: String, child: String), callCount: Long) =>
+        DependenciesInfo(
+          Seq(DependencyLinkInfo(parent = parent, child = child, callCount = callCount)))
     }
+
+    // reduce does not work on empty collections, so add an empty sentinel just in case
+    val dependencies: DependenciesInfo =
+      (aggregates.map(toDepInfo) ++ sc.parallelize(Seq(DependenciesInfo(Seq()))))
+        .reduce(_ + _) // merge under one Dependencies object, which overrides +
+
+    saveToCassandra(sc, keyspace, dependencies)
+
+    println(s"Dependencies: $dependencies")
+
     sc.stop()
   }
 
