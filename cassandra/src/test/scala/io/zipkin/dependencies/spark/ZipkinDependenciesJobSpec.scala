@@ -6,6 +6,7 @@ import com.twitter.zipkin.storage.DependencyStoreSpec
 import com.twitter.zipkin.storage.cassandra.{CassandraDependencyStore, CassandraSpanStore}
 import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob
 import org.junit.{AssumptionViolatedException, BeforeClass, Test}
+import org.scalatest.TestFailedException
 
 object ZipkinDependenciesJobSpec {
 
@@ -87,6 +88,22 @@ class ZipkinDependenciesJobSpec extends DependencyStoreSpec {
         new DependencyLink("zipkin-query", "zipkin-jdbc", 2)
       )
     )
+  }
+
+  // unimplemented dependency link features
+  @Test(expected = classOf[TestFailedException])
+  override def getDependencies_notInstrumentedClientAndServer(): Unit = {
+    super.getDependencies_notInstrumentedClientAndServer()
+  }
+
+  @Test(expected = classOf[TestFailedException])
+  override def dependencies_headlessTrace: Unit = {
+    super.dependencies_headlessTrace
+  }
+
+  @Test(expected = classOf[TestFailedException])
+  override def getDependencies_intermediateSpans(): Unit = {
+    super.getDependencies_intermediateSpans()
   }
 
   /** rebases a trace backwards a day. */
