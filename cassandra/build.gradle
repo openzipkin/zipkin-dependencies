@@ -9,12 +9,14 @@ test {
 
 ext {
     versions = [
-            cassandraConnector: '1.4.1' // zipkin uses datastax java driver 2.1
+            cassandraConnector: '1.6.0' // zipkin uses datastax java driver 3.0
     ]
 }
 
 dependencies {
     compile "org.apache.spark:spark-core_${scalaInterfaceVersion}:${commonVersions.spark}"
+    // avoids compile error: Could not access type DataFrame in package org.apache.spark.sql
+    compile "org.apache.spark:spark-sql_${scalaInterfaceVersion}:${commonVersions.spark}"
     compile "com.datastax.spark:spark-cassandra-connector_${scalaInterfaceVersion}:${versions.cassandraConnector}"
     compile "io.zipkin:zipkin-cassandra:${commonVersions.zipkin}"
     testCompile "io.zipkin:zipkin-common:${commonVersions.zipkin}:test"

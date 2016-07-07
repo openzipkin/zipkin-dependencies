@@ -7,8 +7,8 @@ ext {
     commonVersions = [
             slf4j: '1.7.12',
             log4j: '1.2.17',
-            spark: '1.5.2',
-            zipkin: '1.31.0',
+            spark: '1.6.2',
+            zipkin: '1.40.2',
             cassandra: '2.2.4', // to ensure tests match docker
             akka: '2.4.0'
     ]
@@ -30,6 +30,9 @@ subprojects { subproject ->
                 }
                 if (details.requested.group == 'org.apache.cassandra') {
                     details.useVersion commonVersions.cassandra
+                }
+                if (details.requested.group == 'org.apache.spark') {
+                    details.useVersion commonVersions.spark
                 }
             }
         }

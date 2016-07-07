@@ -36,10 +36,10 @@ $ CASSANDRA_USER=user CASSANDRA_PASS=pass ./gradlew run
 ```bash
 $ ./gradlew build
 ```
-This will build a fat jar `./cassandra/build/libs/cassandra-*-all.jar`.
+This will build a fat jar `./cassandra/build/libs/*cassandra-*-all.jar`.
 
 Run it, specifying any environment variables you wish to apply.
 
 ```bash
-$ CASSANDRA_HOST=remotecluster1 java -jar ./cassandra/build/libs/cassandra-*-all.jar
+$ CASSANDRA_HOST=remotecluster1 java -jar ./cassandra/build/libs/*cassandra-*-all.jar
 ```
