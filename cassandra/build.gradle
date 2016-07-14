@@ -18,8 +18,8 @@ dependencies {
     // avoids compile error: Could not access type DataFrame in package org.apache.spark.sql
     compile "org.apache.spark:spark-sql_${scalaInterfaceVersion}:${commonVersions.spark}"
     compile "com.datastax.spark:spark-cassandra-connector_${scalaInterfaceVersion}:${versions.cassandraConnector}"
-    compile "io.zipkin:zipkin-cassandra:${commonVersions.zipkin}"
-    testCompile "io.zipkin:zipkin-common:${commonVersions.zipkin}:test"
+    compile "io.zipkin.java:zipkin-storage-cassandra:${commonVersions.zipkin}"
+    testCompile "io.zipkin.java:zipkin:${commonVersions.zipkin}:tests"
 }
 
 shadowJar {

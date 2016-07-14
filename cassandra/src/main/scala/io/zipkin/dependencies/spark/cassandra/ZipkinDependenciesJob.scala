@@ -1,21 +1,24 @@
 package io.zipkin.dependencies.spark.cassandra
 
-import java.util.concurrent.TimeUnit._
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 import com.datastax.spark.connector._
 import com.datastax.spark.connector.rdd.CassandraRDD
-import com.twitter.util.{Duration, Time}
-import com.twitter.zipkin.Constants
-import com.twitter.zipkin.conversions.thrift._
-import com.twitter.zipkin.storage.cassandra.{CassandraSpanStoreDefaults, ScroogeThriftCodec}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+import zipkin.internal.Util._
+import zipkin.internal.{ApplyTimestampAndDuration, Dependencies}
+import zipkin.{DependencyLink, Constants, Span}
+
+import scala.collection.JavaConverters._
 
 object ZipkinDependenciesJob {
 
   val keyspace = sys.env.getOrElse("CASSANDRA_KEYSPACE", "zipkin")
 
   val cassandraProperties = Map(
+    "spark.ui.enabled" -> "false",
     "spark.cassandra.connection.host" -> sys.env.getOrElse("CASSANDRA_HOST", "127.0.0.1"),
     "spark.cassandra.connection.port" -> sys.env.getOrElse("CASSANDRA_PORT", "9042"),
     "spark.cassandra.auth.username" -> sys.env.getOrElse("CASSANDRA_USERNAME", ""),
@@ -26,10 +29,10 @@ object ZipkinDependenciesJob {
   val sparkMaster = sys.env.getOrElse("SPARK_MASTER", "local[*]")
 
   // By default the job only considers spans with timestamps up to previous midnight
-  val defaultEndTs: Long = Time.now.floor(Duration.fromTimeUnit(1, DAYS)).inMilliseconds
+  val defaultEndTs: Long = midnightUTC(System.currentTimeMillis)
 
   // By default the job only accounts for spans in the 24hrs prior to previous midnight
-  val defaultLookback: Long = Duration.fromTimeUnit(1, DAYS).inMilliseconds
+  val defaultLookback: Long = TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS)
 
   def main(args: Array[String]) = {
     new ZipkinDependenciesJob(sparkMaster, cassandraProperties, keyspace).run()
@@ -42,31 +45,22 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
                                  endTs: Long = ZipkinDependenciesJob.defaultEndTs,
                                  lookback: Long = ZipkinDependenciesJob.defaultLookback) {
 
+  val coreAnnotations = Set("cs", "cr", "ss", "sr")
+
   val startTs = endTs - lookback
   val microsUpper = endTs * 1000
   val microsLower = startTs * 1000
 
   /**
-   * RDD needs the data objects to be serializable, at least at some points. The zipkin.common.Span is not serializable,
-   * and has a lot of extra stuff not needed for pure dependency graph job. This class captures only what's needed.
+   * @return true if Span contains at most one of each core annotation, false otherwise
    */
-  case class Span(id: Long, traceId: Long, parentId: Option[Long], timestamp: Option[Long], serviceName: Option[String], annotations: Seq[String]) {
-    def mergeSpan(s: Span): Span = {
-      val minTimestamp = Seq(timestamp, s.timestamp).flatten.reduceOption(_ min _)
-      Span(id, traceId, parentId, minTimestamp, (serviceName ++ s.serviceName).headOption, this.annotations ++ s.annotations)
-    }
-
-    /**
-     * @return true if Span contains at most one of each core annotation, false otherwise
-     */
-    def isValid: Boolean = {
-      // TODO this has the potential to count the same span twice in runs with adjacent time windows.
-      // Ideally, one of `<=` should be strict `<`. Depends on https://github.com/openzipkin/zipkin/issues/924.
-      val inTimeRange: Boolean = timestamp.exists(t => microsLower <= t && t <= microsUpper)
-      inTimeRange && serviceName.isDefined && !Constants.CoreAnnotations.map { c =>
-        annotations.count(_ == c) // how many times this core annotation 'c' is mentioned
-      }.exists(_ > 1)
-    }
+  def isValid(span: Span): Boolean = {
+    // TODO this has the potential to count the same span twice in runs with adjacent time windows.
+    // Ideally, one of `<=` should be strict `<`. Depends on https://github.com/openzipkin/zipkin/issues/924.
+    val inTimeRange: Boolean = span.timestamp != null && microsLower <= span.timestamp && span.timestamp <= microsUpper
+    val serviceNameDefined = serviceName(span).isDefined
+    val isValid = inTimeRange && serviceNameDefined
+    isValid
   }
 
   case class Trace(id: Long, spans: Map[Long, Span]) {
@@ -75,17 +69,9 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
     }
     def getLinks: Iterable[(String, String)] = {
       spans.values
-        .filter(_.parentId.isDefined)
-        .flatMap(span => spans.get(span.parentId.get).map(parentSpan => (parentSpan.serviceName.get, span.serviceName.get)))
+        .filter(_.parentId != null)
+        .flatMap(span => spans.get(span.parentId).map(parentSpan => (serviceName(parentSpan).get, serviceName(span).get)))
     }
-  }
-
-  private[this] def rowToSpan(row: CassandraRow): Span = {
-    val thriftSpan = Codecs.spanCodec.decode(row.getBytes("span"))
-    val span = thriftSpan.toSpan
-    val annotations = span.annotations.map(_.value)
-    val timestamp: Option[Long] = span.timestamp orElse span.annotations.map(_.timestamp).sorted.headOption
-    Span(id = span.id, traceId = span.traceId, parentId = span.parentId, timestamp = timestamp, serviceName = span.serviceName, annotations)
   }
 
   def run() {
@@ -94,7 +80,7 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
       .setMaster(sparkMaster)
       .setAppName(getClass.getName)
 
-    println(s"Running Dependencies job with startTs=$startTs (${Time.fromMilliseconds(startTs)}) and endTs=$endTs (${Time.fromMilliseconds(endTs)})")
+    println(s"Running Dependencies job with startTs=$startTs (${new Date(startTs)}) and endTs=$endTs (${new Date(endTs)})")
 
     val sc = new SparkContext(conf)
 
@@ -102,11 +88,12 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
     // ^^^ If need to drill further into the data, add this: .where("wsid='725030:14732'")
 
     val spans: RDD[Span] = table
-      .map(rowToSpan)
+      .map(row => zipkin.Codec.THRIFT.readSpan(row.getBytes("span")))
       .map(span => ((span.id, span.traceId), span))
-      .reduceByKey { (s1, s2) => s1.mergeSpan(s2) }
-      .filter { case (key, span) => span.isValid }
+      .reduceByKey { (s1, s2) => s1.toBuilder().merge(s2).build() }
       .values
+      .map(ApplyTimestampAndDuration.apply(_))
+      .filter(isValid(_))
 
     val traces: RDD[Trace] = spans // guaranteed no duplicates of (trace id, span id)
       .map(span => (span.traceId, Trace(span.traceId, Map(span.id -> span)))) // (traceId -> Trace)
@@ -120,8 +107,7 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
 
     val toDepInfo: PartialFunction[Any, DependenciesInfo] = {
       case ((parent: String, child: String), callCount: Long) =>
-        DependenciesInfo(
-          Seq(DependencyLinkInfo(parent = parent, child = child, callCount = callCount)))
+        DependenciesInfo(Seq(DependencyLink.create(parent, child, callCount)))
     }
 
     // reduce does not work on empty collections, so add an empty sentinel just in case
@@ -137,25 +123,48 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
   }
 
   def saveToCassandra(sc: SparkContext, keyspace: String, dependencies: DependenciesInfo): Unit = {
-    val thrift = dependencies.toDependencies(startTs = startTs, endTs = endTs).toThrift
-    val blob: Array[Byte] = Codecs.dependenciesCodec.encode(thrift).array()
+    val thrift = Dependencies.create(startTs,  endTs, dependencies.links.asJava)
+    val blob: Array[Byte] = thrift.toThrift.array()
 
-    val day = Time.fromMilliseconds(endTs).floor(Duration.fromTimeUnit(1, DAYS)).inMilliseconds
+    // links are stored under the day they are in (startTs), not the day they are before (endTs).
+    val day = midnightUTC(startTs)
     val output = (day, blob)
 
     sc.parallelize(Seq(output)).saveToCassandra(keyspace, "dependencies", SomeColumns("day" as "_1", "dependencies" as "_2"))
-    println(s"Saved with day=$day (${Time.fromMilliseconds(day)})")
+    println(s"Saved with day=$day (${new Date(day)})")
   }
 
-  def floorToDay(ts: Long): Long = {
-    Time.fromMilliseconds(ts).floor(Duration.fromTimeUnit(1, DAYS)).inMilliseconds
+  /**
+   * Historical service name chooser
+   *
+   * Tries to extract the best name of the service in this span. This depends on annotations
+   * logged and prioritized names logged by the server over those logged by the client.
+   */
+  def serviceName(span: Span): Option[String] = {
+    // Most authoritative is the label of the server's endpoint
+    serviceNameOfBinaryAnnotation(span, Constants.SERVER_ADDR) orElse
+      // Next, the label of any server annotation, logged by an instrumented server
+      serviceNameOfCoreAnnotationStartingWith(span, "s") orElse
+      // Next is the label of the client's endpoint
+      serviceNameOfBinaryAnnotation(span, Constants.CLIENT_ADDR) orElse
+      // Next is the label of any client annotation, logged by an instrumented client
+      serviceNameOfCoreAnnotationStartingWith(span, "c") orElse
+      // Finally is the label of the local component's endpoint
+      serviceNameOfBinaryAnnotation(span, Constants.LOCAL_COMPONENT)
   }
-}
 
-object Codecs {
-  import com.twitter.zipkin.thriftscala.{Dependencies => ThriftDependencies}
+  def serviceNameOfBinaryAnnotation(span: Span, key: String): Option[String] = {
+    span.binaryAnnotations.asScala.find(_.key == key)
+      .filter(_.endpoint != null)
+      .map(_.endpoint.serviceName)
+      .filterNot(_.isEmpty)
+  }
 
-  def spanCodec = CassandraSpanStoreDefaults.SpanCodec
-
-  val dependenciesCodec = new ScroogeThriftCodec[ThriftDependencies](ThriftDependencies)
+  def serviceNameOfCoreAnnotationStartingWith(span: Span, prefix: String): Option[String] = {
+    span.annotations.asScala
+      .find(a => a.value.startsWith(prefix) && coreAnnotations.contains(a.value))
+      .filter(_.endpoint != null)
+      .map(_.endpoint.serviceName)
+      .filterNot(_.isEmpty)
+  }
 }
