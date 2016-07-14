@@ -8,7 +8,7 @@ ext {
             slf4j: '1.7.12',
             log4j: '1.2.17',
             spark: '1.6.2',
-            zipkin: '1.4.1-SNAPSHOT',
+            zipkin: '1.4.1',
             cassandra: '2.2.7', // to ensure tests match travis
             akka: '2.4.0'
     ]

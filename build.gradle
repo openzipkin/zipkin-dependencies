@@ -31,12 +31,7 @@ ext.isSnapshot = VersionNumber.parse(rootProject.version).qualifier == "SNAPSHOT
 allprojects {
     // Cannot infer Scala class path because..
     // - no repository is declared in root project
-    repositories {
-      jcenter()
-      maven { // temporary
-        url "http://oss.jfrog.org/oss-snapshot-local"
-      }
-    }
+    repositories { jcenter() }
 
     // - no Scala library Jar was found
     dependencies {
