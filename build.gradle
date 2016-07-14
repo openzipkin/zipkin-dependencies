@@ -20,8 +20,8 @@ allprojects {
     apply plugin: 'com.jfrog.bintray'
     apply plugin: "com.jfrog.artifactory-upload"
     apply from: "$rootDir/gradle/dependencies.gradle"  // common dependency versions
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
 }
 
 import org.gradle.util.VersionNumber
@@ -225,7 +225,6 @@ subprojects { subproject ->
 
     repositories {
         maven { url 'http://repo.typesafe.com/typesafe/releases/' }
-        maven { url 'https://maven.twttr.com/' }
     }
 
     dependencies {

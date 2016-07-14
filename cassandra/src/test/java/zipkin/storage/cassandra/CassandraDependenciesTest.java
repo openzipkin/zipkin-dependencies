@@ -16,13 +16,9 @@ package zipkin.storage.cassandra;
 import com.google.common.util.concurrent.Futures;
 import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob;
 import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob$;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import org.junit.Test;
 import zipkin.Span;
 import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
@@ -62,37 +58,5 @@ public class CassandraDependenciesTest extends DependenciesTest {
           day
       ).run();
     }
-  }
-
-  // TODO: Tests below will pass once we change to DependencyLinker
-
-  @Test(expected = AssertionError.class)
-  @Override public void intermediateSpans() {
-    super.intermediateSpans();
-  }
-
-  @Test(expected = AssertionError.class)
-  @Override public void unmergedSpans() {
-    super.unmergedSpans();
-  }
-
-  @Test(expected = AssertionError.class)
-  @Override public void duplicateAddress() {
-    super.duplicateAddress();
-  }
-
-  @Test(expected = AssertionError.class)
-  @Override public void dependencies_headlessTrace() {
-    super.dependencies_headlessTrace();
-  }
-
-  @Test(expected = AssertionError.class)
-  @Override public void noCoreAnnotations() {
-    super.noCoreAnnotations();
-  }
-
-  @Test(expected = AssertionError.class)
-  @Override public void notInstrumentedClientAndServer() {
-    super.notInstrumentedClientAndServer();
   }
 }
