@@ -50,22 +50,16 @@ public class CassandraDependenciesTest extends DependenciesTest {
   public void processDependencies(List<Span> spans) {
     Futures.getUnchecked(storage.guavaSpanConsumer().accept(spans));
 
-    Set<Long> endTimestamps = new LinkedHashSet<Long>();
-    long lookback = TimeUnit.DAYS.toMillis(1);
+    Set<Long> days = new LinkedHashSet<Long>();
     for (List<Span> trace : storage.spanStore().getTraces(QueryRequest.builder().build())) {
-      long startedAfter = Util.midnightUTC(trace.get(0).timestamp / 1000);
-      endTimestamps.add(startedAfter + lookback);
+      days.add(Util.midnightUTC(trace.get(0).timestamp / 1000));
     }
-    for (long endTs : endTimestamps) {
+    for (long day : days) {
       new ZipkinDependenciesJob(
           ZipkinDependenciesJob$.MODULE$.sparkMaster(),
           ZipkinDependenciesJob$.MODULE$.cassandraProperties(),
           storage.keyspace,
-          // TODO: This is a daily job, and c* impl expects daily buckets, too!
-          // We could make this more intuitive and less error-prone by accepting
-          // a parameter of which day to process
-          endTs,
-          lookback
+          day
       ).run();
     }
   }

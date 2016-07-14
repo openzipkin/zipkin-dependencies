@@ -1,5 +1,6 @@
 package io.zipkin.dependencies.spark.cassandra
 
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -30,11 +31,8 @@ object ZipkinDependenciesJob {
   // local[*] master lets us run & test the job locally without setting a Spark cluster
   val sparkMaster = sys.env.getOrElse("SPARK_MASTER", "local[*]")
 
-  // By default the job only considers spans with timestamps up to previous midnight
-  val defaultEndTs: Long = midnightUTC(System.currentTimeMillis)
-
-  // By default the job only accounts for spans in the 24hrs prior to previous midnight
-  val defaultLookback: Long = TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS)
+  // By default the job only works on traces whose first timestamp is today
+  val day: Long = midnightUTC(System.currentTimeMillis)
 
   def main(args: Array[String]) = {
     new ZipkinDependenciesJob(sparkMaster, cassandraProperties, keyspace).run()
@@ -44,15 +42,16 @@ object ZipkinDependenciesJob {
 case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.sparkMaster,
                                  cassandraProperties: Map[String, String] = ZipkinDependenciesJob.cassandraProperties,
                                  keyspace: String = ZipkinDependenciesJob.keyspace,
-                                 endTs: Long = ZipkinDependenciesJob.defaultEndTs,
-                                 lookback: Long = ZipkinDependenciesJob.defaultLookback) {
+                                 day: Long = ZipkinDependenciesJob.day) {
 
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
   val annotationsToConsider = Set(Constants.CLIENT_SEND, Constants.CLIENT_RECV, Constants.SERVER_SEND, Constants.SERVER_RECV)
   val binaryAnnotationsToConsider = Set(Constants.CLIENT_ADDR, Constants.SERVER_ADDR, Constants.LOCAL_COMPONENT)
 
-  val startTs = endTs - lookback
-  val microsUpper = endTs * 1000
+  val startTs = midnightUTC(day)
+  val endTs = startTs + TimeUnit.DAYS.toMillis(1) - 1
   val microsLower = startTs * 1000
+  val microsUpper = (endTs * 1000) + 999
 
   /**
    * @return true if Span contains at most one of each core annotation, false otherwise
@@ -83,7 +82,7 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
       .setMaster(sparkMaster)
       .setAppName(getClass.getName)
 
-    println(s"Running Dependencies job with startTs=$startTs (${new Date(startTs)}) and endTs=$endTs (${new Date(endTs)})")
+    println(s"Running Dependencies job for ${dateFormat.format(new Date(day))}: $microsLower ≤ Span.timestamp ≤ $microsUpper")
 
     val sc = new SparkContext(conf)
 
@@ -147,12 +146,10 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
     val thrift = Dependencies.create(startTs,  endTs, dependencies.links.asJava)
     val blob: Array[Byte] = thrift.toThrift.array()
 
-    // links are stored under the day they are in (startTs), not the day they are before (endTs).
-    val day = midnightUTC(startTs)
-    val output = (day, blob)
+    val output = (startTs, blob)
 
     sc.parallelize(Seq(output)).saveToCassandra(keyspace, "dependencies", SomeColumns("day" as "_1", "dependencies" as "_2"))
-    println(s"Saved with day=$day (${new Date(day)})")
+    println(s"Saved with day=$day ${dateFormat.format(new Date(day))}")
   }
 
   /**
