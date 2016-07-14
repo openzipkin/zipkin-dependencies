@@ -5,11 +5,13 @@ import java.util.concurrent.TimeUnit
 
 import com.datastax.spark.connector._
 import com.datastax.spark.connector.rdd.CassandraRDD
+import com.google.common.base.Predicate
+import com.google.common.collect.Collections2
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import zipkin.internal.Util._
 import zipkin.internal.{ApplyTimestampAndDuration, Dependencies}
-import zipkin.{DependencyLink, Constants, Span}
+import zipkin.{Annotation, BinaryAnnotation, DependencyLink, Constants, Span}
 
 import scala.collection.JavaConverters._
 
@@ -45,7 +47,8 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
                                  endTs: Long = ZipkinDependenciesJob.defaultEndTs,
                                  lookback: Long = ZipkinDependenciesJob.defaultLookback) {
 
-  val coreAnnotations = Set("cs", "cr", "ss", "sr")
+  val annotationsToConsider = Set(Constants.CLIENT_SEND, Constants.CLIENT_RECV, Constants.SERVER_SEND, Constants.SERVER_RECV)
+  val binaryAnnotationsToConsider = Set(Constants.CLIENT_ADDR, Constants.SERVER_ADDR, Constants.LOCAL_COMPONENT)
 
   val startTs = endTs - lookback
   val microsUpper = endTs * 1000
@@ -88,12 +91,12 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
     // ^^^ If need to drill further into the data, add this: .where("wsid='725030:14732'")
 
     val spans: RDD[Span] = table
-      .map(row => zipkin.Codec.THRIFT.readSpan(row.getBytes("span")))
+      .map(toMinimalSpan)
       .map(span => ((span.id, span.traceId), span))
       .reduceByKey { (s1, s2) => s1.toBuilder().merge(s2).build() }
       .values
-      .map(ApplyTimestampAndDuration.apply(_))
-      .filter(isValid(_))
+      .map(ApplyTimestampAndDuration.apply)
+      .filter(isValid)
 
     val traces: RDD[Trace] = spans // guaranteed no duplicates of (trace id, span id)
       .map(span => (span.traceId, Trace(span.traceId, Map(span.id -> span)))) // (traceId -> Trace)
@@ -120,6 +123,22 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
     println(s"Dependencies: $dependencies")
 
     sc.stop()
+  }
+
+  /**
+    * Filters out span data irrelevant to dependency linking, which makes intermediate
+    * stages require less data.
+    */
+  def toMinimalSpan(row: CassandraRow): Span = {
+    val unfiltered = zipkin.Codec.THRIFT.readSpan(row.getBytes("span"))
+    return unfiltered.toBuilder
+      .annotations(Collections2.filter(unfiltered.annotations, new Predicate[Annotation] {
+        override def apply(input: Annotation) = annotationsToConsider.contains(input.value)
+      }))
+      .binaryAnnotations(Collections2.filter(unfiltered.binaryAnnotations, new Predicate[BinaryAnnotation] {
+        override def apply(input: BinaryAnnotation) = binaryAnnotationsToConsider.contains(input.key)
+      }))
+      .build()
   }
 
   def saveToCassandra(sc: SparkContext, keyspace: String, dependencies: DependenciesInfo): Unit = {
@@ -162,7 +181,7 @@ case class ZipkinDependenciesJob(sparkMaster: String = ZipkinDependenciesJob.spa
 
   def serviceNameOfCoreAnnotationStartingWith(span: Span, prefix: String): Option[String] = {
     span.annotations.asScala
-      .find(a => a.value.startsWith(prefix) && coreAnnotations.contains(a.value))
+      .find(a => a.value.startsWith(prefix) && annotationsToConsider.contains(a.value))
       .filter(_.endpoint != null)
       .map(_.endpoint.serviceName)
       .filterNot(_.isEmpty)
