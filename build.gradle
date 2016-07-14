@@ -31,7 +31,12 @@ ext.isSnapshot = VersionNumber.parse(rootProject.version).qualifier == "SNAPSHOT
 allprojects {
     // Cannot infer Scala class path because..
     // - no repository is declared in root project
-    repositories { jcenter() }
+    repositories {
+      jcenter()
+      maven { // temporary
+        url "http://oss.jfrog.org/oss-snapshot-local"
+      }
+    }
 
     // - no Scala library Jar was found
     dependencies {
@@ -214,9 +219,6 @@ allprojects { thisProject ->
 
 // Build settings shared by all subprojects
 subprojects { subproject ->
-    apply from: "$rootDir/gradle/scalatest.gradle"
-
-    compileTestScala.scalaCompileOptions.additionalParameters = ["-feature"]
     compileScala.scalaCompileOptions.additionalParameters = ["-feature"]
 
     test.maxParallelForks Runtime.runtime.availableProcessors()
@@ -228,7 +230,7 @@ subprojects { subproject ->
 
     dependencies {
         testCompile 'junit:junit:4.12'
-        testCompile "org.scalatest:scalatest_${scalaInterfaceVersion}:2.2.5"
+        testCompile "org.assertj:assertj-core:3.5.1"
     }
 }
 
