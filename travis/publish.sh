@@ -1,43 +1,32 @@
 #!/usr/bin/env bash
-set -ex
+#
+# Copyright 2015-2016 The OpenZipkin Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
+#
 
-function heartbeat() {
-  # Some operations (for example Bintray GPG signing) run for a long time without output,
-  # causing Travis to time out the build. This is an ugly hack to work around that.
-  hard_timeout=3600  # 1 hour
-  heartbeat_interval=10
-  counter=0
-  while [[ $counter -lt $hard_timeout ]] && kill -0 "$$" 2>/dev/null; do
-    echo "(heartbeat $counter)"
-	counter=$(($counter + $heartbeat_interval))
-	sleep $heartbeat_interval
-  done &
-}
+set -euo pipefail
+set -x
 
-function increment_version() {
-  # TODO this would be cleaner in release.versionPatterns
-  local v=$1
-  if [ -z $2 ]; then
-     local rgx='^((?:[0-9]+\.)*)([0-9]+)($)'
-  else
-     local rgx='^((?:[0-9]+\.){'$(($2-1))'})([0-9]+)(\.|$)'
-     for (( p=`grep -o "\."<<<".$v"|wc -l`; p<$2; p++)); do
-        v+=.0; done; fi
-  val=`echo -e "$v" | perl -pe 's/^.*'$rgx'.*$/$2/'`
-  echo "$v" | perl -pe s/$rgx.*$'/${1}'`printf %0${#val}s $(($val+1))`/
-}
-
-function build_started_by_tag(){
+build_started_by_tag() {
   if [ "${TRAVIS_TAG}" == "" ]; then
-    echo "[Publishing] This build was not started by a tag, publishing"
+    echo "[Publishing] This build was not started by a tag, publishing snapshot"
     return 1
   else
-    echo "[Publishing] This build was started by the tag ${TRAVIS_TAG}, creating release commits"
+    echo "[Publishing] This build was started by the tag ${TRAVIS_TAG}, publishing release"
     return 0
   fi
 }
 
-function is_pull_request(){
+is_pull_request() {
   if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then
     echo "[Not Publishing] This is a Pull Request"
     return 0
@@ -47,7 +36,7 @@ function is_pull_request(){
   fi
 }
 
-function is_travis_branch_master(){
+is_travis_branch_master() {
   if [ "${TRAVIS_BRANCH}" = master ]; then
     echo "[Publishing] Travis branch is master"
     return 0
@@ -57,7 +46,7 @@ function is_travis_branch_master(){
   fi
 }
 
-function check_travis_branch_equals_travis_tag(){
+check_travis_branch_equals_travis_tag() {
   #Weird comparison comparing branch to tag because when you 'git push --tags'
   #the branch somehow becomes the tag value
   #github issue: https://github.com/travis-ci/travis-ci/issues/1675
@@ -70,53 +59,77 @@ function check_travis_branch_equals_travis_tag(){
   fi
 }
 
-function publish(){
-  echo "[Publishing] Publishing..."
-  PUBLISHING=true ./gradlew --info --stacktrace zipkinUpload
-  echo "[Publishing] Done"
+check_release_tag() {
+    tag="${TRAVIS_TAG}"
+    if [[ "$tag" =~ ^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then
+        echo "Build started by version tag $tag. During the release process tags like this"
+        echo "are created by the 'release' Maven plugin. Nothing to do here."
+        exit 0
+    elif [[ ! "$tag" =~ ^release-[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then
+        echo "You must specify a tag of the format 'release-0.0.0' to release this project."
+        echo "The provided tag ${tag} doesn't match that. Aborting."
+        exit 1
+    fi
 }
 
-function do_gradle_release(){
-  # TODO this would be cleaner in release.versionPatterns
-  major_minor_revision=$(echo "$TRAVIS_TAG" | cut -f1 -d-)
-  qualifier=$(echo "$TRAVIS_TAG" | cut -f2 -d- -s)
-
-  # do not increment if the version is tentative ex. 1.0.0-rc1
-  if [[ -n "$qualifier" ]]; then
-    new_version=${major_minor_revision}
+is_release_commit() {
+  project_version=$(./mvnw help:evaluate -N -Dexpression=project.version|grep -v '\[')
+  if [[ "$project_version" =~ ^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then
+    echo "Build started by release commit $project_version. Will synchronize to maven central."
+    return 0
   else
-    new_version=$(increment_version "${major_minor_revision}")
+    return 1
   fi
-  new_version="${new_version}-SNAPSHOT"
-
-  echo "[Publishing] Creating release commits"
-  echo "[Publishing]   Release version: ${TRAVIS_TAG}"
-  echo "[Publishing]   Post-release version: ${new_version}"
-
-  git checkout -B master
-
-  PUBLISHING=true ./gradlew --info --stacktrace release -Prelease.useAutomaticVersion=true -PreleaseVersion=${TRAVIS_TAG} -PnewVersion=${new_version}
-  echo "[Publishing] Done"
 }
 
-function run_tests(){
-  echo "[Not Publishing] Running tests then exiting."
-  ./gradlew check
+release_version() {
+    echo "${TRAVIS_TAG}" | sed 's/^release-//'
+}
+
+safe_checkout_master() {
+  # We need to be on a branch for release:perform to be able to create commits, and we want that branch to be master.
+  # But we also want to make sure that we build and release exactly the tagged version, so we verify that the remote
+  # master is where our tag is.
+  git checkout -B master
+  git fetch origin master:origin/master
+  commit_local_master="$(git show --pretty='format:%H' master)"
+  commit_remote_master="$(git show --pretty='format:%H' origin/master)"
+  if [ "$commit_local_master" != "$commit_remote_master" ]; then
+    echo "Master on remote 'origin' has commits since the version under release, aborting"
+    exit 1
+  fi
 }
 
 #----------------------
 # MAIN
 #----------------------
-action=run_tests
 
-if ! is_pull_request; then
-  if build_started_by_tag; then
-    check_travis_branch_equals_travis_tag
-    action=do_gradle_release
-  elif is_travis_branch_master; then
-    action=publish
-  fi
+if ! is_pull_request && build_started_by_tag; then
+  check_travis_branch_equals_travis_tag
+  check_release_tag
 fi
 
-heartbeat
-$action
+MYSQL_USER=root ./mvnw install -nsu
+
+# If we are on a pull request, our only job is to run tests, which happened above via ./mvnw install
+if is_pull_request; then
+  true
+# If we are on master, we will deploy the latest snapshot or release version
+#   - If a release commit fails to deploy for a transient reason, delete the broken version from bintray and click rebuild
+elif is_travis_branch_master; then
+  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests deploy
+
+  # If the deployment succeeded, sync it to Maven Central. Note: this needs to be done once per project, not module, hence -N
+#
+#  TODO: commented out until we get the group ids sorted out.
+#
+#  if is_release_commit; then
+#    ./mvnw --batch-mode -s ./.settings.xml -nsu -N io.zipkin.centralsync-maven-plugin:centralsync-maven-plugin:sync
+#  fi
+
+# If we are on a release tag, the following will update any version references and push a version tag for deployment.
+elif build_started_by_tag; then
+  safe_checkout_master
+  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DreleaseVersion="$(release_version)" -Darguments="-DskipTests" release:prepare
+fi
+
