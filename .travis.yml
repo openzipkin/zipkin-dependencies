@@ -1,5 +1,5 @@
-language: java
-# Trusty Beta requires sudo per https://docs.travis-ci.com/user/ci-environment/
+# Default JDK is really old: 1.8.0_31; Trusty's is less old: 1.8.0_51
+# https://docs.travis-ci.com/user/ci-environment/#Virtualization-environments
 sudo: required
 dist: trusty
 
@@ -10,25 +10,34 @@ before_install:
   - dsc-cassandra-*/bin/cassandra > /dev/null
   - git config --global user.email "${GH_USER_EMAIL}"
   - git config --global user.name "${GH_USER}"
+  # parameters used during a release
+  - git config user.name "$GH_USER"
+  - git config user.email "$GH_USER_EMAIL"
+  # setup https authentication credentials, used by ./mvnw release:prepare
+  - git config credential.helper "store --file=.git/credentials"
+  - echo "https://$GH_TOKEN:@github.com" > .git/credentials
 
-# Skip `./gradlew assemble`
-install: /bin/true
+language: java
 
-before_script:
-  - git remote set-url origin "https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git"
+jdk:
+  - oraclejdk8
+
+cache:
+  directories:
+  - $HOME/.m2
+
+install:
+  # Override default travis to use the maven wrapper
+  - ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
 script:
   - ./travis/publish.sh
 
-# These directories are cached to S3 at the end of the build
-cache:
-  directories:
-    - $HOME/.gradle/wrapper
-    - $HOME/.gradle/native
-    - $HOME/.gradle/daemon
-    - $HOME/.gradle/caches/2.9
-    - $HOME/.gradle/caches/jars-1
-    - $HOME/.gradle/caches/modules-2
+# Don't build release tags. This avoids publish conflicts because the version commit exists both on master and the release tag.
+# See https://github.com/travis-ci/travis-ci/issues/1532
+branches:
+  except:
+    - /^[0-9]/
 
 notifications:
   webhooks:

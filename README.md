@@ -3,19 +3,23 @@
 # zipkin-dependencies-spark
 
 This module is a Spark job that will collect spans from your datastore (only Cassandra is supported yet),
-analyse them aggregate the data and store it for later presentation in the [web UI](https://github.com/openzipkin/zipkin/tree/master/zipkin-web) (ex. http://localhost:8080/dependency).
+analyse them aggregate the data and store it for later presentation in the [web UI](https://github.com/openzipkin/zipkin/tree/master/zipkin-ui) (ex. http://localhost:8080/dependency).
 
 ## Running locally
+
 To start a job against against cassandra listening on localhost:9042, in Spark's standalone mode.
 
 ```bash
-$ ./gradlew run
+# Build the cassandra job and also make its dependencies
+$ ./mvnw -DskipTests --also-make -pl cassandra clean install
+# Run the cassandra job
+$ java -jar ./cassandra/target/*cassandra-*-all.jar
 ```
 
 ## Configuration
 
 `zipkin-dependencies-spark` applies configuration parameters through environment variables.
-Currently, only [cassandra](https://github.com/openzipkin/zipkin/blob/master/zipkin-cassandra/README.md) span storage is supported.
+Currently, only [cassandra](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/cassandra/README.md) span storage is supported.
 
 Below are environment variable definitions.
 
@@ -28,18 +32,5 @@ Below are environment variable definitions.
 Example usage:
 
 ```bash
-$ CASSANDRA_USER=user CASSANDRA_PASS=pass ./gradlew run
-```
-
-## Building and running a fat jar
-
-```bash
-$ ./gradlew build
-```
-This will build a fat jar `./cassandra/build/libs/*cassandra-*-all.jar`.
-
-Run it, specifying any environment variables you wish to apply.
-
-```bash
-$ CASSANDRA_HOST=remotecluster1 java -jar ./cassandra/build/libs/*cassandra-*-all.jar
+$ CASSANDRA_USER=user CASSANDRA_PASS=pass java -jar ./cassandra/target/*cassandra-*-all.jar
 ```

@@ -1,13 +1,11 @@
-# Gradle
-.gradle
-build/
-
-# Intellij
-.idea/
+.DS_Store
+.classpath
+.project
+.settings/
+target/
 *.iml
+.idea
 *.ipr
 *.iws
-out/
-
-# Travis installation files
-dsc-cassandra-*/
+# .travis.yml installs things
+dsc-cassandra-*
