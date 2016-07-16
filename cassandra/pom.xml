@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2015-2016 The OpenZipkin Authors
+    Copyright 2016 The OpenZipkin Authors
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
     in compliance with the License. You may obtain a copy of the License at
@@ -31,20 +31,41 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <java.main.class>io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob</java.main.class>
+    <java.main.class>io.zipkin.dependencies.spark.cassandra.CassandraDependenciesJob</java.main.class>
     <spark-cassandra-connector.version>1.6.0</spark-cassandra-connector.version>
   </properties>
 
   <dependencies>
     <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_${scala.binary.version}</artifactId>
+      <exclusions>
+        <!-- exclude netty-all as it interferes with cassandra's netty -->
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-all</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <!-- optional will be included in the all-jar -->
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
       <groupId>com.datastax.spark</groupId>
       <artifactId>spark-cassandra-connector_${scala.binary.version}</artifactId>
       <version>${spark-cassandra-connector.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.zipkin.java</groupId>
       <artifactId>zipkin-storage-cassandra</artifactId>
       <version>${zipkin.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -52,86 +73,6 @@
     <plugins>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <shadedClassifierName>all</shadedClassifierName>
-              <transformers>
-                <!-- Protect against http://stackoverflow.com/questions/31011243/no-configuration-setting-found-for-key-akka-version -->
-                <transformer
-                    implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>reference.conf</resource>
-                </transformer>
-                <transformer
-                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>${java.main.class}</mainClass>
-                </transformer>
-              </transformers>
-              <!-- spark + scala + ... = lots and lots of classes! -->
-              <minimizeJar>true</minimizeJar>
-              <filters>
-                <!-- Prevent minification from excluding classes looked up by name -->
-                <filter>
-                  <artifact>org.apache.hadoop:hadoop-common</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>log4j:log4j</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>io.netty:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>org.slf4j:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>org.scala-lang:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>org.apache.spark:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>com.typesafe.akka:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <!-- Prevent Invalid signature file digest for Manifest main attributes -->
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
