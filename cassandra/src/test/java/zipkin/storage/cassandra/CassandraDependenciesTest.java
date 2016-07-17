@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2016 The OpenZipkin Authors
+ * Copyright 2016 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,15 +14,13 @@
 package zipkin.storage.cassandra;
 
 import com.google.common.util.concurrent.Futures;
-import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob;
-import io.zipkin.dependencies.spark.cassandra.ZipkinDependenciesJob$;
+import io.zipkin.dependencies.spark.cassandra.CassandraDependenciesJob;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import zipkin.Span;
 import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
-import zipkin.storage.QueryRequest;
 
 public class CassandraDependenciesTest extends DependenciesTest {
   private final CassandraStorage storage;
@@ -46,17 +44,12 @@ public class CassandraDependenciesTest extends DependenciesTest {
   public void processDependencies(List<Span> spans) {
     Futures.getUnchecked(storage.guavaSpanConsumer().accept(spans));
 
-    Set<Long> days = new LinkedHashSet<Long>();
-    for (List<Span> trace : storage.spanStore().getTraces(QueryRequest.builder().build())) {
-      days.add(Util.midnightUTC(trace.get(0).timestamp / 1000));
+    Set<Long> days = new LinkedHashSet<>();
+    for (Span span : spans) {
+      days.add(Util.midnightUTC(span.timestamp / 1000));
     }
     for (long day : days) {
-      new ZipkinDependenciesJob(
-          ZipkinDependenciesJob$.MODULE$.sparkMaster(),
-          ZipkinDependenciesJob$.MODULE$.cassandraProperties(),
-          storage.keyspace,
-          day
-      ).run();
+      CassandraDependenciesJob.builder().keyspace(storage.keyspace).day(day).build().run();
     }
   }
 }
