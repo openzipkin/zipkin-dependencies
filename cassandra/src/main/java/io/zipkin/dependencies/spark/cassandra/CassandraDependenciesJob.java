@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
@@ -41,6 +42,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class CassandraDependenciesJob {
+
   /** Runs with defaults, starting today */
   public static void main(String[] args) {
     new CassandraDependenciesJob(new Builder()).run();
@@ -101,7 +103,9 @@ public final class CassandraDependenciesJob {
   CassandraDependenciesJob(Builder builder) {
     this.keyspace = builder.keyspace;
     this.day = builder.day;
-    this.dateStamp = new SimpleDateFormat("yyyy-MM-dd").format(new Date(builder.day));
+    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
