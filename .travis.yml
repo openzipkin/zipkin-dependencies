@@ -3,14 +3,17 @@
 sudo: required
 dist: trusty
 
-# Manually install cassandra until https://github.com/travis-ci/travis-ci/issues/3952
-# See https://github.com/openzipkin/zipkin/issues/706
 before_install:
+  # Manually install cassandra until https://github.com/travis-ci/travis-ci/issues/3952
+  # See https://github.com/openzipkin/zipkin/issues/706
   - curl -SL http://downloads.datastax.com/community/dsc-cassandra-2.2.7-bin.tar.gz | tar xz
   - dsc-cassandra-*/bin/cassandra > /dev/null
+  # Manually install elasticsearch until https://github.com/travis-ci/apt-source-whitelist/issues/190
+  - curl -SL https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.3.3/elasticsearch-2.3.3.tar.gz | tar xz
+  - elasticsearch-*/bin/elasticsearch -d > /dev/null
+  # parameters used during a release
   - git config --global user.email "${GH_USER_EMAIL}"
   - git config --global user.name "${GH_USER}"
-  # parameters used during a release
   - git config user.name "$GH_USER"
   - git config user.email "$GH_USER_EMAIL"
   # setup https authentication credentials, used by ./mvnw release:prepare
