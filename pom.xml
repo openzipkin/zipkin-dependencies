@@ -20,7 +20,7 @@
   <!-- TODO: change this group id to something like io.zipkin.spark -->
   <groupId>io.zipkin</groupId>
   <artifactId>zipkin-dependencies-spark-parent</artifactId>
-  <version>1.42.0</version>
+  <version>1.42.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -83,7 +83,7 @@
     <connection>scm:git:https://github.com/openzipkin/zipkin-dependencies-spark.git</connection>
     <developerConnection>scm:git:https://github.com/openzipkin/zipkin-dependencies-spark.git
     </developerConnection>
-    <tag>1.42.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <developers>
