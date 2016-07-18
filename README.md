@@ -49,14 +49,15 @@ $ CASSANDRA_USER=user CASSANDRA_PASS=pass java -jar ./cassandra/target/zipkin-de
 The Elasticsearch binary is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
 
     * `ES_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
-    * `ES_HOSTS`: A comma separated list of elasticsearch hostnodes to connect to, in host:port
-                  format. The port should be the transport port, not the http port. Defaults to
-                  "localhost:9300". Only one of these hosts needs to be available to fetch the
+    * `ES_NODES`: A comma separated list of elasticsearch hosts advertising http on port 9200.
+                  Defaults to localhost. Only one of these hosts needs to be available to fetch the
                   remaining nodes in the cluster. It is recommended to set this to all the master
                   nodes of the cluster.
+    * `ES_NODES_WAN_ONLY`: Set to true to only use the values set in ES_NODES, for example if your
+                           elasticsearch cluster is in Docker. Defaults to false
 
 Example usage:
 
 ```bash
-$ ES_HOSTS=host1:9300,host2:9300 java -jar ./elasticsearch/target/zipkin-dependencies*-all.jar
+$ ES_NODES=host1:9200,host2:9200 java -jar ./elasticsearch/target/zipkin-dependencies*-all.jar
 ```
