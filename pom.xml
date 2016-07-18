@@ -27,6 +27,7 @@
 
   <modules>
     <module>cassandra</module>
+    <module>elasticsearch</module>
   </modules>
 
   <properties>
@@ -37,7 +38,7 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>1.6.2</spark.version>
-    <zipkin.version>1.4.1</zipkin.version>
+    <zipkin.version>1.4.2</zipkin.version>
     <logback.version>1.1.7</logback.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.5.1</assertj.version>
@@ -294,6 +295,13 @@
                       <include>**</include>
                     </includes>
                   </filter>
+                  <filter>
+                    <!-- elasticsearch -->
+                    <artifact>commons-httpclient:commons-httpclient</artifact>
+                    <includes>
+                      <include>**</include>
+                    </includes>
+                  </filter>
                   <!-- Prevent Invalid signature file digest for Manifest main attributes -->
                   <filter>
                     <artifact>*:*</artifact>
@@ -405,6 +413,7 @@
             <exclude>LICENSE</exclude>
             <exclude>**/*.md</exclude>
             <exclude>dsc-cassandra-*/**</exclude>
+            <exclude>elasticsearch-2*/**</exclude>
             <exclude>src/test/resources/**</exclude>
             <exclude>src/main/resources/**</exclude>
           </excludes>

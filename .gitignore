@@ -9,3 +9,4 @@ target/
 *.iws
 # .travis.yml installs things
 dsc-cassandra-*
+elasticsearch-2*
