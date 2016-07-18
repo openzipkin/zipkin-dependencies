@@ -21,7 +21,7 @@
     <!-- TODO: change this group id to something like io.zipkin.dependencies -->
     <groupId>io.zipkin</groupId>
     <artifactId>zipkin-dependencies-spark-parent</artifactId>
-    <version>1.42.1</version>
+    <version>1.42.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>zipkin-dependencies-spark-cassandra</artifactId>
