@@ -14,15 +14,13 @@
     the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <!-- TODO: change this group id to something like io.zipkin.spark -->
   <groupId>io.zipkin</groupId>
   <artifactId>zipkin-dependencies-spark-parent</artifactId>
-  <version>1.41.1-SNAPSHOT</version>
+  <version>1.42.0</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -85,7 +83,7 @@
     <connection>scm:git:https://github.com/openzipkin/zipkin-dependencies-spark.git</connection>
     <developerConnection>scm:git:https://github.com/openzipkin/zipkin-dependencies-spark.git
     </developerConnection>
-    <tag>HEAD</tag>
+    <tag>1.42.0</tag>
   </scm>
 
   <developers>
@@ -228,17 +226,14 @@
                 <shadedClassifierName>all</shadedClassifierName>
                 <transformers>
                   <!-- Protect against http://stackoverflow.com/questions/31011243/no-configuration-setting-found-for-key-akka-version -->
-                  <transformer
-                      implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                     <resource>reference.conf</resource>
                   </transformer>
-                  <transformer
-                      implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                     <mainClass>${java.main.class}</mainClass>
                   </transformer>
                   <!-- Quiet logging, which otherwise defaults to DEBUG -->
-                  <transformer
-                      implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                  <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
                     <resource>logback.xml</resource>
                     <file>src/test/resources/logback.xml</file>
                   </transformer>
