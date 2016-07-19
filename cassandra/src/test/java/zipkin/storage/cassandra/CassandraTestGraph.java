@@ -16,7 +16,6 @@ package zipkin.storage.cassandra;
 import org.junit.AssumptionViolatedException;
 import zipkin.Component.CheckResult;
 import zipkin.internal.LazyCloseable;
-import zipkin.storage.cassandra.CassandraStorage;
 
 enum CassandraTestGraph {
   INSTANCE;

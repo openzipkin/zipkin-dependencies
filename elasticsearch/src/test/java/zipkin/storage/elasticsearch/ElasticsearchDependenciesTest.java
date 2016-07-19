@@ -14,11 +14,11 @@
 package zipkin.storage.elasticsearch;
 
 import com.google.common.util.concurrent.Futures;
-import io.zipkin.dependencies.spark.elasticsearch.ElasticsearchDependenciesJob;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import zipkin.Span;
+import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
 

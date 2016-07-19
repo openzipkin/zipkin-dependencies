@@ -14,11 +14,11 @@
 package zipkin.storage.cassandra;
 
 import com.google.common.util.concurrent.Futures;
-import io.zipkin.dependencies.spark.cassandra.CassandraDependenciesJob;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import zipkin.Span;
+import zipkin.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
 

@@ -17,10 +17,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <!-- TODO: change this group id to something like io.zipkin.spark -->
-  <groupId>io.zipkin</groupId>
-  <artifactId>zipkin-dependencies-spark-parent</artifactId>
-  <version>1.42.2-SNAPSHOT</version>
+  <groupId>io.zipkin.dependencies</groupId>
+  <artifactId>zipkin-dependencies-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -60,9 +59,9 @@
     <errorprone.version>2.0.9</errorprone.version>
   </properties>
 
-  <name>Zipkin Dependencies Spark (Parent)</name>
-  <description>Zipkin Dependencies Spark (Parent)</description>
-  <url>https://github.com/openzipkin/zipkin-dependencies-spark</url>
+  <name>Zipkin Dependencies (Parent)</name>
+  <description>Zipkin Dependencies (Parent)</description>
+  <url>https://github.com/openzipkin/zipkin-dependencies</url>
   <inceptionYear>2016</inceptionYear>
 
   <organization>
@@ -79,9 +78,9 @@
   </licenses>
 
   <scm>
-    <url>https://github.com/openzipkin/zipkin-dependencies-spark</url>
-    <connection>scm:git:https://github.com/openzipkin/zipkin-dependencies-spark.git</connection>
-    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-dependencies-spark.git
+    <url>https://github.com/openzipkin/zipkin-dependencies</url>
+    <connection>scm:git:https://github.com/openzipkin/zipkin-dependencies.git</connection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-dependencies.git
     </developerConnection>
     <tag>HEAD</tag>
   </scm>
@@ -102,7 +101,7 @@
   <distributionManagement>
     <repository>
       <id>bintray</id>
-      <url>https://api.bintray.com/maven/openzipkin/maven/zipkin-dependencies-spark/;publish=1</url>
+      <url>https://api.bintray.com/maven/openzipkin/maven/zipkin-dependencies/;publish=1</url>
     </repository>
     <snapshotRepository>
       <id>jfrog-snapshots</id>
@@ -112,20 +111,20 @@
 
   <issueManagement>
     <system>Github</system>
-    <url>https://github.com/openzipkin/zipkin-dependencies-spark/issues</url>
+    <url>https://github.com/openzipkin/zipkin-dependencies/issues</url>
   </issueManagement>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-dependencies-spark-cassandra</artifactId>
+        <artifactId>zipkin-dependencies-cassandra</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-dependencies-spark-elasticsearch</artifactId>
+        <artifactId>zipkin-dependencies-elasticsearch</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -213,6 +212,23 @@
         </plugin>
 
         <plugin>
+          <groupId>net.orfjackal.retrolambda</groupId>
+          <artifactId>retrolambda-maven-plugin</artifactId>
+          <version>${retrolambda-maven-plugin.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>process-main</goal>
+              </goals>
+              <configuration>
+                <target>1.7</target>
+                <fork>false</fork>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
           <executions>
@@ -223,7 +239,7 @@
               </goals>
               <configuration>
                 <shadedArtifactAttached>true</shadedArtifactAttached>
-                <shadedClassifierName>all</shadedClassifierName>
+                <shadedClassifierName>exec</shadedClassifierName>
                 <transformers>
                   <!-- Protect against http://stackoverflow.com/questions/31011243/no-configuration-setting-found-for-key-akka-version -->
                   <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
@@ -364,23 +380,6 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <groupId>net.orfjackal.retrolambda</groupId>
-        <artifactId>retrolambda-maven-plugin</artifactId>
-        <version>${retrolambda-maven-plugin.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>process-main</goal>
-            </goals>
-            <configuration>
-              <target>1.7</target>
-              <fork>false</fork>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <!-- Ensures checksums are added to published jars -->
       <plugin>
         <artifactId>maven-install-plugin</artifactId>
@@ -446,7 +445,7 @@
         <artifactId>centralsync-maven-plugin</artifactId>
         <version>0.1.0</version>
         <configuration>
-          <packageName>zipkin-dependencies-spark</packageName>
+          <packageName>zipkin-dependencies</packageName>
         </configuration>
       </plugin>
     </plugins>
