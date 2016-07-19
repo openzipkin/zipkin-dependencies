@@ -31,7 +31,7 @@ cache:
 
 install:
   # Override default travis to use the maven wrapper
-  - ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+  - ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
 script:
   - ./travis/publish.sh
