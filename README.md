@@ -1,6 +1,6 @@
-[![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-dependencies-spark.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-dependencies-spark) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-dependencies-spark/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-dependencies-spark/_latestVersion)
+[![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin-dependencies.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-dependencies) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin-dependencies/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin-dependencies/_latestVersion)
 
-# zipkin-dependencies-spark
+# zipkin-dependencies
 
 This is a Spark job that will collect spans from your datastore, analyze links between services,
 and store them for later presentation in the [web UI](https://github.com/openzipkin/zipkin/tree/master/zipkin-ui) (ex. http://localhost:8080/dependency).
@@ -19,13 +19,13 @@ To start a job against against a local datastore, in Spark's standalone mode.
 # Build the spark jobs
 $ ./mvnw -DskipTests clean install
 # Run the Cassandra job
-$ java -jar ./cassandra/target/zipkin-dependencies*-all.jar
+$ java -jar ./cassandra/target/zipkin-dependencies*-exec.jar
 # Or run the Elasticsearch job
-$ java -jar ./elasticsearch/target/zipkin-dependencies*-all.jar
+$ java -jar ./elasticsearch/target/zipkin-dependencies*-exec.jar
 ```
 
 ## Environment Variables
-`zipkin-dependencies-spark` applies configuration parameters through environment variables. At the
+`zipkin-dependencies` applies configuration parameters through environment variables. At the
 moment, separate binaries are made for each storage layer.
 
 The following variables are common to all storage layers:
@@ -42,7 +42,7 @@ The cassandra binary is compatible with Zipkin's [Cassandra storage component](h
 Example usage:
 
 ```bash
-$ CASSANDRA_USER=user CASSANDRA_PASS=pass java -jar ./cassandra/target/zipkin-dependencies*-all.jar
+$ CASSANDRA_USER=user CASSANDRA_PASS=pass java -jar ./cassandra/target/zipkin-dependencies*-exec.jar
 ```
 
 ### Elasticsearch Storage
@@ -59,5 +59,5 @@ The Elasticsearch binary is compatible with Zipkin's [Elasticsearch storage comp
 Example usage:
 
 ```bash
-$ ES_NODES=host1:9200,host2:9200 java -jar ./elasticsearch/target/zipkin-dependencies*-all.jar
+$ ES_NODES=host1:9200,host2:9200 java -jar ./elasticsearch/target/zipkin-dependencies*-exec.jar
 ```
