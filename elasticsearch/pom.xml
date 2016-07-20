@@ -20,7 +20,6 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <!-- TODO: change this group id to something like io.zipkin.dependencies -->
     <groupId>io.zipkin.dependencies</groupId>
     <artifactId>zipkin-dependencies-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
