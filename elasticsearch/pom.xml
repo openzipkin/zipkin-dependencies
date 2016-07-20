@@ -30,7 +30,6 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <java.main.class>zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob</java.main.class>
     <elasticsearch.version>2.3.3</elasticsearch.version>
   </properties>
 
@@ -58,9 +57,6 @@
 
   <build>
     <plugins>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-      </plugin>
       <plugin>
         <groupId>net.orfjackal.retrolambda</groupId>
         <artifactId>retrolambda-maven-plugin</artifactId>

@@ -28,7 +28,6 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <java.main.class>zipkin.dependencies.cassandra.CassandraDependenciesJob</java.main.class>
     <spark-cassandra-connector.version>1.6.0</spark-cassandra-connector.version>
   </properties>
 
@@ -43,13 +42,6 @@
           <artifactId>netty-all</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <!-- optional will be included in the all-jar -->
-      <optional>true</optional>
     </dependency>
 
     <dependency>
@@ -68,9 +60,6 @@
 
   <build>
     <plugins>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-      </plugin>
       <plugin>
         <groupId>net.orfjackal.retrolambda</groupId>
         <artifactId>retrolambda-maven-plugin</artifactId>

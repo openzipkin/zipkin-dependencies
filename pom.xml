@@ -25,6 +25,7 @@
   <modules>
     <module>cassandra</module>
     <module>elasticsearch</module>
+    <module>main</module>
   </modules>
 
   <properties>
@@ -47,7 +48,6 @@
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <license-maven-plugin.version>2.11</license-maven-plugin.version>
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
-    <maven-shade-plugin.version>2.4.3</maven-shade-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
 
     <!-- Tools to ensure we can run on Java 7 JVMs -->
@@ -223,107 +223,6 @@
               <configuration>
                 <target>1.7</target>
                 <fork>false</fork>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-
-        <plugin>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>${maven-shade-plugin.version}</version>
-          <executions>
-            <execution>
-              <phase>package</phase>
-              <goals>
-                <goal>shade</goal>
-              </goals>
-              <configuration>
-                <shadedArtifactAttached>true</shadedArtifactAttached>
-                <shadedClassifierName>exec</shadedClassifierName>
-                <transformers>
-                  <!-- Protect against http://stackoverflow.com/questions/31011243/no-configuration-setting-found-for-key-akka-version -->
-                  <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                    <resource>reference.conf</resource>
-                  </transformer>
-                  <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                    <mainClass>${java.main.class}</mainClass>
-                  </transformer>
-                  <!-- Quiet logging, which otherwise defaults to DEBUG -->
-                  <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                    <resource>logback.xml</resource>
-                    <file>src/test/resources/logback.xml</file>
-                  </transformer>
-                </transformers>
-                <!-- spark + scala + ... = lots and lots of classes! -->
-                <minimizeJar>true</minimizeJar>
-                <filters>
-                  <!-- Prevent minification from excluding classes looked up by name -->
-                  <filter>
-                    <artifact>org.apache.hadoop:hadoop-common</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>log4j:log4j</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>io.netty:*</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>org.slf4j:*</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>ch.qos.logback:logback-classic</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>org.scala-lang:*</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>org.apache.spark:*</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <artifact>com.typesafe.akka:*</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <filter>
-                    <!-- elasticsearch -->
-                    <artifact>commons-httpclient:commons-httpclient</artifact>
-                    <includes>
-                      <include>**</include>
-                    </includes>
-                  </filter>
-                  <!-- Prevent Invalid signature file digest for Manifest main attributes -->
-                  <filter>
-                    <artifact>*:*</artifact>
-                    <excludes>
-                      <exclude>META-INF/*.SF</exclude>
-                      <exclude>META-INF/*.DSA</exclude>
-                      <exclude>META-INF/*.RSA</exclude>
-                    </excludes>
-                  </filter>
-                </filters>
-                <createDependencyReducedPom>false</createDependencyReducedPom>
               </configuration>
             </execution>
           </executions>
