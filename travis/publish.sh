@@ -110,7 +110,7 @@ if ! is_pull_request && build_started_by_tag; then
 fi
 
 # Use quiet as shade plugin creates too many logs for Travis: The log length has exceeded the limit of 4 MB
-./mvnw -q install -nsu
+MYSQL_USER=root ./mvnw -q install -nsu
 
 # If we are on a pull request, our only job is to run tests, which happened above via ./mvnw install
 if is_pull_request; then

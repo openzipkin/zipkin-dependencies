@@ -24,6 +24,7 @@
 
   <modules>
     <module>cassandra</module>
+    <module>mysql</module>
     <module>elasticsearch</module>
     <module>main</module>
   </modules>
@@ -36,7 +37,7 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>1.6.2</spark.version>
-    <zipkin.version>1.4.3</zipkin.version>
+    <zipkin.version>1.4.5-SNAPSHOT</zipkin.version>
     <logback.version>1.1.7</logback.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.5.1</assertj.version>
@@ -98,6 +99,20 @@
     </developer>
   </developers>
 
+  <repositories>
+    <!-- TODO: temporary until zipkin dependency is not snapshot -->
+    <repository>
+      <id>jfrog-snapshots</id>
+      <url>http://oss.jfrog.org/artifactory/oss-snapshot-local</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+  </repositories>
+
   <distributionManagement>
     <repository>
       <id>bintray</id>
@@ -119,6 +134,12 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-dependencies-cassandra</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-dependencies-mysql</artifactId>
         <version>${project.version}</version>
       </dependency>
 
