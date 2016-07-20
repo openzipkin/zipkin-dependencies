@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2016 The OpenZipkin Authors
+
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+    in compliance with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software distributed under the License
+    is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+    or implied. See the License for the specific language governing permissions and limitations under
+    the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.zipkin.dependencies</groupId>
+    <artifactId>zipkin-dependencies-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>zipkin-dependencies</artifactId>
+  <name>Zipkin Dependencies: Main</name>
+
+  <properties>
+    <main.basedir>${project.basedir}/..</main.basedir>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-dependencies-cassandra</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zipkin-dependencies-elasticsearch</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4.3</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <!-- Protect against http://stackoverflow.com/questions/31011243/no-configuration-setting-found-for-key-akka-version -->
+                <transformer
+                    implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>reference.conf</resource>
+                </transformer>
+                <transformer
+                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>zipkin.dependencies.ZipkinDependenciesJob</mainClass>
+                </transformer>
+              </transformers>
+              <!-- spark + scala + ... = lots and lots of classes! -->
+              <minimizeJar>true</minimizeJar>
+              <filters>
+                <!-- Prevent minification from excluding classes looked up by name -->
+                <filter>
+                  <artifact>org.apache.hadoop:hadoop-common</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>log4j:log4j</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>io.netty:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>org.slf4j:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>ch.qos.logback:logback-classic</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>org.scala-lang:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>org.apache.spark:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>com.typesafe.akka:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <!-- elasticsearch -->
+                  <artifact>commons-httpclient:commons-httpclient</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <!-- Prevent Invalid signature file digest for Manifest main attributes -->
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>net.orfjackal.retrolambda</groupId>
+        <artifactId>retrolambda-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

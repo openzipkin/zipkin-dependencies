@@ -18,10 +18,7 @@ To start a job against against a local datastore, in Spark's standalone mode.
 ```bash
 # Build the spark jobs
 $ ./mvnw -DskipTests clean install
-# Run the Cassandra job
-$ java -jar ./cassandra/target/zipkin-dependencies*-exec.jar
-# Or run the Elasticsearch job
-$ java -jar ./elasticsearch/target/zipkin-dependencies*-exec.jar
+$ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
 ## Environment Variables
@@ -32,7 +29,7 @@ The following variables are common to all storage layers:
     * `SPARK_MASTER`: Spark master to submit the job to; Defaults to `local[*]`
 
 ### Cassandra
-The cassandra binary is compatible with Zipkin's [Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
+Cassandra is used when `STORAGE_TYPE=cassandra`. The schema is compatible with Zipkin's [Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
 
     * `CASSANDRA_KEYSPACE`: The keyspace to use. Defaults to "zipkin".
     * `CASSANDRA_USERNAME` and `CASSANDRA_PASSWORD`: Cassandra authentication. Will throw an exception on startup if authentication fails
@@ -42,11 +39,11 @@ The cassandra binary is compatible with Zipkin's [Cassandra storage component](h
 Example usage:
 
 ```bash
-$ CASSANDRA_USER=user CASSANDRA_PASS=pass java -jar ./cassandra/target/zipkin-dependencies*-exec.jar
+$ STORAGE_TYPE=cassandra CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
 ### Elasticsearch Storage
-The Elasticsearch binary is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
+Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
 
     * `ES_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
     * `ES_NODES`: A comma separated list of elasticsearch hosts advertising http on port 9200.
@@ -59,5 +56,5 @@ The Elasticsearch binary is compatible with Zipkin's [Elasticsearch storage comp
 Example usage:
 
 ```bash
-$ ES_NODES=host1:9200,host2:9200 java -jar ./elasticsearch/target/zipkin-dependencies*-exec.jar
+$ STORAGE_TYPE=elasticsearch ES_NODES=host1:9200,host2:9200 java -jar ./main/target/zipkin-dependencies*.jar
 ```

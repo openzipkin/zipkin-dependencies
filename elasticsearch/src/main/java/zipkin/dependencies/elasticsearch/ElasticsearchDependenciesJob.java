@@ -39,11 +39,6 @@ import static zipkin.internal.Util.midnightUTC;
 
 public final class ElasticsearchDependenciesJob {
 
-  /** Runs with defaults, starting today */
-  public static void main(String[] args) {
-    new ElasticsearchDependenciesJob(new Builder()).run();
-  }
-
   public static Builder builder() {
     return new Builder();
   }

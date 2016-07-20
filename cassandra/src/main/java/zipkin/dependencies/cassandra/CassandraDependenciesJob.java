@@ -43,11 +43,6 @@ import static zipkin.internal.Util.midnightUTC;
 
 public final class CassandraDependenciesJob {
 
-  /** Runs with defaults, starting today */
-  public static void main(String[] args) {
-    new CassandraDependenciesJob(new Builder()).run();
-  }
-
   public static Builder builder() {
     return new Builder();
   }
