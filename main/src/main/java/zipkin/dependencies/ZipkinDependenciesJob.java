@@ -15,6 +15,7 @@ package zipkin.dependencies;
 
 import zipkin.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
+import zipkin.dependencies.mysql.MySQLDependenciesJob;
 
 public final class ZipkinDependenciesJob {
 
@@ -24,6 +25,9 @@ public final class ZipkinDependenciesJob {
     switch (storageType) {
       case "cassandra":
         CassandraDependenciesJob.builder().build().run();
+        break;
+      case "mysql":
+        MySQLDependenciesJob.builder().build().run();
         break;
       case "elasticsearch":
         ElasticsearchDependenciesJob.builder().build().run();

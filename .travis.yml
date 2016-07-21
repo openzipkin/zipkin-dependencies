@@ -2,8 +2,30 @@
 # https://docs.travis-ci.com/user/ci-environment/#Virtualization-environments
 sudo: required
 dist: trusty
+addons:
+  apt:
+    packages:
+    - mysql-server-5.6
+    - mysql-client-core-5.6
+    - mysql-client-5.6
+
+language: java
+
+jdk:
+  - oraclejdk8
+
+services:
+  - mysql
+
+cache:
+  directories:
+  - $HOME/.m2
 
 before_install:
+  # install mysql schema
+  - mysql -uroot -e 'SET GLOBAL innodb_file_format=Barracuda'
+  - mysql -uroot -e 'create database if not exists zipkin'
+  - curl -SL https://raw.githubusercontent.com/openzipkin/zipkin/master/zipkin-storage/mysql/src/main/resources/mysql.sql | mysql -uroot -Dzipkin
   # Manually install cassandra until https://github.com/travis-ci/travis-ci/issues/3952
   # See https://github.com/openzipkin/zipkin/issues/706
   - curl -SL http://downloads.datastax.com/community/dsc-cassandra-2.2.7-bin.tar.gz | tar xz
@@ -19,15 +41,6 @@ before_install:
   # setup https authentication credentials, used by ./mvnw release:prepare
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://$GH_TOKEN:@github.com" > .git/credentials
-
-language: java
-
-jdk:
-  - oraclejdk8
-
-cache:
-  directories:
-  - $HOME/.m2
 
 install:
   # Override default travis to use the maven wrapper

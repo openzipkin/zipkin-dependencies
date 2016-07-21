@@ -8,8 +8,8 @@ and store them for later presentation in the [web UI](https://github.com/openzip
 This job parses all traces in the current day in UTC time. This means you should schedule it to run
 just prior to midnight UTC.
 
-Currently, Zipkin [Cassandra](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/cassandra/README.md) and
-[Elasticsearch](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/elasticsearch/README.md) schemas are supported. MySQL will be added shortly.
+All Zipkin [Storage Components](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/)
+are supported, including Cassandra, MySQL and Elasticsearch.
 
 ## Running locally
 
@@ -40,6 +40,21 @@ Example usage:
 
 ```bash
 $ STORAGE_TYPE=cassandra CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -jar ./main/target/zipkin-dependencies*.jar
+```
+
+### MySQL Storage
+MySQL is used when `STORAGE_TYPE=mysql`. The schema is compatible with Zipkin's [MySQL storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/mysql).
+
+    * `MYSQL_DB`: The database to use. Defaults to "zipkin".
+    * `MYSQL_USER` and `MYSQL_PASS`: MySQL authentication, which defaults to empty string.
+    * `MYSQL_HOST`: Defaults to localhost
+    * `MYSQL_TCP_PORT`: Defaults to 3306
+    * `MYSQL_USE_SSL`: Requires `javax.net.ssl.trustStore` and `javax.net.ssl.trustStorePassword`, defaults to false.
+
+Example usage:
+
+```bash
+$ STORAGE_TYPE=mysql MYSQL_USER=root java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
 ### Elasticsearch Storage
