@@ -17,13 +17,18 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.datastax.spark.connector.japi.CassandraRow;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.SparkConf;
@@ -50,11 +55,13 @@ public final class CassandraDependenciesJob {
   public static final class Builder {
 
     String keyspace = getEnv("CASSANDRA_KEYSPACE", "zipkin");
+    /** Comma separated list of hosts / IPs part of Cassandra cluster. Defaults to localhost */
+    String contactPoints = getEnv("CASSANDRA_CONTACT_POINTS", "localhost");
 
     Map<String, String> sparkProperties = ImmutableMap.of(
         "spark.ui.enabled", "false",
-        "spark.cassandra.connection.host", getEnv("CASSANDRA_HOST", "127.0.0.1"),
-        "spark.cassandra.connection.port", getEnv("CASSANDRA_PORT", "9042"),
+        "spark.cassandra.connection.host", parseHosts(contactPoints),
+        "spark.cassandra.connection.port", parsePort(contactPoints),
         "spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""),
         "spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", "")
     );
@@ -160,5 +167,24 @@ public final class CassandraDependenciesJob {
       }
     });
     System.out.println("Saved with day=" + dateStamp);
+  }
+
+  static String parseHosts(String contactPoints) {
+    List<String> result = new LinkedList<>();
+    for (String contactPoint : contactPoints.split(",")) {
+      HostAndPort parsed = HostAndPort.fromString(contactPoint);
+      result.add(parsed.getHostText());
+    }
+    return Joiner.on(',').join(result);
+  }
+
+  /** Returns the consistent port across all contact points or 9042 */
+  static String parsePort(String contactPoints) {
+    Set<Integer> ports = Sets.newLinkedHashSet();
+    for (String contactPoint : contactPoints.split(",")) {
+      HostAndPort parsed = HostAndPort.fromString(contactPoint);
+      ports.add(parsed.getPortOrDefault(9042));
+    }
+    return ports.size() == 1 ? String.valueOf(ports.iterator().next()) : "9042";
   }
 }

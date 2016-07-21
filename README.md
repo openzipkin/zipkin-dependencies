@@ -42,9 +42,8 @@ The following variables are common to all storage layers:
 Cassandra is used when `STORAGE_TYPE=cassandra`. The schema is compatible with Zipkin's [Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
 
     * `CASSANDRA_KEYSPACE`: The keyspace to use. Defaults to "zipkin".
+    * `CASSANDRA_CONTACT_POINTS`: Comma separated list of hosts / ip addresses part of Cassandra cluster. Defaults to localhost
     * `CASSANDRA_USERNAME` and `CASSANDRA_PASSWORD`: Cassandra authentication. Will throw an exception on startup if authentication fails
-    * `CASSANDRA_HOST`: A host in your cassandra cluster; Defaults to `127.0.0.1`
-    * `CASSANDRA_PORT`: The port of `CASSANDRA_HOST`; Defaults to `9042`
 
 Example usage:
 
@@ -71,15 +70,17 @@ $ STORAGE_TYPE=mysql MYSQL_USER=root java -jar ./main/target/zipkin-dependencies
 Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
 
     * `ES_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
-    * `ES_NODES`: A comma separated list of elasticsearch hosts advertising http on port 9200.
-                  Defaults to localhost. Only one of these hosts needs to be available to fetch the
-                  remaining nodes in the cluster. It is recommended to set this to all the master
-                  nodes of the cluster.
-    * `ES_NODES_WAN_ONLY`: Set to true to only use the values set in ES_NODES, for example if your
+    * `ES_HOSTS`: A comma separated list of elasticsearch hosts advertising http. Defaults to
+                  localhost. Add port section if not listening on port 9200. Only one of these hosts
+                  needs to be available to fetch the remaining nodes in the cluster. It is
+                  recommended to set this to all the master nodes of the cluster.
+    * `ES_NODES_WAN_ONLY`: Set to true to only use the values set in ES_HOSTS, for example if your
                            elasticsearch cluster is in Docker. Defaults to false
 
 Example usage:
 
 ```bash
-$ STORAGE_TYPE=elasticsearch ES_NODES=host1:9200,host2:9200 java -jar ./main/target/zipkin-dependencies*.jar
+$ STORAGE_TYPE=elasticsearch ES_HOSTS=host1,host2 java -jar ./main/target/zipkin-dependencies*.jar
+# To override the http port, add it to the host string
+$ STORAGE_TYPE=elasticsearch ES_HOSTS=host1:9201 java -jar ./main/target/zipkin-dependencies*.jar
 ```

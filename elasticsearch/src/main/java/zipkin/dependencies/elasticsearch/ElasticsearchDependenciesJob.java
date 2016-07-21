@@ -55,7 +55,7 @@ public final class ElasticsearchDependenciesJob {
         "es.index.read.missing.as.empty", "true",
         "es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"),
         // NOTE: unlike zipkin, this uses the http port
-        "es.nodes", getEnv("ES_NODES", "127.0.0.1")
+        "es.nodes", getEnv("ES_HOSTS", "127.0.0.1")
     );
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
