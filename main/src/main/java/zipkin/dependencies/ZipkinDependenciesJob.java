@@ -13,6 +13,9 @@
  */
 package zipkin.dependencies;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 import zipkin.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin.dependencies.mysql.MySQLDependenciesJob;
@@ -21,19 +24,31 @@ public final class ZipkinDependenciesJob {
 
   /** Runs with defaults, starting today */
   public static void main(String[] args) {
+    long day = args.length == 1 ? parseDay(args[0]) : System.currentTimeMillis();
     String storageType = System.getenv("STORAGE_TYPE");
     switch (storageType) {
       case "cassandra":
-        CassandraDependenciesJob.builder().build().run();
+        CassandraDependenciesJob.builder().day(day).build().run();
         break;
       case "mysql":
-        MySQLDependenciesJob.builder().build().run();
+        MySQLDependenciesJob.builder().day(day).build().run();
         break;
       case "elasticsearch":
-        ElasticsearchDependenciesJob.builder().build().run();
+        ElasticsearchDependenciesJob.builder().day(day).build().run();
         break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType);
+    }
+  }
+
+  static long parseDay(String formattedDate) {
+    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    try {
+      return df.parse(formattedDate).getTime();
+    } catch (ParseException e) {
+      throw new IllegalArgumentException(
+          "First argument must be a yyy-MM-dd formatted date. Ex. 2016-07-16");
     }
   }
 }

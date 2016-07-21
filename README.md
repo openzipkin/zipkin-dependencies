@@ -21,6 +21,16 @@ $ ./mvnw -DskipTests clean install
 $ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
+## Usage
+
+By default, this job parses all traces since midnight UTC. You can parse traces for a different day
+via an argument in yyy-MM-dd format, like 2016-07-16.
+
+```bash
+# ex to run the job to process yesterday's traces on OS/X
+$ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar `date -uv-1d +%F`
+```
+
 ## Environment Variables
 `zipkin-dependencies` applies configuration parameters through environment variables. At the
 moment, separate binaries are made for each storage layer.
