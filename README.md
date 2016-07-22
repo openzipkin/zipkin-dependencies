@@ -16,9 +16,14 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 The quickest way to get started is to fetch the [latest released job](https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST) as a self-contained jar.
 Note that Zipkin Dependencies requires minimum JRE 7. For example:
 
-```
-wget -O zipkin-dependencies.jar 'https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST'
+```bash
+$ wget -O zipkin-dependencies.jar 'https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST'
 STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar
+```
+
+You can also start Zipkin Dependencies via [Docker](https://github.com/openzipkin/docker-zipkin-dependencies).
+```bash
+$ docker run --env STORAGE_TYPE=cassandra --env CASSANDRA_CONTACT_POINTS=host1,host2 openzipkin/zipkin-dependencies
 ```
 
 ## Usage
