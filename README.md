@@ -11,14 +11,14 @@ just prior to midnight UTC.
 All Zipkin [Storage Components](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/)
 are supported, including Cassandra, MySQL and Elasticsearch.
 
-## Running locally
+## Quick-start
 
-To start a job against against a local datastore, in Spark's standalone mode.
+The quickest way to get started is to fetch the [latest released job](https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST) as a self-contained jar.
+Note that Zipkin Dependencies requires minimum JRE 7. For example:
 
-```bash
-# Build the spark jobs
-$ ./mvnw -DskipTests clean install
-$ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
+```
+wget -O zipkin-dependencies.jar 'https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST'
+STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar
 ```
 
 ## Usage
@@ -28,7 +28,7 @@ via an argument in yyy-MM-dd format, like 2016-07-16.
 
 ```bash
 # ex to run the job to process yesterday's traces on OS/X
-$ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar `date -uv-1d +%F`
+$ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar `date -uv-1d +%F`
 ```
 
 ## Environment Variables
@@ -48,7 +48,7 @@ Cassandra is used when `STORAGE_TYPE=cassandra`. The schema is compatible with Z
 Example usage:
 
 ```bash
-$ STORAGE_TYPE=cassandra CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -jar ./main/target/zipkin-dependencies*.jar
+$ STORAGE_TYPE=cassandra CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -jar zipkin-dependencies.jar
 ```
 
 ### MySQL Storage
@@ -63,7 +63,7 @@ MySQL is used when `STORAGE_TYPE=mysql`. The schema is compatible with Zipkin's 
 Example usage:
 
 ```bash
-$ STORAGE_TYPE=mysql MYSQL_USER=root java -jar ./main/target/zipkin-dependencies*.jar
+$ STORAGE_TYPE=mysql MYSQL_USER=root java -jar zipkin-dependencies.jar
 ```
 
 ### Elasticsearch Storage
@@ -80,7 +80,17 @@ Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatibl
 Example usage:
 
 ```bash
-$ STORAGE_TYPE=elasticsearch ES_HOSTS=host1,host2 java -jar ./main/target/zipkin-dependencies*.jar
+$ STORAGE_TYPE=elasticsearch ES_HOSTS=host1,host2 java -jar zipkin-dependencies.jar
 # To override the http port, add it to the host string
-$ STORAGE_TYPE=elasticsearch ES_HOSTS=host1:9201 java -jar ./main/target/zipkin-dependencies*.jar
+$ STORAGE_TYPE=elasticsearch ES_HOSTS=host1:9201 java -jar zipkin-dependencies.jar
+```
+
+## Building locally
+
+To build the job from source and run against a local cassandra, in Spark's standalone mode.
+
+```bash
+# Build the spark jobs
+$ ./mvnw -DskipTests clean install
+$ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
