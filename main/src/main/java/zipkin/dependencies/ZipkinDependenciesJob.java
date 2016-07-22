@@ -26,6 +26,9 @@ public final class ZipkinDependenciesJob {
   public static void main(String[] args) {
     long day = args.length == 1 ? parseDay(args[0]) : System.currentTimeMillis();
     String storageType = System.getenv("STORAGE_TYPE");
+    if (storageType == null) {
+      throw new IllegalArgumentException("STORAGE_TYPE not set");
+    }
     switch (storageType) {
       case "cassandra":
         CassandraDependenciesJob.builder().day(day).build().run();
