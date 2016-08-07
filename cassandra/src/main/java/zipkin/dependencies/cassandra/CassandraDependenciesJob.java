@@ -21,9 +21,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,6 +41,7 @@ import zipkin.Span;
 import zipkin.internal.Dependencies;
 import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.DependencyLinker;
+import zipkin.internal.MergeById;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static zipkin.internal.Util.checkNotNull;
@@ -140,14 +141,22 @@ public final class CassandraDependenciesJob {
 
   // static to avoid spark trying to serialize the enclosing class
   static Iterable<DependencyLink> toLinks(long startTs, long endTs, Iterable<CassandraRow> rows) {
-    List<DependencyLinkSpan> linkSpans = new LinkedList<>();
+    List<Span> spans = new LinkedList<>();
     for (CassandraRow row : rows) {
-      Span s = Codec.THRIFT.readSpan(row.getBytes("span"));
-      if (s.timestamp == null ||
-          s.timestamp < startTs ||
-          s.timestamp > endTs) {
-        continue;
-      }
+      spans.add(Codec.THRIFT.readSpan(row.getBytes("span")));
+    }
+    spans = MergeById.apply(spans); // merges the spans by id and also tries to set a timestamp
+
+    // check to see if the trace is within the interval
+    Long timestamp = spans.get(0).timestamp;
+    if (timestamp == null ||
+        timestamp < startTs ||
+        timestamp > endTs) {
+      return Collections.emptyList();
+    }
+
+    List<DependencyLinkSpan> linkSpans = new LinkedList<>();
+    for (Span s : spans) {
       linkSpans.add(DependencyLinkSpan.from(s));
     }
     return new DependencyLinker().putTrace(linkSpans.iterator()).link();

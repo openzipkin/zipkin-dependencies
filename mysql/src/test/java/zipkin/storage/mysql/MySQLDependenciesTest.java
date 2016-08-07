@@ -19,6 +19,7 @@ import java.util.Set;
 import zipkin.Span;
 import zipkin.dependencies.mysql.MySQLDependenciesJob;
 import zipkin.internal.CallbackCaptor;
+import zipkin.internal.MergeById;
 import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
 
@@ -42,6 +43,9 @@ public class MySQLDependenciesTest extends DependenciesTest {
    */
   @Override
   public void processDependencies(List<Span> spans) {
+    // This gets or derives a timestamp from the spans
+    spans = MergeById.apply(spans);
+
     CallbackCaptor<Void> captor = new CallbackCaptor<>();
     storage().asyncSpanConsumer().accept(spans, captor);
     captor.get(); // block on result

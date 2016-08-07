@@ -18,7 +18,7 @@ Note that Zipkin Dependencies requires minimum JRE 7. For example:
 
 ```bash
 $ wget -O zipkin-dependencies.jar 'https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST'
-STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar
+$ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar
 ```
 
 You can also start Zipkin Dependencies via [Docker](https://github.com/openzipkin/docker-zipkin-dependencies).
