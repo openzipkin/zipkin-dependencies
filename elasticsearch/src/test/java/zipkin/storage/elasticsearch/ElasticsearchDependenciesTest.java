@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 import zipkin.Span;
 import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
+import zipkin.internal.MergeById;
 import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
 
@@ -44,6 +45,9 @@ public class ElasticsearchDependenciesTest extends DependenciesTest {
    */
   @Override
   public void processDependencies(List<Span> spans) {
+    // This gets or derives a timestamp from the spans
+    spans = MergeById.apply(spans);
+
     Futures.getUnchecked(storage.guavaSpanConsumer().accept(spans));
 
     Set<Long> days = new LinkedHashSet<>();

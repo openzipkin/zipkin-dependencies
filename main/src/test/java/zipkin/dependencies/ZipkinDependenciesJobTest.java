@@ -15,6 +15,7 @@ package zipkin.dependencies;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.TimeZone;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -28,6 +29,9 @@ public class ZipkinDependenciesJobTest {
 
   @Test
   public void parseDate() throws ParseException {
+    // Date assertions don't assume UTC
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
     long date = ZipkinDependenciesJob.parseDay("2013-05-15");
     assertThat(new Date(date))
         .hasYear(2013)
