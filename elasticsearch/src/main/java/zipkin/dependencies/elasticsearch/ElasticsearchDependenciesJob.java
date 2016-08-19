@@ -14,6 +14,8 @@
 package zipkin.dependencies.elasticsearch;
 
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
@@ -31,8 +33,8 @@ import zipkin.Span;
 import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.DependencyLinker;
 import zipkin.internal.MergeById;
-import zipkin.internal.moshi.JsonAdapter;
-import zipkin.internal.moshi.Moshi;
+import zipkin.internal.gson.stream.JsonReader;
+import zipkin.internal.gson.stream.MalformedJsonException;
 
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
@@ -89,13 +91,6 @@ public final class ElasticsearchDependenciesJob {
   final String dateStamp;
   final SparkConf conf;
 
-  static final JsonAdapter<TraceId> traceIdReader =
-      new Moshi.Builder().build().adapter(TraceId.class);
-
-  static final class TraceId {
-    String traceId;
-  }
-
   ElasticsearchDependenciesJob(Builder builder) {
     this.index = builder.index;
     this.day = builder.day;
@@ -117,7 +112,7 @@ public final class ElasticsearchDependenciesJob {
 
     JavaSparkContext sc = new JavaSparkContext(conf);
     JavaRDD<Map<String, Object>> links = JavaEsSpark.esJsonRDD(sc, bucket + "/span")
-        .groupBy(pair -> traceIdReader.fromJson(pair._2).traceId)
+        .groupBy(pair -> traceId(pair._2))
         .flatMap(pair -> toLinks(pair._2))
         .mapToPair(link -> Tuple2.apply(Tuple2.apply(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
@@ -152,5 +147,19 @@ public final class ElasticsearchDependenciesJob {
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
     return result != null ? result : defaultValue;
+  }
+
+  static String traceId(String json) throws IOException {
+    JsonReader reader = new JsonReader(new StringReader(json));
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String nextName = reader.nextName();
+      if (nextName.equals("traceId")) {
+        return reader.nextString();
+      } else {
+        reader.skipValue();
+      }
+    }
+    throw new MalformedJsonException("no traceId in " + json);
   }
 }
