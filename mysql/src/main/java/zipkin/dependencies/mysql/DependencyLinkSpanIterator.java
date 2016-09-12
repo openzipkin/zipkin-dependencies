@@ -19,6 +19,7 @@ import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.PeekingIterator;
 
 import static zipkin.Constants.CLIENT_ADDR;
+import static zipkin.Constants.CLIENT_SEND;
 import static zipkin.Constants.SERVER_ADDR;
 import static zipkin.Constants.SERVER_RECV;
 
@@ -70,6 +71,9 @@ final class DependencyLinkSpanIterator implements Iterator<DependencyLinkSpan> {
     switch (key) {
       case CLIENT_ADDR:
         span.caService(serviceName);
+        break;
+      case CLIENT_SEND:
+        span.csService(serviceName);
         break;
       case SERVER_ADDR:
         span.saService(serviceName);

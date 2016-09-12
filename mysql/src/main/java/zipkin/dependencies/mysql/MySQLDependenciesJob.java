@@ -162,7 +162,7 @@ public final class MySQLDependenciesJob {
     String linksQuery = String.format(
         "select distinct s.trace_id, s.parent_id, s.id, a.a_key, a.endpoint_service_name " +
             "from zipkin_spans s left outer join zipkin_annotations a on " +
-            "  (s.trace_id = a.trace_id and s.id = a.span_id and a.a_key in ('ca', 'sr', 'sa'))" +
+            "  (s.trace_id = a.trace_id and s.id = a.span_id and a.a_key in ('ca', 'cs', 'sr', 'sa')) " +
             "where s.start_ts between %s and %s group by s.trace_id, s.id, a.a_key",
         microsLower, microsUpper);
 
