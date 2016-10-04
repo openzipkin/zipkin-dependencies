@@ -14,6 +14,7 @@
 package zipkin.storage.elasticsearch;
 
 import com.google.common.util.concurrent.Futures;
+import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +37,7 @@ public class ElasticsearchDependenciesTest extends DependenciesTest {
     return storage;
   }
 
-  @Override public void clear() {
+  @Override public void clear() throws IOException {
     storage.clear();
   }
 
