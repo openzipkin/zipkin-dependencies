@@ -33,6 +33,8 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 import zipkin.Codec;
@@ -48,6 +50,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class CassandraDependenciesJob {
+  static final Logger logger = LoggerFactory.getLogger(CassandraDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -143,7 +146,13 @@ public final class CassandraDependenciesJob {
   static Iterable<DependencyLink> toLinks(long startTs, long endTs, Iterable<CassandraRow> rows) {
     List<Span> spans = new LinkedList<>();
     for (CassandraRow row : rows) {
-      spans.add(Codec.THRIFT.readSpan(row.getBytes("span")));
+      try {
+        spans.add(Codec.THRIFT.readSpan(row.getBytes("span")));
+      } catch (RuntimeException e) {
+        logger.warn(String.format(
+            "Unable to decode span from traces where trace_id=%s and ts=%s and span_name='%s'",
+            row.getLong("trace_id"), row.getDate("ts").getTime(), row.getString("span_name")), e);
+      }
     }
     spans = MergeById.apply(spans); // merges the spans by id and also tries to set a timestamp
 

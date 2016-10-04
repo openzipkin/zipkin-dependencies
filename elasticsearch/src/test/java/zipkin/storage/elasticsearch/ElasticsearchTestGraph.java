@@ -22,16 +22,14 @@ enum ElasticsearchTestGraph {
 
   final String index = "test_zipkin";
 
-  static {
-    ElasticsearchStorage.FLUSH_ON_WRITES = true;
-  }
-
   final LazyCloseable<ElasticsearchStorage> storage = new LazyCloseable<ElasticsearchStorage>() {
     public AssumptionViolatedException ex;
 
     @Override protected ElasticsearchStorage compute() {
       if (ex != null) throw ex;
-      ElasticsearchStorage result = new ElasticsearchStorage.Builder().index(index).build();
+      ElasticsearchStorage result = ElasticsearchStorage.builder()
+          .flushOnWrites(true)
+          .index(index).build();
       CheckResult check = result.check();
       if (check.ok) return result;
       throw ex = new AssumptionViolatedException(check.exception.getMessage());
