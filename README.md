@@ -29,11 +29,13 @@ $ docker run --env STORAGE_TYPE=cassandra --env CASSANDRA_CONTACT_POINTS=host1,h
 ## Usage
 
 By default, this job parses all traces since midnight UTC. You can parse traces for a different day
-via an argument in yyy-MM-dd format, like 2016-07-16.
+via an argument in YYYY-mm-dd format, like 2016-07-16.
 
 ```bash
 # ex to run the job to process yesterday's traces on OS/X
 $ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar `date -uv-1d +%F`
+# or on Linux
+$ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar `date -u -d '1 day ago' +%F`
 ```
 
 ## Environment Variables
