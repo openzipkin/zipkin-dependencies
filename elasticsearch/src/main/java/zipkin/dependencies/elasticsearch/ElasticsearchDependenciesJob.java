@@ -114,7 +114,7 @@ public final class ElasticsearchDependenciesJob {
     JavaRDD<Map<String, Object>> links = JavaEsSpark.esJsonRDD(sc, bucket + "/span")
         .groupBy(pair -> traceId(pair._2))
         .flatMap(pair -> toLinks(pair._2))
-        .mapToPair(link -> Tuple2.apply(Tuple2.apply(link.parent, link.child), link))
+        .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
         .values()
         .map(l -> ImmutableMap.<String, Object>of(
@@ -161,5 +161,10 @@ public final class ElasticsearchDependenciesJob {
       }
     }
     throw new MalformedJsonException("no traceId in " + json);
+  }
+
+  /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
+  private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
+    return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
   }
 }
