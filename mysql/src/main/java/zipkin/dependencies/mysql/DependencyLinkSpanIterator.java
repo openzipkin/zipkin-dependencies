@@ -42,6 +42,7 @@ final class DependencyLinkSpanIterator implements Iterator<DependencyLinkSpan> {
     Row row = delegate.next();
 
     DependencyLinkSpan.Builder result = DependencyLinkSpan.builder(
+        0, // trace_id_high: ignoring for now
         row.getLong(0), // trace_id
         row.isNullAt(1) ? null : row.getLong(1), // parent_id
         row.getLong(2) // id
