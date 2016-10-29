@@ -57,9 +57,17 @@ public final class MySQLDependenciesJob {
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
+    // needed when not in local mode
+    String[] jars;
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
+
+    /** When set, this indicates which jars to distribute to the cluster. */
+    public Builder jars(String... jars) {
+      this.jars = jars;
+      return this;
+    }
 
     /** The database to use. Defaults to "zipkin" */
     public Builder db(String db) {
@@ -144,6 +152,7 @@ public final class MySQLDependenciesJob {
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
+    if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
@@ -183,7 +192,7 @@ public final class MySQLDependenciesJob {
           return linker.link();
         })
         .values()
-        .mapToPair(link -> Tuple2.apply(Tuple2.apply(link.parent, link.child), link))
+        .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
         .values().collect();
 
@@ -212,5 +221,10 @@ public final class MySQLDependenciesJob {
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
     return result != null ? result : defaultValue;
+  }
+
+  /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
+  private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
+    return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
   }
 }

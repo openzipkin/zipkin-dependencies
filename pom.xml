@@ -35,7 +35,7 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <scala.binary.version>2.11</scala.binary.version>
+    <scala.binary.version>2.10</scala.binary.version>
     <spark.version>1.6.2</spark.version>
     <zipkin.version>1.12.1</zipkin.version>
     <logback.version>1.1.7</logback.version>

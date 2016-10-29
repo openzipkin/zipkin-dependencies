@@ -72,9 +72,17 @@ public final class CassandraDependenciesJob {
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
+    // needed when not in local mode
+    String[] jars;
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
+
+    /** When set, this indicates which jars to distribute to the cluster. */
+    public Builder jars(String... jars) {
+      this.jars = jars;
+      return this;
+    }
 
     /** Keyspace to store dependency rowsToLinks. Defaults to "zipkin" */
     public Builder keyspace(String keyspace) {
@@ -115,6 +123,7 @@ public final class CassandraDependenciesJob {
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
+    if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
@@ -132,7 +141,7 @@ public final class CassandraDependenciesJob {
     List<DependencyLink> links = javaFunctions(sc).cassandraTable(keyspace, "traces")
         .spanBy(r -> r.getLong("trace_id"), Long.class)
         .flatMap(pair -> toLinks(microsLower, microsUpper, pair._2))
-        .mapToPair(link -> Tuple2.apply(Tuple2.apply(link.parent, link.child), link))
+        .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
         .values().collect();
 
@@ -204,5 +213,10 @@ public final class CassandraDependenciesJob {
       ports.add(parsed.getPortOrDefault(9042));
     }
     return ports.size() == 1 ? String.valueOf(ports.iterator().next()) : "9042";
+  }
+
+  /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
+  private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
+    return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
   }
 }
