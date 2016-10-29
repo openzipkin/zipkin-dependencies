@@ -13,6 +13,9 @@
  */
 package zipkin.dependencies;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
@@ -23,7 +26,8 @@ import zipkin.dependencies.mysql.MySQLDependenciesJob;
 public final class ZipkinDependenciesJob {
 
   /** Runs with defaults, starting today */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws UnsupportedEncodingException {
+    String jarPath = pathToUberJar();
     long day = args.length == 1 ? parseDay(args[0]) : System.currentTimeMillis();
     String storageType = System.getenv("STORAGE_TYPE");
     if (storageType == null) {
@@ -31,17 +35,22 @@ public final class ZipkinDependenciesJob {
     }
     switch (storageType) {
       case "cassandra":
-        CassandraDependenciesJob.builder().day(day).build().run();
+        CassandraDependenciesJob.builder().jars(jarPath).day(day).build().run();
         break;
       case "mysql":
-        MySQLDependenciesJob.builder().day(day).build().run();
+        MySQLDependenciesJob.builder().jars(jarPath).day(day).build().run();
         break;
       case "elasticsearch":
-        ElasticsearchDependenciesJob.builder().day(day).build().run();
+        ElasticsearchDependenciesJob.builder().jars(jarPath).day(day).build().run();
         break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType);
     }
+  }
+
+  static String pathToUberJar() throws UnsupportedEncodingException {
+    URL jarFile = ZipkinDependenciesJob.class.getProtectionDomain().getCodeSource().getLocation();
+    return URLDecoder.decode(jarFile.getPath(), "UTF-8");
   }
 
   static long parseDay(String formattedDate) {

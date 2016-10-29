@@ -57,9 +57,17 @@ public final class MySQLDependenciesJob {
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
+    // needed when not in local mode
+    String[] jars;
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
+
+    /** When set, this indicates which jars to distribute to the cluster. */
+    public Builder jars(String... jars) {
+      this.jars = jars;
+      return this;
+    }
 
     /** The database to use. Defaults to "zipkin" */
     public Builder db(String db) {
@@ -144,6 +152,7 @@ public final class MySQLDependenciesJob {
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
+    if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
