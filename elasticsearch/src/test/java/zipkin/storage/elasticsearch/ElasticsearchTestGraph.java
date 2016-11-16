@@ -13,26 +13,32 @@
  */
 package zipkin.storage.elasticsearch;
 
+import com.google.common.collect.ImmutableList;
+import okhttp3.OkHttpClient;
 import org.junit.AssumptionViolatedException;
 import zipkin.Component.CheckResult;
 import zipkin.internal.LazyCloseable;
+import zipkin.storage.elasticsearch.http.HttpClientBuilder;
 
 enum ElasticsearchTestGraph {
   INSTANCE;
 
   final String index = "test_zipkin";
 
-  final LazyCloseable<ElasticsearchStorage> storage = new LazyCloseable<ElasticsearchStorage>() {
-    public AssumptionViolatedException ex;
+  public final LazyCloseable<ElasticsearchStorage> storage =
+      new LazyCloseable<ElasticsearchStorage>() {
+        AssumptionViolatedException ex;
 
-    @Override protected ElasticsearchStorage compute() {
-      if (ex != null) throw ex;
-      ElasticsearchStorage result = ElasticsearchStorage.builder()
-          .flushOnWrites(true)
-          .index(index).build();
-      CheckResult check = result.check();
-      if (check.ok) return result;
-      throw ex = new AssumptionViolatedException(check.exception.getMessage());
-    }
-  };
+        @Override protected ElasticsearchStorage compute() {
+          if (ex != null) throw ex;
+          ElasticsearchStorage result = ElasticsearchStorage.builder(
+              HttpClientBuilder.create(new OkHttpClient())
+                  .flushOnWrites(true)
+                  .hosts(ImmutableList.of("http://localhost:9200")))
+              .index(index).build();
+          CheckResult check = result.check();
+          if (check.ok) return result;
+          throw ex = new AssumptionViolatedException(check.exception.getMessage(), check.exception);
+        }
+      };
 }

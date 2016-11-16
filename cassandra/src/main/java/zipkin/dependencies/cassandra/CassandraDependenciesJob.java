@@ -23,7 +23,6 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,9 +40,8 @@ import zipkin.Codec;
 import zipkin.DependencyLink;
 import zipkin.Span;
 import zipkin.internal.Dependencies;
-import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.DependencyLinker;
-import zipkin.internal.MergeById;
+import zipkin.internal.GroupByTraceId;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static zipkin.internal.Util.checkNotNull;
@@ -153,31 +151,28 @@ public final class CassandraDependenciesJob {
 
   // static to avoid spark trying to serialize the enclosing class
   static Iterable<DependencyLink> toLinks(long startTs, long endTs, Iterable<CassandraRow> rows) {
-    List<Span> spans = new LinkedList<>();
+    List<Span> sameTraceId = new LinkedList<>();
     for (CassandraRow row : rows) {
       try {
-        spans.add(Codec.THRIFT.readSpan(row.getBytes("span")));
+        sameTraceId.add(Codec.THRIFT.readSpan(row.getBytes("span")));
       } catch (RuntimeException e) {
         logger.warn(String.format(
             "Unable to decode span from traces where trace_id=%s and ts=%s and span_name='%s'",
             row.getLong("trace_id"), row.getDate("ts").getTime(), row.getString("span_name")), e);
       }
     }
-    spans = MergeById.apply(spans); // merges the spans by id and also tries to set a timestamp
-
-    // check to see if the trace is within the interval
-    Long timestamp = spans.get(0).timestamp;
-    if (timestamp == null ||
-        timestamp < startTs ||
-        timestamp > endTs) {
-      return Collections.emptyList();
+    DependencyLinker linker = new DependencyLinker();
+    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
+      // check to see if the trace is within the interval
+      Long timestamp = trace.get(0).timestamp;
+      if (timestamp == null ||
+          timestamp < startTs ||
+          timestamp > endTs) {
+        continue;
+      }
+      linker.putTrace(trace);
     }
-
-    List<DependencyLinkSpan> linkSpans = new LinkedList<>();
-    for (Span s : spans) {
-      linkSpans.add(DependencyLinkSpan.from(s));
-    }
-    return new DependencyLinker().putTrace(linkSpans.iterator()).link();
+    return linker.link();
   }
 
   void saveToCassandra(List<DependencyLink> links) {

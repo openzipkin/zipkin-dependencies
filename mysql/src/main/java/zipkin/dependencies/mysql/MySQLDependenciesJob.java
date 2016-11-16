@@ -19,7 +19,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,7 @@ import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.execution.datasources.jdbc.DefaultSource;
 import scala.Tuple2;
 import zipkin.DependencyLink;
+import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.DependencyLinker;
 
 import static zipkin.internal.Util.checkNotNull;
@@ -165,15 +168,20 @@ public final class MySQLDependenciesJob {
     options.put("user", user);
     options.put("password", password);
 
+    boolean hasTraceIdHigh = hasTraceIdHigh();
+
     long microsLower = day * 1000;
     long microsUpper = (day * 1000) + TimeUnit.DAYS.toMicros(1) - 1;
 
+    String fields = "s.trace_id, s.parent_id, s.id, a.a_key, a.endpoint_service_name";
+    if (hasTraceIdHigh) fields = "s.trace_id_high, " + fields;
+    String groupByFields = fields.replace("s.parent_id, ", "");
     String linksQuery = String.format(
-        "select distinct s.trace_id, s.parent_id, s.id, a.a_key, a.endpoint_service_name " +
+        "select distinct %s "+
             "from zipkin_spans s left outer join zipkin_annotations a on " +
             "  (s.trace_id = a.trace_id and s.id = a.span_id and a.a_key in ('ca', 'cs', 'sr', 'sa')) " +
-            "where s.start_ts between %s and %s group by s.trace_id, s.id, a.a_key",
-        microsLower, microsUpper);
+            "where s.start_ts between %s and %s group by %s",
+        fields, microsLower, microsUpper, groupByFields);
 
     options.put("dbtable", "(" + linksQuery + ") as link_spans");
 
@@ -185,10 +193,17 @@ public final class MySQLDependenciesJob {
     List<DependencyLink> links = new SQLContext(sc).read().format(DefaultSource.class.getName())
         .options(options).load()
         .toJavaRDD()
-        .groupBy(r -> r.getLong(0))
+        .groupBy(r -> r.getLong(hasTraceIdHigh ? 1 : 0) /* trace_id */)
         .flatMapValues(rows -> {
+          Iterator<Iterator<DependencyLinkSpan>> traces =
+              new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
+
+          if (!traces.hasNext()) return Collections.emptyList();
+
           DependencyLinker linker = new DependencyLinker();
-          linker.putTrace(new DependencyLinkSpanIterator(rows.iterator()));
+          while (traces.hasNext()) {
+            linker.putTrace(traces.next());
+          }
           return linker.link();
         })
         .values()
@@ -200,6 +215,23 @@ public final class MySQLDependenciesJob {
 
     saveToMySQL(links);
     System.out.println("Dependencies: " + links);
+  }
+
+  private boolean hasTraceIdHigh() {
+    boolean hasTraceIdHigh;
+    try (Connection connection = DriverManager.getConnection(url, user, password)){
+      connection.createStatement().execute("select trace_id_high from zipkin_spans limit 1");
+      hasTraceIdHigh = true;
+    } catch (SQLException e) {
+      if (e.getMessage().indexOf("trace_id_high") != -1) {
+        System.err.println(
+            "zipkin_spans.trace_id_high doesn't exist, so 128-bit trace ids are not supported.");
+        hasTraceIdHigh = false;
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
+    return hasTraceIdHigh;
   }
 
   void saveToMySQL(List<DependencyLink> links) {
