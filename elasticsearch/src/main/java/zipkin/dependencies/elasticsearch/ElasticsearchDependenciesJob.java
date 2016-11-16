@@ -30,9 +30,8 @@ import scala.Tuple2;
 import zipkin.Codec;
 import zipkin.DependencyLink;
 import zipkin.Span;
-import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.DependencyLinker;
-import zipkin.internal.MergeById;
+import zipkin.internal.GroupByTraceId;
 import zipkin.internal.gson.stream.JsonReader;
 import zipkin.internal.gson.stream.MalformedJsonException;
 
@@ -142,15 +141,15 @@ public final class ElasticsearchDependenciesJob {
 
   // static to avoid spark trying to serialize the enclosing class
   static Iterable<DependencyLink> toLinks(Iterable<Tuple2<String, String>> rows) {
-    List<Span> spans = new LinkedList<>();
+    List<Span> sameTraceId = new LinkedList<>();
     for (Tuple2<String, String> row : rows) {
-      spans.add(Codec.JSON.readSpan(row._2.getBytes()));
+      sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes()));
     }
-    List<DependencyLinkSpan> linkSpans = new LinkedList<>();
-    for (Span s : MergeById.apply(spans)) {
-      linkSpans.add(DependencyLinkSpan.from(s));
+    DependencyLinker linker = new DependencyLinker();
+    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
+      linker.putTrace(trace);
     }
-    return new DependencyLinker().putTrace(linkSpans.iterator()).link();
+    return linker.link();
   }
 
   private static String getEnv(String key, String defaultValue) {

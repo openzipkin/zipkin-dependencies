@@ -126,8 +126,8 @@
                   </includes>
                 </filter>
                 <filter>
-                  <!-- org.elasticsearch.spark.sql.DefaultSource15 -->
-                  <artifact>org.elasticsearch:elasticsearch-spark_${scala.binary.version}</artifact>
+                  <!-- org.elasticsearch.spark.sql.SparkSQLCompatibilityLevel -->
+                  <artifact>org.elasticsearch:elasticsearch-spark-13_${scala.binary.version}</artifact>
                   <includes>
                     <include>**</include>
                   </includes>
