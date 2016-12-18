@@ -60,7 +60,7 @@ public final class ZipkinDependenciesJob {
       return df.parse(formattedDate).getTime();
     } catch (ParseException e) {
       throw new IllegalArgumentException(
-          "First argument must be a yyy-MM-dd formatted date. Ex. 2016-07-16");
+          "First argument must be a yyyy-MM-dd formatted date. Ex. 2016-07-16");
     }
   }
 }
