@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -20,8 +20,9 @@ import zipkin.Span;
 import zipkin.dependencies.mysql.MySQLDependenciesJob;
 import zipkin.internal.CallbackCaptor;
 import zipkin.internal.MergeById;
-import zipkin.internal.Util;
 import zipkin.storage.DependenciesTest;
+
+import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 
 public class MySQLDependenciesTest extends DependenciesTest {
   private final MySQLStorage storage;
@@ -52,7 +53,7 @@ public class MySQLDependenciesTest extends DependenciesTest {
 
     Set<Long> days = new LinkedHashSet<>();
     for (Span span : spans) {
-      days.add(Util.midnightUTC(span.timestamp / 1000));
+      days.add(guessTimestamp(span) / 1000);
     }
     for (long day : days) {
       MySQLDependenciesJob.builder().day(day).build().run();
