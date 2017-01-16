@@ -44,6 +44,7 @@ import zipkin.internal.DependencyLinker;
 import zipkin.internal.GroupByTraceId;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
+import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
@@ -164,7 +165,7 @@ public final class CassandraDependenciesJob {
     DependencyLinker linker = new DependencyLinker();
     for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
       // check to see if the trace is within the interval
-      Long timestamp = trace.get(0).timestamp;
+      Long timestamp = guessTimestamp(trace.get(0));
       if (timestamp == null ||
           timestamp < startTs ||
           timestamp > endTs) {
