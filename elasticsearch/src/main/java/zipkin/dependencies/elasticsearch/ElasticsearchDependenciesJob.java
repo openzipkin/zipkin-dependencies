@@ -101,7 +101,8 @@ public final class ElasticsearchDependenciesJob {
   ElasticsearchDependenciesJob(Builder builder) {
     this.index = builder.index;
     this.day = builder.day;
-    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    String dateSeparator = getEnv("ES_DATE_SEPARATOR", "-");
+    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd".replace("-", dateSeparator));
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true)
