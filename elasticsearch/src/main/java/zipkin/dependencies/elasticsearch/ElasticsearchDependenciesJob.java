@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -101,7 +101,8 @@ public final class ElasticsearchDependenciesJob {
   ElasticsearchDependenciesJob(Builder builder) {
     this.index = builder.index;
     this.day = builder.day;
-    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    String dateSeparator = getEnv("ES_DATE_SEPARATOR", "-");
+    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd".replace("-", dateSeparator));
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true)

@@ -77,6 +77,9 @@ $ STORAGE_TYPE=mysql MYSQL_USER=root java -jar zipkin-dependencies.jar
 Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
 
     * `ES_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
+    * `ES_DATE_SEPARATOR`: The separator used when generating dates in index.
+                           Defaults to '-' so the queried index look like zipkin-yyyy-DD-mm
+                           Could for example be changed to '.' to give zipkin-yyyy.MM.dd
     * `ES_HOSTS`: A comma separated list of elasticsearch hosts advertising http. Defaults to
                   localhost. Add port section if not listening on port 9200. Only one of these hosts
                   needs to be available to fetch the remaining nodes in the cluster. It is
