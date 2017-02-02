@@ -21,8 +21,10 @@ import zipkin.dependencies.mysql.MySQLDependenciesJob;
 import zipkin.internal.CallbackCaptor;
 import zipkin.internal.MergeById;
 import zipkin.storage.DependenciesTest;
+import zipkin.storage.QueryRequest;
 
 import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
+import static zipkin.internal.Util.midnightUTC;
 
 public class MySQLDependenciesTest extends DependenciesTest {
   private final MySQLStorage storage;
@@ -44,17 +46,16 @@ public class MySQLDependenciesTest extends DependenciesTest {
    */
   @Override
   public void processDependencies(List<Span> spans) {
-    // This gets or derives a timestamp from the spans
-    spans = MergeById.apply(spans);
-
-    CallbackCaptor<Void> captor = new CallbackCaptor<>();
-    storage().asyncSpanConsumer().accept(spans, captor);
-    captor.get(); // block on result
+    CallbackCaptor<Void> callback = new CallbackCaptor<>();
+    storage.asyncSpanConsumer().accept(spans, callback);
+    callback.get();
 
     Set<Long> days = new LinkedHashSet<>();
-    for (Span span : spans) {
-      days.add(guessTimestamp(span) / 1000);
+    for (List<Span> trace : storage.spanStore()
+        .getTraces(QueryRequest.builder().limit(10000).build())) {
+      days.add(midnightUTC(guessTimestamp(MergeById.apply(trace).get(0)) / 1000));
     }
+
     for (long day : days) {
       MySQLDependenciesJob.builder().day(day).build().run();
     }

@@ -13,11 +13,12 @@
  */
 package zipkin.dependencies.elasticsearch;
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -48,16 +49,18 @@ public final class ElasticsearchDependenciesJob {
 
     String index = getEnv("ES_INDEX", "zipkin");
 
-    Map<String, String> sparkProperties = ImmutableMap.of(
-        "spark.ui.enabled", "false",
-        // avoids strange class not found bug on Logger.setLevel
-        "spark.akka.logLifecycleEvents", "true",
-        // don't die if there are no spans
-        "es.index.read.missing.as.empty", "true",
-        "es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"),
-        // NOTE: unlike zipkin, this uses the http port
-        "es.nodes", getEnv("ES_HOSTS", "127.0.0.1")
-    );
+    final Map<String, String> sparkProperties = new LinkedHashMap<>();
+
+    Builder() {
+      sparkProperties.put("spark.ui.enabled", "false");
+      // avoids strange class not found bug on Logger.setLevel
+      sparkProperties.put("spark.akka.logLifecycleEvents", "true");
+      // don't die if there are no spans
+      sparkProperties.put("es.index.read.missing.as.empty", "true");
+      sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
+      // NOTE: unlike zipkin, this uses the http port
+      sparkProperties.put("es.nodes", getEnv("ES_HOSTS", "127.0.0.1"));
+    }
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
@@ -87,9 +90,6 @@ public final class ElasticsearchDependenciesJob {
 
     public ElasticsearchDependenciesJob build() {
       return new ElasticsearchDependenciesJob(this);
-    }
-
-    Builder() {
     }
   }
 
@@ -126,18 +126,26 @@ public final class ElasticsearchDependenciesJob {
         .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
         .values()
-        .map(l -> ImmutableMap.<String, Object>of(
-            "parent", l.parent,
-            "child", l.child,
-            "id", l.parent + "|" + l.child,
-            "callCount", l.callCount
-        ));
+        .map(ElasticsearchDependenciesJob::dependencyLinkJson);
 
     System.out.println("Saving dependency links to " + bucket + "/dependencylink");
     JavaEsSpark.saveToEs(links, bucket + "/dependencylink",
-        ImmutableMap.of("es.mapping.id", "id")); // unique id, which allows overwriting the link
-    System.out.println("Dependencies: " + links.collect());
+        Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
+    System.out.println("Done");
     sc.stop();
+  }
+
+  /**
+   * Same as {@linkplain DependencyLink}, except it adds an ID field so the job can be re-run,
+   * overwriting a prior run's value for the link.
+   */
+  static Map<String, Object> dependencyLinkJson(DependencyLink l) {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("id", l.parent + "|" + l.child);
+    result.put("parent", l.parent);
+    result.put("child", l.child);
+    result.put("callCount", l.callCount);
+    return result;
   }
 
   // static to avoid spark trying to serialize the enclosing class

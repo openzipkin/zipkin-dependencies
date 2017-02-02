@@ -11,30 +11,28 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.storage.elasticsearch;
+package zipkin.storage.elasticsearch.http;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import okhttp3.OkHttpClient;
 import org.junit.AssumptionViolatedException;
 import zipkin.Component.CheckResult;
 import zipkin.internal.LazyCloseable;
-import zipkin.storage.elasticsearch.http.HttpClientBuilder;
 
 enum ElasticsearchTestGraph {
   INSTANCE;
 
   final String index = "test_zipkin";
 
-  public final LazyCloseable<ElasticsearchStorage> storage =
-      new LazyCloseable<ElasticsearchStorage>() {
+  public final LazyCloseable<ElasticsearchHttpStorage> storage =
+      new LazyCloseable<ElasticsearchHttpStorage>() {
         AssumptionViolatedException ex;
 
-        @Override protected ElasticsearchStorage compute() {
+        @Override protected ElasticsearchHttpStorage compute() {
           if (ex != null) throw ex;
-          ElasticsearchStorage result = ElasticsearchStorage.builder(
-              HttpClientBuilder.create(new OkHttpClient())
-                  .flushOnWrites(true)
-                  .hosts(ImmutableList.of("http://localhost:9200")))
+          ElasticsearchHttpStorage result = ElasticsearchHttpStorage.builder(new OkHttpClient())
+              .flushOnWrites(true)
+              .hosts(Collections.singletonList("http://localhost:9200"))
               .index(index).build();
           CheckResult check = result.check();
           if (check.ok) return result;
