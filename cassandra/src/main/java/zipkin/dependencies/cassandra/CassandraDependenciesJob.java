@@ -147,7 +147,6 @@ public final class CassandraDependenciesJob {
     sc.stop();
 
     saveToCassandra(links);
-    System.out.println("Dependencies: " + links);
   }
 
   // static to avoid spark trying to serialize the enclosing class
@@ -180,6 +179,7 @@ public final class CassandraDependenciesJob {
     Dependencies thrift = Dependencies.create(day, day /** ignored */, links);
     ByteBuffer blob = thrift.toThrift();
 
+    System.out.println("Saving with day=" + dateStamp);
     CassandraConnector.apply(conf).withSessionDo(new AbstractFunction1<Session, Void>() {
       @Override public Void apply(Session session) {
         session.execute(QueryBuilder.insertInto(keyspace, "dependencies")
@@ -189,7 +189,7 @@ public final class CassandraDependenciesJob {
         return null;
       }
     });
-    System.out.println("Saved with day=" + dateStamp);
+    System.out.println("Done");
   }
 
   static String parseHosts(String contactPoints) {

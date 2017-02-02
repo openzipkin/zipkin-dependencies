@@ -213,8 +213,9 @@ public final class MySQLDependenciesJob {
 
     sc.stop();
 
+    System.out.println("Saving with day=" + dateStamp);
     saveToMySQL(links);
-    System.out.println("Dependencies: " + links);
+    System.out.println("Done");
   }
 
   private boolean hasTraceIdHigh() {
