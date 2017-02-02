@@ -36,8 +36,8 @@
     </server>
     <server>
       <id>github.com</id>
-      <username>${env.GH_USER}</username>
-      <password>${env.GH_TOKEN}</password>
+      <username>${env.GH_TOKEN}</username>
+      <password></password>
     </server>
   </servers>
 </settings>
