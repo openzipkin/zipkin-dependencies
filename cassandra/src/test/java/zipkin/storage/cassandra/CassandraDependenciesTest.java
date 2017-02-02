@@ -16,6 +16,7 @@ package zipkin.storage.cassandra;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.junit.AssumptionViolatedException;
 import zipkin.Span;
 import zipkin.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin.internal.CallbackCaptor;
@@ -39,6 +40,12 @@ public class CassandraDependenciesTest extends DependenciesTest {
 
   @Override public void clear() {
     storage.clear();
+  }
+
+  @Override
+  public void manyLinks() {
+    // This test is too expensive for travis and has been rewritten
+    throw new AssumptionViolatedException("TODO: remove when update to zipkin 1.20.1+");
   }
 
   /**
