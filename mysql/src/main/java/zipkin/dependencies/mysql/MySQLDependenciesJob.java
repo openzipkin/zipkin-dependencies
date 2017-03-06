@@ -19,27 +19,27 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.execution.datasources.jdbc.DefaultSource;
 import scala.Tuple2;
 import zipkin.DependencyLink;
-import zipkin.internal.DependencyLinkSpan;
-import zipkin.internal.DependencyLinker;
+import zipkin.internal.Nullable;
 
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class MySQLDependenciesJob {
+  static final Logger logger = LogManager.getLogger(MySQLDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -62,6 +62,7 @@ public final class MySQLDependenciesJob {
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
     // needed when not in local mode
     String[] jars;
+    Runnable logInitializer;
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
@@ -123,6 +124,12 @@ public final class MySQLDependenciesJob {
       return this;
     }
 
+    /** Ensures that logging is setup. Particularly important when in cluster mode. */
+    public Builder logInitializer(Runnable logInitializer) {
+      this.logInitializer = checkNotNull(logInitializer, "logInitializer");
+      return this;
+    }
+
     public MySQLDependenciesJob build() {
       return new MySQLDependenciesJob(this);
     }
@@ -138,6 +145,7 @@ public final class MySQLDependenciesJob {
   final String user;
   final String password;
   final SparkConf conf;
+  @Nullable final Runnable logInitializer;
 
   MySQLDependenciesJob(Builder builder) {
     this.db = builder.db;
@@ -159,6 +167,7 @@ public final class MySQLDependenciesJob {
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
+    this.logInitializer = builder.logInitializer;
   }
 
   public void run() {
@@ -185,8 +194,8 @@ public final class MySQLDependenciesJob {
 
     options.put("dbtable", "(" + linksQuery + ") as link_spans");
 
-    System.out.printf("Running Dependencies job for %s: start_ts between %s and %s%n", dateStamp,
-        microsLower, microsUpper);
+    logger.info(String.format("Running Dependencies job for %s: start_ts between %s and %s",
+        dateStamp, microsLower, microsUpper));
 
     JavaSparkContext sc = new JavaSparkContext(conf);
 
@@ -194,18 +203,7 @@ public final class MySQLDependenciesJob {
         .options(options).load()
         .toJavaRDD()
         .groupBy(r -> r.getLong(hasTraceIdHigh ? 1 : 0) /* trace_id */)
-        .flatMapValues(rows -> {
-          Iterator<Iterator<DependencyLinkSpan>> traces =
-              new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
-
-          if (!traces.hasNext()) return Collections.emptyList();
-
-          DependencyLinker linker = new DependencyLinker();
-          while (traces.hasNext()) {
-            linker.putTrace(traces.next());
-          }
-          return linker.link();
-        })
+        .flatMapValues(new RowsToDependencyLinks(logInitializer, hasTraceIdHigh))
         .values()
         .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
@@ -213,19 +211,19 @@ public final class MySQLDependenciesJob {
 
     sc.stop();
 
-    System.out.println("Saving with day=" + dateStamp);
+    logger.info("Saving with day=" + dateStamp);
     saveToMySQL(links);
-    System.out.println("Done");
+    logger.info("Done");
   }
 
   private boolean hasTraceIdHigh() {
     boolean hasTraceIdHigh;
-    try (Connection connection = DriverManager.getConnection(url, user, password)){
+    try (Connection connection = DriverManager.getConnection(url, user, password)) {
       connection.createStatement().execute("select trace_id_high from zipkin_spans limit 1");
       hasTraceIdHigh = true;
     } catch (SQLException e) {
       if (e.getMessage().indexOf("trace_id_high") != -1) {
-        System.err.println(
+        logger.warn(
             "zipkin_spans.trace_id_high doesn't exist, so 128-bit trace ids are not supported.");
         hasTraceIdHigh = false;
       } else {

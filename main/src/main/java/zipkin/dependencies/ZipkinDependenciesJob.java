@@ -24,7 +24,6 @@ import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin.dependencies.mysql.MySQLDependenciesJob;
 
 public final class ZipkinDependenciesJob {
-
   /** Runs with defaults, starting today */
   public static void main(String[] args) throws UnsupportedEncodingException {
     String jarPath = pathToUberJar();
@@ -33,15 +32,36 @@ public final class ZipkinDependenciesJob {
     if (storageType == null) {
       throw new IllegalArgumentException("STORAGE_TYPE not set");
     }
+
+    String zipkinLogLevel = System.getenv("ZIPKIN_LOG_LEVEL");
+    if (zipkinLogLevel == null) zipkinLogLevel = "INFO";
+    Runnable logInitializer = LogInitializer.create(zipkinLogLevel);
+    logInitializer.run(); // Ensures local log commands emit
+
     switch (storageType) {
       case "cassandra":
-        CassandraDependenciesJob.builder().jars(jarPath).day(day).build().run();
+        CassandraDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .build()
+            .run();
         break;
       case "mysql":
-        MySQLDependenciesJob.builder().jars(jarPath).day(day).build().run();
+        MySQLDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .build()
+            .run();
         break;
       case "elasticsearch":
-        ElasticsearchDependenciesJob.builder().jars(jarPath).day(day).build().run();
+        ElasticsearchDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .build()
+            .run();
         break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType);

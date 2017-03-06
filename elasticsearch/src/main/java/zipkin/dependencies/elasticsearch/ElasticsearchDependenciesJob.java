@@ -19,20 +19,17 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import scala.Tuple2;
-import zipkin.Codec;
 import zipkin.DependencyLink;
-import zipkin.Span;
-import zipkin.internal.DependencyLinker;
-import zipkin.internal.GroupByTraceId;
+import zipkin.internal.Nullable;
 import zipkin.internal.gson.stream.JsonReader;
 import zipkin.internal.gson.stream.MalformedJsonException;
 
@@ -40,6 +37,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class ElasticsearchDependenciesJob {
+  static final Logger logger = LogManager.getLogger(ElasticsearchDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -53,8 +51,6 @@ public final class ElasticsearchDependenciesJob {
 
     Builder() {
       sparkProperties.put("spark.ui.enabled", "false");
-      // avoids strange class not found bug on Logger.setLevel
-      sparkProperties.put("spark.akka.logLifecycleEvents", "true");
       // don't die if there are no spans
       sparkProperties.put("es.index.read.missing.as.empty", "true");
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
@@ -66,6 +62,7 @@ public final class ElasticsearchDependenciesJob {
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
     // needed when not in local mode
     String[] jars;
+    Runnable logInitializer;
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
@@ -88,6 +85,12 @@ public final class ElasticsearchDependenciesJob {
       return this;
     }
 
+    /** Ensures that logging is setup. Particularly important when in cluster mode. */
+    public Builder logInitializer(Runnable logInitializer) {
+      this.logInitializer = checkNotNull(logInitializer, "logInitializer");
+      return this;
+    }
+
     public ElasticsearchDependenciesJob build() {
       return new ElasticsearchDependenciesJob(this);
     }
@@ -97,6 +100,7 @@ public final class ElasticsearchDependenciesJob {
   final long day;
   final String dateStamp;
   final SparkConf conf;
+  @Nullable final Runnable logInitializer;
 
   ElasticsearchDependenciesJob(Builder builder) {
     this.index = builder.index;
@@ -112,26 +116,29 @@ public final class ElasticsearchDependenciesJob {
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
+    this.logInitializer = builder.logInitializer;
   }
 
   public void run() {
     String bucket = index + "-" + dateStamp;
 
-    System.out.println("Processing spans from " + bucket + "/span");
+    logger.info("Processing spans from " + bucket + "/span");
 
     JavaSparkContext sc = new JavaSparkContext(conf);
+
     JavaRDD<Map<String, Object>> links = JavaEsSpark.esJsonRDD(sc, bucket + "/span")
         .groupBy(pair -> traceId(pair._2))
-        .flatMap(pair -> toLinks(pair._2))
+        .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer))
+        .values()
         .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
         .values()
         .map(ElasticsearchDependenciesJob::dependencyLinkJson);
 
-    System.out.println("Saving dependency links to " + bucket + "/dependencylink");
+    logger.info("Saving dependency links to " + bucket + "/dependencylink");
     JavaEsSpark.saveToEs(links, bucket + "/dependencylink",
         Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
-    System.out.println("Done");
+    logger.info("Done");
     sc.stop();
   }
 
@@ -146,19 +153,6 @@ public final class ElasticsearchDependenciesJob {
     result.put("child", l.child);
     result.put("callCount", l.callCount);
     return result;
-  }
-
-  // static to avoid spark trying to serialize the enclosing class
-  static Iterable<DependencyLink> toLinks(Iterable<Tuple2<String, String>> rows) {
-    List<Span> sameTraceId = new LinkedList<>();
-    for (Tuple2<String, String> row : rows) {
-      sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes()));
-    }
-    DependencyLinker linker = new DependencyLinker();
-    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
-      linker.putTrace(trace);
-    }
-    return linker.link();
   }
 
   private static String getEnv(String key, String defaultValue) {

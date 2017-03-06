@@ -44,6 +44,7 @@ moment, separate binaries are made for each storage layer.
 
 The following variables are common to all storage layers:
     * `SPARK_MASTER`: Spark master to submit the job to; Defaults to `local[*]`
+    * `ZIPKIN_LOG_LEVEL`: Log level for zipkin-related status; Defaults to INFO (use DEBUG for details)
 
 ### Cassandra
 Cassandra is used when `STORAGE_TYPE=cassandra`. The schema is compatible with Zipkin's [Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
@@ -104,3 +105,11 @@ To build the job from source and run against a local cassandra, in Spark's stand
 $ ./mvnw -DskipTests clean install
 $ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
+
+## Troubleshooting
+
+When troubleshooting, always set `ZIPKIN_LOG_LEVEL=DEBUG` as this output
+is important when figuring out why a trace didn't result in a link.
+
+If you set `SPARK_MASTER` to something besides local, remember that log
+output also ends up in `stderr` of the workers.

@@ -45,11 +45,6 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>zipkin-dependencies-elasticsearch</artifactId>
     </dependency>
-
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-    </dependency>
   </dependencies>
 
   <build>
@@ -97,12 +92,6 @@
                 </filter>
                 <filter>
                   <artifact>org.slf4j:*</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>ch.qos.logback:logback-classic</artifact>
                   <includes>
                     <include>**</include>
                   </includes>

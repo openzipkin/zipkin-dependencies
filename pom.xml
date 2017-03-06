@@ -37,8 +37,7 @@
 
     <scala.binary.version>2.10</scala.binary.version>
     <spark.version>1.6.3</spark.version>
-    <zipkin.version>1.20.0</zipkin.version>
-    <logback.version>1.1.7</logback.version>
+    <zipkin.version>1.20.1</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.6.1</assertj.version>
 
@@ -135,18 +134,6 @@
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_${scala.binary.version}</artifactId>
         <version>${spark.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>${logback.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -161,7 +148,6 @@
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
     </dependency>
-
 
     <!-- avoids compile error: Could not access type DataFrame in package org.apache.spark.sql -->
     <dependency>
@@ -189,12 +175,6 @@
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
       <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
