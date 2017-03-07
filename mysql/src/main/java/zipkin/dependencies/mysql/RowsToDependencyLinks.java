@@ -13,14 +13,12 @@
  */
 package zipkin.dependencies.mysql;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Collections;
 import java.util.Iterator;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import zipkin.DependencyLink;
 import zipkin.internal.DependencyLinkSpan;
@@ -29,9 +27,8 @@ import zipkin.internal.Nullable;
 
 final class RowsToDependencyLinks
     implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {
-  transient Logger logger = LogManager.getLogger(RowsToDependencyLinks.class);
-
   private static final long serialVersionUID = 0L;
+  private static final Logger log = LoggerFactory.getLogger(RowsToDependencyLinks.class);
 
   @Nullable final Runnable logInitializer;
   final boolean hasTraceIdHigh;
@@ -53,11 +50,5 @@ final class RowsToDependencyLinks
       linker.putTrace(traces.next());
     }
     return linker.link();
-  }
-
-  // loggers aren't serializable
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    logger = LogManager.getLogger(RowsToDependencyLinks.class);
-    in.defaultReadObject();
   }
 }
