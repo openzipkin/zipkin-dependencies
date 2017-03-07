@@ -16,7 +16,6 @@ package zipkin.dependencies.cassandra;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.spark.connector.cql.CassandraConnector;
-import com.datastax.spark.connector.japi.CassandraRow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -30,26 +29,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
-import zipkin.Codec;
 import zipkin.DependencyLink;
-import zipkin.Span;
 import zipkin.internal.Dependencies;
-import zipkin.internal.DependencyLinker;
-import zipkin.internal.GroupByTraceId;
+import zipkin.internal.Nullable;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
-import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class CassandraDependenciesJob {
-  static final Logger logger = LoggerFactory.getLogger(CassandraDependenciesJob.class);
+  static final Logger logger = LogManager.getLogger(CassandraDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -73,6 +68,7 @@ public final class CassandraDependenciesJob {
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
     // needed when not in local mode
     String[] jars;
+    Runnable logInitializer;
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
@@ -95,6 +91,12 @@ public final class CassandraDependenciesJob {
       return this;
     }
 
+    /** Ensures that logging is setup. Particularly important when in cluster mode. */
+    public Builder logInitializer(Runnable logInitializer) {
+      this.logInitializer = checkNotNull(logInitializer, "logInitializer");
+      return this;
+    }
+
     public CassandraDependenciesJob build() {
       return new CassandraDependenciesJob(this);
     }
@@ -112,6 +114,7 @@ public final class CassandraDependenciesJob {
   final long day;
   final String dateStamp;
   final SparkConf conf;
+  @Nullable final Runnable logInitializer;
 
   CassandraDependenciesJob(Builder builder) {
     this.keyspace = builder.keyspace;
@@ -126,6 +129,7 @@ public final class CassandraDependenciesJob {
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
+    this.logInitializer = builder.logInitializer;
   }
 
   public void run() {
@@ -139,7 +143,8 @@ public final class CassandraDependenciesJob {
 
     List<DependencyLink> links = javaFunctions(sc).cassandraTable(keyspace, "traces")
         .spanBy(r -> r.getLong("trace_id"), Long.class)
-        .flatMap(pair -> toLinks(microsLower, microsUpper, pair._2))
+        .flatMapValues(new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper))
+        .values()
         .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
         .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
         .values().collect();
@@ -149,37 +154,11 @@ public final class CassandraDependenciesJob {
     saveToCassandra(links);
   }
 
-  // static to avoid spark trying to serialize the enclosing class
-  static Iterable<DependencyLink> toLinks(long startTs, long endTs, Iterable<CassandraRow> rows) {
-    List<Span> sameTraceId = new LinkedList<>();
-    for (CassandraRow row : rows) {
-      try {
-        sameTraceId.add(Codec.THRIFT.readSpan(row.getBytes("span")));
-      } catch (RuntimeException e) {
-        logger.warn(String.format(
-            "Unable to decode span from traces where trace_id=%s and ts=%s and span_name='%s'",
-            row.getLong("trace_id"), row.getDate("ts").getTime(), row.getString("span_name")), e);
-      }
-    }
-    DependencyLinker linker = new DependencyLinker();
-    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
-      // check to see if the trace is within the interval
-      Long timestamp = guessTimestamp(trace.get(0));
-      if (timestamp == null ||
-          timestamp < startTs ||
-          timestamp > endTs) {
-        continue;
-      }
-      linker.putTrace(trace);
-    }
-    return linker.link();
-  }
-
   void saveToCassandra(List<DependencyLink> links) {
     Dependencies thrift = Dependencies.create(day, day /** ignored */, links);
     ByteBuffer blob = thrift.toThrift();
 
-    System.out.println("Saving with day=" + dateStamp);
+    logger.info("Saving with day=" + dateStamp);
     CassandraConnector.apply(conf).withSessionDo(new AbstractFunction1<Session, Void>() {
       @Override public Void apply(Session session) {
         session.execute(QueryBuilder.insertInto(keyspace, "dependencies")
@@ -189,7 +168,7 @@ public final class CassandraDependenciesJob {
         return null;
       }
     });
-    System.out.println("Done");
+    logger.info("Done");
   }
 
   static String parseHosts(String contactPoints) {
