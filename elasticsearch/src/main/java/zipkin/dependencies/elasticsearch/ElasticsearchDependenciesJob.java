@@ -21,12 +21,12 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TimeZone;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import zipkin.DependencyLink;
 import zipkin.internal.Nullable;
@@ -37,7 +37,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class ElasticsearchDependenciesJob {
-  static final Logger logger = LogManager.getLogger(ElasticsearchDependenciesJob.class);
+  private static final Logger log = LoggerFactory.getLogger(ElasticsearchDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -122,7 +122,7 @@ public final class ElasticsearchDependenciesJob {
   public void run() {
     String bucket = index + "-" + dateStamp;
 
-    logger.info("Processing spans from " + bucket + "/span");
+    log.info("Processing spans from {}/span", bucket);
 
     JavaSparkContext sc = new JavaSparkContext(conf);
 
@@ -135,10 +135,10 @@ public final class ElasticsearchDependenciesJob {
         .values()
         .map(ElasticsearchDependenciesJob::dependencyLinkJson);
 
-    logger.info("Saving dependency links to " + bucket + "/dependencylink");
+    log.info("Saving dependency links to {}/dependencylink", bucket);
     JavaEsSpark.saveToEs(links, bucket + "/dependencylink",
         Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
-    logger.info("Done");
+    log.info("Done");
     sc.stop();
   }
 

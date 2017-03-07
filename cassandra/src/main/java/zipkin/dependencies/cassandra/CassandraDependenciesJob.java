@@ -29,10 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 import zipkin.DependencyLink;
@@ -44,7 +44,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class CassandraDependenciesJob {
-  static final Logger logger = LogManager.getLogger(CassandraDependenciesJob.class);
+  private static final Logger log = LoggerFactory.getLogger(CassandraRowsToDependencyLinks.class);
 
   public static Builder builder() {
     return new Builder();
@@ -136,8 +136,8 @@ public final class CassandraDependenciesJob {
     long microsLower = day * 1000;
     long microsUpper = (day * 1000) + TimeUnit.DAYS.toMicros(1) - 1;
 
-    System.out.printf("Running Dependencies job for %s: %s ≤ Span.timestamp %s%n", dateStamp,
-        microsLower, microsUpper);
+    log.info("Running Dependencies job for {}: {} ≤ Span.timestamp {}", dateStamp, microsLower,
+        microsUpper);
 
     SparkContext sc = new SparkContext(conf);
 
@@ -158,7 +158,7 @@ public final class CassandraDependenciesJob {
     Dependencies thrift = Dependencies.create(day, day /** ignored */, links);
     ByteBuffer blob = thrift.toThrift();
 
-    logger.info("Saving with day=" + dateStamp);
+    log.info("Saving with day={}", dateStamp);
     CassandraConnector.apply(conf).withSessionDo(new AbstractFunction1<Session, Void>() {
       @Override public Void apply(Session session) {
         session.execute(QueryBuilder.insertInto(keyspace, "dependencies")
@@ -168,7 +168,7 @@ public final class CassandraDependenciesJob {
         return null;
       }
     });
-    logger.info("Done");
+    log.info("Done");
   }
 
   static String parseHosts(String contactPoints) {

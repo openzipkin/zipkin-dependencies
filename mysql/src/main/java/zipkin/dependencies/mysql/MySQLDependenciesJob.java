@@ -25,12 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.execution.datasources.jdbc.DefaultSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import zipkin.DependencyLink;
 import zipkin.internal.Nullable;
@@ -39,7 +39,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class MySQLDependenciesJob {
-  static final Logger logger = LogManager.getLogger(MySQLDependenciesJob.class);
+  private static final Logger log = LoggerFactory.getLogger(MySQLDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -194,8 +194,8 @@ public final class MySQLDependenciesJob {
 
     options.put("dbtable", "(" + linksQuery + ") as link_spans");
 
-    logger.info(String.format("Running Dependencies job for %s: start_ts between %s and %s",
-        dateStamp, microsLower, microsUpper));
+    log.info("Running Dependencies job for {}: start_ts between {} and {}", dateStamp, microsLower,
+        microsUpper);
 
     JavaSparkContext sc = new JavaSparkContext(conf);
 
@@ -211,9 +211,9 @@ public final class MySQLDependenciesJob {
 
     sc.stop();
 
-    logger.info("Saving with day=" + dateStamp);
+    log.info("Saving with day=" + dateStamp);
     saveToMySQL(links);
-    logger.info("Done");
+    log.info("Done");
   }
 
   private boolean hasTraceIdHigh() {
@@ -222,13 +222,9 @@ public final class MySQLDependenciesJob {
       connection.createStatement().execute("select trace_id_high from zipkin_spans limit 1");
       hasTraceIdHigh = true;
     } catch (SQLException e) {
-      if (e.getMessage().indexOf("trace_id_high") != -1) {
-        logger.warn(
-            "zipkin_spans.trace_id_high doesn't exist, so 128-bit trace ids are not supported.");
-        hasTraceIdHigh = false;
-      } else {
-        throw new RuntimeException(e);
-      }
+      if (e.getMessage().indexOf("trace_id_high") == -1) throw new RuntimeException(e);
+      log.warn("zipkin_spans.trace_id_high doesn't exist, so 128-bit trace ids are not supported.");
+      hasTraceIdHigh = false;
     }
     return hasTraceIdHigh;
   }

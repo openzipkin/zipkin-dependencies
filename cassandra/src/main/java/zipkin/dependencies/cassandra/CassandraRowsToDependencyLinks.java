@@ -14,13 +14,11 @@
 package zipkin.dependencies.cassandra;
 
 import com.datastax.spark.connector.japi.CassandraRow;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.LinkedList;
 import java.util.List;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import zipkin.Codec;
 import zipkin.DependencyLink;
@@ -33,9 +31,8 @@ import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 
 final class CassandraRowsToDependencyLinks implements Serializable,
     Function<Iterable<CassandraRow>, Iterable<DependencyLink>> {
-  transient Logger logger = LogManager.getLogger(CassandraRowsToDependencyLinks.class);
-
   private static final long serialVersionUID = 0L;
+  private static final Logger log = LoggerFactory.getLogger(CassandraRowsToDependencyLinks.class);
 
   @Nullable final Runnable logInitializer;
   final long startTs;
@@ -54,7 +51,7 @@ final class CassandraRowsToDependencyLinks implements Serializable,
       try {
         sameTraceId.add(Codec.THRIFT.readSpan(row.getBytes("span")));
       } catch (RuntimeException e) {
-        logger.warn(String.format(
+        log.warn(String.format(
             "Unable to decode span from traces where trace_id=%s and ts=%s and span_name='%s'",
             row.getLong("trace_id"), row.getDate("ts").getTime(), row.getString("span_name")), e);
       }
@@ -71,11 +68,5 @@ final class CassandraRowsToDependencyLinks implements Serializable,
       linker.putTrace(trace);
     }
     return linker.link();
-  }
-
-  // loggers aren't serializable
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    logger = LogManager.getLogger(CassandraRowsToDependencyLinks.class);
-    in.defaultReadObject();
   }
 }

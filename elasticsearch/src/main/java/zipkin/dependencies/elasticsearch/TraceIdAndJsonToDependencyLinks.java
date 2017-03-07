@@ -13,13 +13,11 @@
  */
 package zipkin.dependencies.elasticsearch;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.LinkedList;
 import java.util.List;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import scala.Tuple2;
 import zipkin.Codec;
@@ -31,9 +29,8 @@ import zipkin.internal.Nullable;
 
 final class TraceIdAndJsonToDependencyLinks implements Serializable,
     Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
-  transient Logger logger = LogManager.getLogger(TraceIdAndJsonToDependencyLinks.class);
-
   private static final long serialVersionUID = 0L;
+  private static final Logger log = LoggerFactory.getLogger(TraceIdAndJsonToDependencyLinks.class);
 
   @Nullable final Runnable logInitializer;
 
@@ -48,7 +45,7 @@ final class TraceIdAndJsonToDependencyLinks implements Serializable,
       try {
         sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes()));
       } catch (RuntimeException e) {
-        logger.warn("Unable to decode span from traces where trace_id=" + row._1, e);
+        log.warn("Unable to decode span from traces where trace_id=" + row._1, e);
       }
       sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes()));
     }
@@ -57,11 +54,5 @@ final class TraceIdAndJsonToDependencyLinks implements Serializable,
       linker.putTrace(trace);
     }
     return linker.link();
-  }
-
-  // loggers aren't serializable
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-    logger = LogManager.getLogger(TraceIdAndJsonToDependencyLinks.class);
-    in.defaultReadObject();
   }
 }

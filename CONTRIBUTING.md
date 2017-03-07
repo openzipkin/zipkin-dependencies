@@ -28,3 +28,15 @@ If you are adding a new file it should have a header like below. This can be aut
  * the License.
  */
  ```
+
+## Logging
+
+Spark logging is managed via log4J configuration. [LogInitializer](./main/src/main/java/zipkin/dependencies/LogInitializer.java)
+adds configuration during bootstrap for the "zipkin" category and
+propagates it to Spark executors in a dependency free manner.
+
+Even though Spark uses log4J underneath, declare loggers using the SLF4J
+api, notable as static final field. SLF4J loggers are serializable, so
+do not require special handling when part of a spark task. If you need
+to test logging, encapsulate the static field in an instance method
+`log()` and override it during tests.
