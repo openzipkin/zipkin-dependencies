@@ -41,22 +41,21 @@
     <junit.version>4.12</junit.version>
     <assertj.version>3.6.1</assertj.version>
 
-    <maven-plugin.version>0.3.3</maven-plugin.version>
-    <maven-compiler-plugin.version>3.6.0</maven-compiler-plugin.version>
+    <maven-plugin.version>0.3.4</maven-plugin.version>
+    <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
-
     <!-- Tools to ensure we can run on Java 7 JVMs -->
     <animal-sniffer-maven-plugin.version>1.15</animal-sniffer-maven-plugin.version>
-    <retrolambda-maven-plugin.version>2.5.0</retrolambda-maven-plugin.version>
+    <retrolambda-maven-plugin.version>2.5.1</retrolambda-maven-plugin.version>
 
     <!-- Catch common Java mistakes as compile-time errors -->
     <plexus-compiler-javac-errorprone.version>2.8.1</plexus-compiler-javac-errorprone.version>
-    <errorprone.version>2.0.15</errorprone.version>
+    <errorprone.version>2.0.19</errorprone.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
