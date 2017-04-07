@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.AssumptionViolatedException;
 import zipkin.Span;
 import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin.internal.CallbackCaptor;
@@ -43,12 +42,6 @@ public class ElasticsearchDependenciesTest extends DependenciesTest {
 
   @Override public void clear() throws IOException {
     storage.clear();
-  }
-
-  @Override
-  public void manyLinks() {
-    // This test is too expensive for travis and has been rewritten
-    throw new AssumptionViolatedException("TODO: remove when update to zipkin 1.20.1+");
   }
 
   /**
