@@ -204,7 +204,7 @@
               </goals>
               <configuration>
                 <target>1.7</target>
-                <fork>false</fork>
+                <fork>true</fork>
               </configuration>
             </execution>
           </executions>
