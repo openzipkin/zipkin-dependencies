@@ -36,7 +36,7 @@ import zipkin.internal.gson.stream.MalformedJsonException;
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
-public final class ElasticsearchDependenciesJob {
+public final class ElasticsearchDependenciesJob implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ElasticsearchDependenciesJob.class);
 
   public static Builder builder() {
@@ -91,8 +91,12 @@ public final class ElasticsearchDependenciesJob {
       return this;
     }
 
-    public ElasticsearchDependenciesJob build() {
-      return new ElasticsearchDependenciesJob(this);
+    public Runnable build() {
+      ElasticsearchDependenciesJob job = new ElasticsearchDependenciesJob(this);
+      if ("servicespan".equals(System.getenv("ES_JOB"))) {
+        return new ElasticsearchServiceSpanJob(job);
+      }
+      return job;
     }
   }
 
@@ -119,7 +123,7 @@ public final class ElasticsearchDependenciesJob {
     this.logInitializer = builder.logInitializer;
   }
 
-  public void run() {
+  @Override public void run() {
     String bucket = index + "-" + dateStamp;
 
     log.info("Processing spans from {}/span", bucket);
@@ -175,7 +179,7 @@ public final class ElasticsearchDependenciesJob {
   }
 
   /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
-  private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
+  static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
     return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
   }
 }

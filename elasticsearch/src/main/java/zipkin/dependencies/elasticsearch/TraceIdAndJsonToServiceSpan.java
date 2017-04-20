@@ -13,30 +13,36 @@
  */
 package zipkin.dependencies.elasticsearch;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.spark.api.java.function.Function;
 import scala.Serializable;
 import scala.Tuple2;
-import zipkin.DependencyLink;
 import zipkin.Span;
-import zipkin.internal.DependencyLinker;
 import zipkin.internal.Nullable;
 
-final class TraceIdAndJsonToDependencyLinks implements Serializable,
-    Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
+final class TraceIdAndJsonToServiceSpan implements Serializable,
+    Function<Iterable<Tuple2<String, String>>, Iterable<Tuple2<String, String>>> {
   private static final long serialVersionUID = 0L;
 
   final TraceIdAndJsonToTrace getTraces;
 
-  TraceIdAndJsonToDependencyLinks(@Nullable Runnable logInitializer) {
+  TraceIdAndJsonToServiceSpan(@Nullable Runnable logInitializer) {
     this.getTraces = new TraceIdAndJsonToTrace(logInitializer);
   }
 
-  @Override public Iterable<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
-    DependencyLinker linker = new DependencyLinker();
+  @Override
+  public Iterable<Tuple2<String, String>> call(Iterable<Tuple2<String, String>> traceIdJson) {
+    Set<Tuple2<String, String>> result = new LinkedHashSet<>();
     for (List<Span> trace : getTraces.call(traceIdJson)) {
-      linker.putTrace(trace);
+      for (Span span : trace) {
+        if (span.name.isEmpty()) continue;
+        for (String serviceName : span.serviceNames()) {
+          result.add(ElasticsearchDependenciesJob.tuple2(serviceName, span.name));
+        }
+      }
     }
-    return linker.link();
+    return result;
   }
 }
