@@ -28,7 +28,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <spark-cassandra-connector.version>1.6.6</spark-cassandra-connector.version>
+    <spark-cassandra-connector.version>2.0.2</spark-cassandra-connector.version>
   </properties>
 
   <dependencies>
@@ -54,6 +54,13 @@
       <artifactId>spark-cassandra-connector-unshaded_${scala.binary.version}</artifactId>
       <version>${spark-cassandra-connector.version}</version>
     </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.10</version>
+    </dependency>
+
+
 
     <dependency>
       <groupId>io.zipkin.java</groupId>
