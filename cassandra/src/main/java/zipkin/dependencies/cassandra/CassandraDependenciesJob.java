@@ -56,13 +56,16 @@ public final class CassandraDependenciesJob {
     /** Comma separated list of hosts / IPs part of Cassandra cluster. Defaults to localhost */
     String contactPoints = getEnv("CASSANDRA_CONTACT_POINTS", "localhost");
 
-    Map<String, String> sparkProperties = ImmutableMap.of(
-        "spark.ui.enabled", "false",
-        "spark.cassandra.connection.host", parseHosts(contactPoints),
-        "spark.cassandra.connection.port", parsePort(contactPoints),
-        "spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""),
-        "spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", "")
-    );
+    Map<String,String> sparkProperties = ImmutableMap.<String, String>builder()
+      .put("spark.ui.enabled", "false")
+      .put("spark.cassandra.connection.host", parseHosts(contactPoints))
+      .put("spark.cassandra.connection.port", parsePort(contactPoints))
+      .put("spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"))
+      .put("spark.cassandra.connection.ssl.trustStore.password", getEnv("CASSANDRA_KEYSTORE_PASSWORD", ""))
+      .put("spark.cassandra.connection.ssl.trustStore.path", getEnv("CASSANDRA_KEYSTORE_PATH", ""))
+      .put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""))
+      .put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""))
+      .build();
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
