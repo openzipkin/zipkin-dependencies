@@ -37,7 +37,7 @@
 
     <scala.binary.version>2.10</scala.binary.version>
     <spark.version>1.6.3</spark.version>
-    <zipkin.version>1.24.0</zipkin.version>
+    <zipkin.version>1.26.0</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.6.1</assertj.version>
 
@@ -132,6 +132,13 @@
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_${scala.binary.version}</artifactId>
         <version>${spark.version}</version>
+        <exclusions>
+          <!-- jets3t S3 pins old version (1.3), missing Base64.encodeBase64String(byte[]) -->
+          <exclusion>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
     </dependencies>
   </dependencyManagement>

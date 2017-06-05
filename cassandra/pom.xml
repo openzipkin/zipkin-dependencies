@@ -41,11 +41,6 @@
           <groupId>io.netty</groupId>
           <artifactId>netty-all</artifactId>
         </exclusion>
-        <!-- jets3t S3 support pins old version (1.3) of commons-codec -->
-        <exclusion>
-          <groupId>commons-codec</groupId>
-          <artifactId>commons-codec</artifactId>
-        </exclusion>
       </exclusions>
     </dependency>
 
@@ -54,13 +49,6 @@
       <artifactId>spark-cassandra-connector-unshaded_${scala.binary.version}</artifactId>
       <version>${spark-cassandra-connector.version}</version>
     </dependency>
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>1.10</version>
-    </dependency>
-
-
 
     <dependency>
       <groupId>io.zipkin.java</groupId>
