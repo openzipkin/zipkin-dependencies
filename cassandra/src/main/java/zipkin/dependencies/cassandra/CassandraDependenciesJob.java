@@ -61,8 +61,8 @@ public final class CassandraDependenciesJob {
       .put("spark.cassandra.connection.host", parseHosts(contactPoints))
       .put("spark.cassandra.connection.port", parsePort(contactPoints))
       .put("spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"))
-      .put("spark.cassandra.connection.ssl.trustStore.password", getEnv("CASSANDRA_KEYSTORE_PASSWORD", ""))
-      .put("spark.cassandra.connection.ssl.trustStore.path", getEnv("CASSANDRA_KEYSTORE_PATH", ""))
+      .put("spark.cassandra.connection.ssl.trustStore.password", System.getProperty("javax.net.ssl.trustStorePassword", ""))
+      .put("spark.cassandra.connection.ssl.trustStore.path", System.getProperty("javax.net.ssl.trustStore", ""))
       .put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""))
       .put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""))
       .build();

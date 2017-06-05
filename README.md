@@ -52,6 +52,7 @@ Cassandra is used when `STORAGE_TYPE=cassandra`. The schema is compatible with Z
     * `CASSANDRA_KEYSPACE`: The keyspace to use. Defaults to "zipkin".
     * `CASSANDRA_CONTACT_POINTS`: Comma separated list of hosts / ip addresses part of Cassandra cluster. Defaults to localhost
     * `CASSANDRA_USERNAME` and `CASSANDRA_PASSWORD`: Cassandra authentication. Will throw an exception on startup if authentication fails
+    * `CASSANDRA_USE_SSL`: Requires `javax.net.ssl.trustStore` and `javax.net.ssl.trustStorePassword`, defaults to false.
 
 Example usage:
 
