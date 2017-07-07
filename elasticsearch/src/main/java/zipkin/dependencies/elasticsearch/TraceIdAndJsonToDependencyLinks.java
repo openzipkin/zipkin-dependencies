@@ -26,6 +26,7 @@ import zipkin.Span;
 import zipkin.internal.DependencyLinker;
 import zipkin.internal.GroupByTraceId;
 import zipkin.internal.Nullable;
+import zipkin.internal.Util;
 
 final class TraceIdAndJsonToDependencyLinks implements Serializable,
     Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
@@ -43,11 +44,11 @@ final class TraceIdAndJsonToDependencyLinks implements Serializable,
     List<Span> sameTraceId = new LinkedList<>();
     for (Tuple2<String, String> row : traceIdJson) {
       try {
-        sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes()));
+        sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes(Util.UTF_8)));
       } catch (RuntimeException e) {
         log.warn("Unable to decode span from traces where trace_id=" + row._1, e);
       }
-      sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes()));
+      sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes(Util.UTF_8)));
     }
     DependencyLinker linker = new DependencyLinker();
     for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
