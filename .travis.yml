@@ -40,8 +40,9 @@ before_install:
 
 install:
   # Override default travis to use the maven wrapper
+  # Use quiet as shade plugin creates too many logs for Travis: The log length has exceeded the limit of 4 MB
   # skip license on travis due to zipkin #1512
-  - ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Dlicense.skip=true
+  - ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -Dlicense.skip=true -B -V
 
 script:
   - ./travis/publish.sh
