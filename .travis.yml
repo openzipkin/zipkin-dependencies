@@ -1,3 +1,5 @@
+# Use a bigger VM
+sudo: required
 dist: trusty
 addons:
   apt:
