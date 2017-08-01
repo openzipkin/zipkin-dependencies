@@ -28,7 +28,7 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <spark-cassandra-connector.version>1.6.7</spark-cassandra-connector.version>
+    <spark-cassandra-connector.version>2.0.3</spark-cassandra-connector.version>
   </properties>
 
   <dependencies>
