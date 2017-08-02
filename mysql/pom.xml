@@ -33,7 +33,7 @@
 
          MariaDB has a friendlier license, LGPL, which is less scary in audits.
     -->
-    <mariadb-java-client.version>1.6.2</mariadb-java-client.version>
+    <mariadb-java-client.version>1.6.3</mariadb-java-client.version>
   </properties>
 
   <dependencies>

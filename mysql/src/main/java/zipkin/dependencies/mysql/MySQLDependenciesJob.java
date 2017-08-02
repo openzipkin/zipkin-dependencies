@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.execution.datasources.jdbc.DefaultSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -199,8 +198,7 @@ public final class MySQLDependenciesJob {
 
     JavaSparkContext sc = new JavaSparkContext(conf);
 
-    List<DependencyLink> links = new SQLContext(sc).read().format(DefaultSource.class.getName())
-        .options(options).load()
+    List<DependencyLink> links = new SQLContext(sc).read().format("jdbc").options(options).load()
         .toJavaRDD()
         .groupBy(r -> r.getLong(hasTraceIdHigh ? 1 : 0) /* trace_id */)
         .flatMapValues(new RowsToDependencyLinks(logInitializer, hasTraceIdHigh))
