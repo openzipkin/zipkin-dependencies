@@ -21,9 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import zipkin.DependencyLink;
-import zipkin.internal.DependencyLinkSpan;
 import zipkin.internal.DependencyLinker;
 import zipkin.internal.Nullable;
+import zipkin.internal.Span2;
 
 final class RowsToDependencyLinks
     implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {
@@ -40,8 +40,8 @@ final class RowsToDependencyLinks
 
   @Override public Iterable<DependencyLink> call(Iterable<Row> rows) {
     if (logInitializer != null) logInitializer.run();
-    Iterator<Iterator<DependencyLinkSpan>> traces =
-        new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
+    Iterator<Iterator<Span2>> traces =
+        new DependencyLinkSpan2Iterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
 
     if (!traces.hasNext()) return Collections.emptyList();
 

@@ -51,7 +51,7 @@ final class TraceIdAndJsonToDependencyLinks implements Serializable,
       sameTraceId.add(Codec.JSON.readSpan(row._2.getBytes(Util.UTF_8)));
     }
     DependencyLinker linker = new DependencyLinker();
-    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
+    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, false, true)) {
       linker.putTrace(trace);
     }
     return linker.link();

@@ -131,7 +131,11 @@ public final class ElasticsearchDependenciesJob {
         .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer))
         .values()
         .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
-        .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
+        .reduceByKey((l, r) -> DependencyLink.builder()
+            .parent(l.parent)
+            .child(l.child)
+            .callCount(l.callCount + r.callCount)
+            .errorCount(l.errorCount + r.errorCount).build())
         .values()
         .map(ElasticsearchDependenciesJob::dependencyLinkJson);
 
@@ -152,6 +156,7 @@ public final class ElasticsearchDependenciesJob {
     result.put("parent", l.parent);
     result.put("child", l.child);
     result.put("callCount", l.callCount);
+    result.put("errorCount", l.errorCount);
     return result;
   }
 
@@ -160,13 +165,15 @@ public final class ElasticsearchDependenciesJob {
     return result != null ? result : defaultValue;
   }
 
+  /** returns the lower 64 bits of the trace ID */
   static String traceId(String json) throws IOException {
     JsonReader reader = new JsonReader(new StringReader(json));
     reader.beginObject();
     while (reader.hasNext()) {
       String nextName = reader.nextName();
       if (nextName.equals("traceId")) {
-        return reader.nextString();
+        String traceId = reader.nextString();
+        return traceId.length() > 16 ? traceId.substring(traceId.length() - 16) : traceId;
       } else {
         reader.skipValue();
       }
