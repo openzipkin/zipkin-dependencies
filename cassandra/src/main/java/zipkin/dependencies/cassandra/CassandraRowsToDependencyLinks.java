@@ -57,7 +57,7 @@ final class CassandraRowsToDependencyLinks implements Serializable,
       }
     }
     DependencyLinker linker = new DependencyLinker();
-    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, true, true)) {
+    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, false, true)) {
       // check to see if the trace is within the interval
       Long timestamp = guessTimestamp(trace.get(0));
       if (timestamp == null ||

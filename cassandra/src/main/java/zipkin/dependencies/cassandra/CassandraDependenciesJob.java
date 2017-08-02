@@ -149,7 +149,11 @@ public final class CassandraDependenciesJob {
         .flatMapValues(new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper))
         .values()
         .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
-        .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
+        .reduceByKey((l, r) -> DependencyLink.builder()
+            .parent(l.parent)
+            .child(l.child)
+            .callCount(l.callCount + r.callCount)
+            .errorCount(l.errorCount + r.errorCount).build())
         .values().collect();
 
     sc.stop();
