@@ -61,6 +61,14 @@ public final class ElasticsearchDependenciesJob {
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
       // NOTE: unlike zipkin, this uses the http port
       sparkProperties.put("es.nodes", getEnv("ES_HOSTS", "127.0.0.1"));
+      final String username = getEnv("ES_USERNAME", null);
+      if (username != null && !username.trim().isEmpty()) {
+        sparkProperties.put("es.net.http.auth.user", username);
+      }
+      final String password = getEnv("ES_PASSWORD", null);
+      if (password != null && !password.trim().isEmpty()) {
+        sparkProperties.put("es.net.http.auth.pass", password);
+      }
     }
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
