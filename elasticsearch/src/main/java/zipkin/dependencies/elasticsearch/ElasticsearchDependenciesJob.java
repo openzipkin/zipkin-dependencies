@@ -61,6 +61,7 @@ public final class ElasticsearchDependenciesJob {
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
       // NOTE: unlike zipkin, this uses the http port
       sparkProperties.put("es.nodes", getEnv("ES_HOSTS", "127.0.0.1"));
+      sparkProperties.put("es.net.ssl", getEnv("ES_SSL", "false"));
       final String username = getEnv("ES_USERNAME", null);
       if (username != null && !username.trim().isEmpty()) {
         sparkProperties.put("es.net.http.auth.user", username);
