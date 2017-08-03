@@ -41,6 +41,7 @@
     <zipkin.version>1.29.0</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.8.0</assertj.version>
+    <jackson.version>2.9.0</jackson.version>
 
     <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
@@ -140,6 +141,36 @@
             <artifactId>commons-codec</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+
+
+      <!-- Forcibly bump Jackson version to avoid CVE-2017-4995 -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.module</groupId>
+        <artifactId>jackson-module-scala_2.11</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.module</groupId>
+        <artifactId>jackson-module-paranamer</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+
+      <!-- Forcibly bump Commons Collection version to avoid CVE-2015-7501 -->
+      <dependency>
+        <groupId>commons-collections</groupId>
+        <artifactId>commons-collections</artifactId>
+        <version>3.2.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
