@@ -89,6 +89,10 @@ Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatibl
                   recommended to set this to all the master nodes of the cluster.
     * `ES_NODES_WAN_ONLY`: Set to true to only use the values set in ES_HOSTS, for example if your
                            elasticsearch cluster is in Docker. Defaults to false
+    * `ES_USERNAME` and `ES_PASSWORD`: Elasticsearch basic authentication. Use when X-Pack security
+                                       (formerly Shield) is in place. By default no username or
+                                       password is provided to elasticsearch.
+    * `ES_SSL`: Set to `true` when connections to elasticsearch must use TLS/SSL. Defaults to `false`.
 
 Example usage:
 
