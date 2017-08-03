@@ -109,6 +109,12 @@
                   </includes>
                 </filter>
                 <filter>
+                  <artifact>net.jpountz.lz4:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
                   <artifact>com.typesafe.akka:*</artifact>
                   <includes>
                     <include>**</include>

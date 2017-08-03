@@ -199,7 +199,10 @@ public final class MySQLDependenciesJob {
 
     JavaSparkContext sc = new JavaSparkContext(conf);
 
-    List<DependencyLink> links = new SQLContext(sc).read().format("jdbc").options(options).load()
+    List<DependencyLink> links = new SQLContext(sc).read()
+        .format("org.apache.spark.sql.execution.datasources.jdbc.JdbcRelationProvider")
+        .options(options)
+        .load()
         .toJavaRDD()
         .groupBy(r -> r.getLong(hasTraceIdHigh ? 1 : 0) /* trace_id */)
         .flatMapValues(new RowsToDependencyLinks(logInitializer, hasTraceIdHigh))
