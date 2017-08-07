@@ -1,6 +1,8 @@
-# Use a bigger VM
+# Use a larger VM as we run a lot of services
+# https://docs.travis-ci.com/user/ci-environment/#Virtualization-environments
 sudo: required
 dist: trusty
+
 addons:
   apt:
     packages:
@@ -15,6 +17,7 @@ jdk:
 
 services:
   - mysql
+  - docker
 
 cache:
   directories:
@@ -29,9 +32,8 @@ before_install:
   # See https://github.com/openzipkin/zipkin/issues/706
   - curl -SL http://downloads.datastax.com/community/dsc-cassandra-2.2.7-bin.tar.gz | tar xz
   - dsc-cassandra-*/bin/cassandra > /dev/null
-  # Manually install elasticsearch until https://github.com/travis-ci/apt-source-whitelist/issues/190
-  - curl -SL https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.3.3/elasticsearch-2.3.3.tar.gz | tar xz
-  - elasticsearch-*/bin/elasticsearch -d > /dev/null
+  # Required for Elasticsearch 5 (See https://github.com/docker-library/docs/tree/master/elasticsearch#host-setup)
+  - sudo sysctl -w vm.max_map_count=262144
   # parameters used during a release
   # allocate commits to CI, not the owner of the deploy key
   - git config user.name "zipkinci"
@@ -43,7 +45,6 @@ before_install:
 install:
   # Override default travis to use the maven wrapper
   # Use quiet as shade plugin creates too many logs for Travis: The log length has exceeded the limit of 4 MB
-  # skip license on travis due to zipkin #1512
   - ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -Dlicense.skip=true -B -V
 
 script:
@@ -57,7 +58,8 @@ branches:
 
 notifications:
   webhooks:
-    urls:
+    urls:  # skip license on travis due to zipkin #1512
+
       - https://webhooks.gitter.im/e/637e968b45032d16ee26
     on_success: change
     on_failure: always
