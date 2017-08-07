@@ -24,12 +24,17 @@ import java.util.TimeZone;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
+import zipkin.Codec;
 import zipkin.DependencyLink;
+import zipkin.Span;
 import zipkin.internal.Nullable;
+import zipkin.internal.Span2Codec;
+import zipkin.internal.Span2Converter;
 import zipkin.internal.gson.stream.JsonReader;
 import zipkin.internal.gson.stream.MalformedJsonException;
 
@@ -79,6 +84,12 @@ public final class ElasticsearchDependenciesJob {
       return this;
     }
 
+    public Builder esNodes(String esNodes) { // visible for testing
+      sparkProperties.put("es.nodes", checkNotNull(esNodes, "esNodes"));
+      sparkProperties.put("es.nodes.wan.only", "true");
+      return this;
+    }
+
     /** Day (in epoch milliseconds) to process dependencies for. Defaults to today. */
     public Builder day(long day) {
       this.day = midnightUTC(day);
@@ -120,30 +131,64 @@ public final class ElasticsearchDependenciesJob {
   }
 
   public void run() {
-    String bucket = index + "-" + dateStamp;
+    run( // multi-type index
+        index + "-" + dateStamp + "/span",
+        index + "-" + dateStamp + "/dependencylink",
+        SpanDecoder.INSTANCE
+    );
 
-    log.info("Processing spans from {}/span", bucket);
-
-    JavaSparkContext sc = new JavaSparkContext(conf);
-
-    JavaRDD<Map<String, Object>> links = JavaEsSpark.esJsonRDD(sc, bucket + "/span")
-        .groupBy(pair -> traceId(pair._2))
-        .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer))
-        .values()
-        .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
-        .reduceByKey((l, r) -> DependencyLink.builder()
-            .parent(l.parent)
-            .child(l.child)
-            .callCount(l.callCount + r.callCount)
-            .errorCount(l.errorCount + r.errorCount).build())
-        .values()
-        .map(ElasticsearchDependenciesJob::dependencyLinkJson);
-
-    log.info("Saving dependency links to {}/dependencylink", bucket);
-    JavaEsSpark.saveToEs(links, bucket + "/dependencylink",
-        Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
+    run( // single-type index
+        index + ":span-" + dateStamp + "/span",
+        index + ":dependency-" + dateStamp + "/dependency",
+        Span2Decoder.INSTANCE
+    );
     log.info("Done");
-    sc.stop();
+  }
+
+  // enums are used here because they are naturally serializable
+  enum SpanDecoder implements Function<byte[], Span> {
+    INSTANCE;
+
+    @Override public Span call(byte[] bytes) throws Exception {
+      return Codec.JSON.readSpan(bytes);
+    }
+  }
+
+  enum Span2Decoder implements Function<byte[], Span> {
+    INSTANCE;
+
+    @Override public Span call(byte[] bytes) throws Exception {
+      return Span2Converter.toSpan(Span2Codec.JSON.readSpan(bytes));
+    }
+  }
+
+  void run(String spanResource, String dependencyLinkResource, Function<byte[], Span> decoder) {
+    log.info("Processing spans from {}", spanResource);
+    JavaSparkContext sc = new JavaSparkContext(conf);
+    try {
+      JavaRDD<Map<String, Object>> links = JavaEsSpark.esJsonRDD(sc, spanResource)
+          .groupBy(pair -> traceId(pair._2))
+          .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
+          .values()
+          .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
+          .reduceByKey((l, r) -> DependencyLink.builder()
+              .parent(l.parent)
+              .child(l.child)
+              .callCount(l.callCount + r.callCount)
+              .errorCount(l.errorCount + r.errorCount).build())
+          .values()
+          .map(ElasticsearchDependenciesJob::dependencyLinkJson);
+
+      if (links.isEmpty()) {
+        log.info("No spans found at {}", spanResource);
+      } else {
+        log.info("Saving dependency links to {}", dependencyLinkResource);
+        JavaEsSpark.saveToEs(links, dependencyLinkResource,
+            Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
+      }
+    } finally {
+      sc.stop();
+    }
   }
 
   /**

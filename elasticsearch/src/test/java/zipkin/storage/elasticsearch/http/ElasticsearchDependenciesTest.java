@@ -26,41 +26,33 @@ import zipkin.storage.QueryRequest;
 
 import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 import static zipkin.internal.Util.midnightUTC;
+import static zipkin.storage.elasticsearch.http.LazyElasticsearchHttpStorage.INDEX;
 
-public class ElasticsearchDependenciesTest extends DependenciesTest {
-  private final ElasticsearchHttpStorage storage;
-  private final String index;
+abstract class ElasticsearchDependenciesTest extends DependenciesTest {
 
-  public ElasticsearchDependenciesTest() {
-    this.storage = ElasticsearchTestGraph.INSTANCE.storage.get();
-    this.index = ElasticsearchTestGraph.INSTANCE.index;
-  }
-
-  @Override protected ElasticsearchHttpStorage storage() {
-    return storage;
-  }
+  @Override protected abstract ElasticsearchHttpStorage storage();
+  protected abstract String esNodes();
 
   @Override public void clear() throws IOException {
-    storage.clear();
+    storage().clear();
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override
-  public void processDependencies(List<Span> spans) {
+  @Override public void processDependencies(List<Span> spans) {
     CallbackCaptor<Void> callback = new CallbackCaptor<>();
-    storage.asyncSpanConsumer().accept(spans, callback);
+    storage().asyncSpanConsumer().accept(spans, callback);
     callback.get();
 
     Set<Long> days = new LinkedHashSet<>();
-    for (List<Span> trace : storage.spanStore()
+    for (List<Span> trace : storage().spanStore()
         .getTraces(QueryRequest.builder().limit(10000).build())) {
       days.add(midnightUTC(guessTimestamp(MergeById.apply(trace).get(0)) / 1000));
     }
 
     for (long day : days) {
-      ElasticsearchDependenciesJob.builder().index(index).day(day).build().run();
+      ElasticsearchDependenciesJob.builder().index(INDEX).esNodes(esNodes()).day(day).build().run();
     }
   }
 }
