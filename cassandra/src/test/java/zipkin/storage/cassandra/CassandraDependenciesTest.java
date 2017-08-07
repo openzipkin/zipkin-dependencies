@@ -13,9 +13,11 @@
  */
 package zipkin.storage.cassandra;
 
+import com.google.common.collect.Lists;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.junit.ClassRule;
 import zipkin.Span;
 import zipkin.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin.internal.CallbackCaptor;
@@ -27,31 +29,30 @@ import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 import static zipkin.internal.Util.midnightUTC;
 
 public class CassandraDependenciesTest extends DependenciesTest {
-  private final CassandraStorage storage;
-
-  public CassandraDependenciesTest() {
-    this.storage = CassandraTestGraph.INSTANCE.storage.get();
-  }
+  @ClassRule public static LazyCassandraStorage storage =
+      new LazyCassandraStorage("openzipkin/zipkin-cassandra:1.29.2", "test_zipkin_dependency");
 
   @Override protected CassandraStorage storage() {
-    return storage;
+    return storage.get();
   }
 
   @Override public void clear() {
-    storage.clear();
+    storage().clear();
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override
-  public void processDependencies(List<Span> spans) {
-    CallbackCaptor<Void> callback = new CallbackCaptor<>();
-    storage.asyncSpanConsumer().accept(spans, callback);
-    callback.get();
+  @Override public void processDependencies(List<Span> spans) {
+    // TODO: this avoids overrunning the cluster, though we ought to deal with this upstream
+    for (List<Span> nextChunk : Lists.partition(spans, 100)) {
+      CallbackCaptor<Void> callback = new CallbackCaptor<>();
+      storage().asyncSpanConsumer().accept(nextChunk, callback);
+      callback.get();
+    }
 
     Set<Long> days = new LinkedHashSet<>();
-    for (List<Span> trace : storage.spanStore()
+    for (List<Span> trace : storage().spanStore()
         .getTraces(QueryRequest.builder().limit(10000).build())) {
       days.add(midnightUTC(guessTimestamp(MergeById.apply(trace).get(0)) / 1000));
     }
@@ -59,7 +60,8 @@ public class CassandraDependenciesTest extends DependenciesTest {
     for (long day : days) {
       CassandraDependenciesJob.builder()
           .keyspace(storage.keyspace)
-          .localDc(storage.localDc)
+          .localDc(storage().localDc)
+          .contactPoints(storage.contactPoints())
           .day(day).build().run();
     }
   }

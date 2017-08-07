@@ -28,10 +28,6 @@ before_install:
   - mysql -uroot -e 'SET GLOBAL innodb_file_format=Barracuda'
   - mysql -uroot -e 'create database if not exists zipkin'
   - curl -SL https://raw.githubusercontent.com/openzipkin/zipkin/master/zipkin-storage/mysql/src/main/resources/mysql.sql | mysql -uroot -Dzipkin
-  # Manually install cassandra until https://github.com/travis-ci/travis-ci/issues/3952
-  # See https://github.com/openzipkin/zipkin/issues/706
-  - curl -SL http://downloads.datastax.com/community/dsc-cassandra-2.2.7-bin.tar.gz | tar xz
-  - dsc-cassandra-*/bin/cassandra > /dev/null
   # Required for Elasticsearch 5 (See https://github.com/docker-library/docs/tree/master/elasticsearch#host-setup)
   - sudo sysctl -w vm.max_map_count=262144
   # parameters used during a release
