@@ -15,6 +15,7 @@ package zipkin.dependencies.elasticsearch;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -51,6 +52,9 @@ public final class ElasticsearchDependenciesJob {
   public static final class Builder {
 
     String index = getEnv("ES_INDEX", "zipkin");
+    String hosts = getEnv("ES_HOSTS", "127.0.0.1");
+    String username = getEnv("ES_USERNAME", null);
+    String password = getEnv("ES_PASSWORD", null);
 
     final Map<String, String> sparkProperties = new LinkedHashMap<>();
 
@@ -59,8 +63,6 @@ public final class ElasticsearchDependenciesJob {
       // don't die if there are no spans
       sparkProperties.put("es.index.read.missing.as.empty", "true");
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
-      // NOTE: unlike zipkin, this uses the http port
-      sparkProperties.put("es.nodes", getEnv("ES_HOSTS", "127.0.0.1"));
     }
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
@@ -84,9 +86,21 @@ public final class ElasticsearchDependenciesJob {
       return this;
     }
 
-    public Builder esNodes(String esNodes) { // visible for testing
-      sparkProperties.put("es.nodes", checkNotNull(esNodes, "esNodes"));
+    public Builder hosts(String hosts) {
+      this.hosts = checkNotNull(hosts, "hosts");
       sparkProperties.put("es.nodes.wan.only", "true");
+      return this;
+    }
+
+    /** username used for basic auth. Needed when Shield or X-Pack security is enabled */
+    public Builder username(String username) {
+      this.username = username;
+      return this;
+    }
+
+    /** password used for basic auth. Needed when Shield or X-Pack security is enabled */
+    public Builder password(String password) {
+      this.password = password;
       return this;
     }
 
@@ -124,6 +138,10 @@ public final class ElasticsearchDependenciesJob {
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
     if (builder.jars != null) conf.setJars(builder.jars);
+    if (builder.username != null) conf.set("es.net.http.auth.user", builder.username);
+    if (builder.password != null) conf.set("es.net.http.auth.pass", builder.password);
+    conf.set("es.nodes", parseHosts(builder.hosts));
+    if (builder.hosts.indexOf("https") != -1) conf.set("es.net.ssl", "true");
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
@@ -207,7 +225,7 @@ public final class ElasticsearchDependenciesJob {
 
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
-    return result != null ? result : defaultValue;
+    return result != null && !result.isEmpty() ? result : defaultValue;
   }
 
   /** returns the lower 64 bits of the trace ID */
@@ -229,5 +247,27 @@ public final class ElasticsearchDependenciesJob {
   /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
   private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
     return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
+  }
+
+  static String parseHosts(String hosts) {
+    StringBuilder to = new StringBuilder();
+    String[] hostParts = hosts.split(",");
+    for (int i = 0; i < hostParts.length; i++) {
+      String host = hostParts[i];
+      if (host.startsWith("http")) {
+        URI httpUri = URI.create(host);
+        int port = httpUri.getPort();
+        if (port == -1) {
+          port = host.startsWith("https") ? 443 : 80;
+        }
+        to.append(httpUri.getHost() + ":" + port);
+      } else {
+        to.append(host);
+      }
+      if (i + 1 < hostParts.length) {
+        to.append(',');
+      }
+    }
+    return to.toString();
   }
 }

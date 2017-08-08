@@ -86,9 +86,13 @@ Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatibl
     * `ES_HOSTS`: A comma separated list of elasticsearch hosts advertising http. Defaults to
                   localhost. Add port section if not listening on port 9200. Only one of these hosts
                   needs to be available to fetch the remaining nodes in the cluster. It is
-                  recommended to set this to all the master nodes of the cluster.
+                  recommended to set this to all the master nodes of the cluster. Use url format for
+                  SSL. For example, "https://yourhost:8888"
     * `ES_NODES_WAN_ONLY`: Set to true to only use the values set in ES_HOSTS, for example if your
                            elasticsearch cluster is in Docker. Defaults to false
+    * `ES_USERNAME` and `ES_PASSWORD`: Elasticsearch basic authentication. Use when X-Pack security
+                                       (formerly Shield) is in place. By default no username or
+                                       password is provided to elasticsearch.
 
 Example usage:
 
