@@ -42,6 +42,7 @@
     <junit.version>4.12</junit.version>
     <assertj.version>3.8.0</assertj.version>
     <jackson.version>2.9.0</jackson.version>
+    <testcontainers.version>1.4.1</testcontainers.version>
 
     <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
@@ -143,6 +144,11 @@
         </exclusions>
       </dependency>
 
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+      </dependency>
 
       <!-- Forcibly bump Jackson version to avoid CVE-2017-4995 -->
       <dependency>

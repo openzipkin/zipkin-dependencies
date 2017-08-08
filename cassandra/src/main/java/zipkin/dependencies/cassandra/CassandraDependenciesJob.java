@@ -44,7 +44,7 @@ import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
 
 public final class CassandraDependenciesJob {
-  private static final Logger log = LoggerFactory.getLogger(CassandraRowsToDependencyLinks.class);
+  private static final Logger log = LoggerFactory.getLogger(CassandraDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -55,18 +55,6 @@ public final class CassandraDependenciesJob {
     String keyspace = getEnv("CASSANDRA_KEYSPACE", "zipkin");
     String contactPoints = getEnv("CASSANDRA_CONTACT_POINTS", "localhost");
     String localDc = getEnv("CASSANDRA_LOCAL_DC", null);
-
-    final Map<String, String> sparkProperties = new LinkedHashMap<>();
-
-    Builder() {
-      sparkProperties.put("spark.ui.enabled", "false");
-      sparkProperties.put("spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"));
-      sparkProperties.put("spark.cassandra.connection.ssl.trustStore.password", System.getProperty("javax.net.ssl.trustStorePassword", ""));
-      sparkProperties.put("spark.cassandra.connection.ssl.trustStore.path", System.getProperty("javax.net.ssl.trustStore", ""));
-      sparkProperties.put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""));
-      sparkProperties.put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""));
-    }
-
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
     // needed when not in local mode
@@ -75,6 +63,20 @@ public final class CassandraDependenciesJob {
 
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
+
+    final Map<String, String> sparkProperties = new LinkedHashMap<>();
+
+    Builder() {
+      sparkProperties.put("spark.ui.enabled", "false");
+      sparkProperties.put("spark.cassandra.connection.ssl.enabled",
+          getEnv("CASSANDRA_USE_SSL", "false"));
+      sparkProperties.put("spark.cassandra.connection.ssl.trustStore.password",
+          System.getProperty("javax.net.ssl.trustStorePassword", ""));
+      sparkProperties.put("spark.cassandra.connection.ssl.trustStore.path",
+          System.getProperty("javax.net.ssl.trustStore", ""));
+      sparkProperties.put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""));
+      sparkProperties.put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""));
+    }
 
     /** When set, this indicates which jars to distribute to the cluster. */
     public Builder jars(String... jars) {
