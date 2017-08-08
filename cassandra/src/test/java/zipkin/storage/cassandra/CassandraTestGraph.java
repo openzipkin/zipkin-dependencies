@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 The OpenZipkin Authors
+ * Copyright 2016-2017 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -25,7 +25,10 @@ enum CassandraTestGraph {
 
     @Override protected CassandraStorage compute() {
       if (ex != null) throw ex;
-      CassandraStorage result = CassandraStorage.builder().keyspace("test_zipkin").build();
+      CassandraStorage result = CassandraStorage.builder()
+          .keyspace("test_zipkin")
+          .localDc("datacenter1")
+          .build();
       CheckResult check = result.check();
       if (check.ok) return result;
       throw ex = new AssumptionViolatedException(check.exception.getMessage());
