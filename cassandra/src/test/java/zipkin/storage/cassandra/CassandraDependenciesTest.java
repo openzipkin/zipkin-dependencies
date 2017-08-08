@@ -57,7 +57,10 @@ public class CassandraDependenciesTest extends DependenciesTest {
     }
 
     for (long day : days) {
-      CassandraDependenciesJob.builder().keyspace(storage.keyspace).day(day).build().run();
+      CassandraDependenciesJob.builder()
+          .keyspace(storage.keyspace)
+          .localDc(storage.localDc)
+          .day(day).build().run();
     }
   }
 }

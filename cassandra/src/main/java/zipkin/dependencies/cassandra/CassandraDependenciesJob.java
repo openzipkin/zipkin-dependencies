@@ -17,12 +17,12 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -53,19 +53,19 @@ public final class CassandraDependenciesJob {
   public static final class Builder {
 
     String keyspace = getEnv("CASSANDRA_KEYSPACE", "zipkin");
-    /** Comma separated list of hosts / IPs part of Cassandra cluster. Defaults to localhost */
     String contactPoints = getEnv("CASSANDRA_CONTACT_POINTS", "localhost");
+    String localDc = getEnv("CASSANDRA_LOCAL_DC", null);
 
-    Map<String,String> sparkProperties = ImmutableMap.<String, String>builder()
-      .put("spark.ui.enabled", "false")
-      .put("spark.cassandra.connection.host", parseHosts(contactPoints))
-      .put("spark.cassandra.connection.port", parsePort(contactPoints))
-      .put("spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"))
-      .put("spark.cassandra.connection.ssl.trustStore.password", System.getProperty("javax.net.ssl.trustStorePassword", ""))
-      .put("spark.cassandra.connection.ssl.trustStore.path", System.getProperty("javax.net.ssl.trustStore", ""))
-      .put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""))
-      .put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""))
-      .build();
+    final Map<String, String> sparkProperties = new LinkedHashMap<>();
+
+    Builder() {
+      sparkProperties.put("spark.ui.enabled", "false");
+      sparkProperties.put("spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"));
+      sparkProperties.put("spark.cassandra.connection.ssl.trustStore.password", System.getProperty("javax.net.ssl.trustStorePassword", ""));
+      sparkProperties.put("spark.cassandra.connection.ssl.trustStore.path", System.getProperty("javax.net.ssl.trustStore", ""));
+      sparkProperties.put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""));
+      sparkProperties.put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""));
+    }
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
@@ -100,11 +100,20 @@ public final class CassandraDependenciesJob {
       return this;
     }
 
-    public CassandraDependenciesJob build() {
-      return new CassandraDependenciesJob(this);
+    /** Comma separated list of hosts / IPs part of Cassandra cluster. Defaults to localhost */
+    public Builder contactPoints( String contactPoints) {
+      this.contactPoints = contactPoints;
+      return this;
     }
 
-    Builder() {
+    /** The local DC to connect to (other nodes will be ignored) */
+    public Builder localDc(@Nullable String localDc) {
+      this.localDc = localDc;
+      return this;
+    }
+
+    public CassandraDependenciesJob build() {
+      return new CassandraDependenciesJob(this);
     }
   }
 
@@ -128,6 +137,9 @@ public final class CassandraDependenciesJob {
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
+    conf.set("spark.cassandra.connection.host", parseHosts(builder.contactPoints));
+    conf.set("spark.cassandra.connection.port", parsePort(builder.contactPoints));
+    if (builder.localDc != null) conf.set("connection.local_dc", builder.localDc);
     if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
