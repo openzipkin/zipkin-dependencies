@@ -13,15 +13,24 @@
  */
 package zipkin.dependencies.elasticsearch;
 
+import okhttp3.internal.tls.SslClient;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import org.elasticsearch.hadoop.rest.EsHadoopParsingException;
+import org.junit.Rule;
 import org.junit.Test;
+import zipkin.internal.Util;
 
+import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
+import static org.apache.commons.net.util.Base64.encodeBase64String;
 import static org.assertj.core.api.Assertions.assertThat;
 import static zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob.parseHosts;
 
 public class ElasticsearchDependenciesJobTest {
+  @Rule public MockWebServer es = new MockWebServer();
 
   @Test public void buildHttps() {
-    ElasticsearchDependenciesJob job  = ElasticsearchDependenciesJob.builder()
+    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
         .hosts("https://foobar")
         .build();
     assertThat(job.conf.get("es.nodes"))
@@ -31,7 +40,7 @@ public class ElasticsearchDependenciesJobTest {
   }
 
   @Test public void buildAuth() {
-    ElasticsearchDependenciesJob job  = ElasticsearchDependenciesJob.builder()
+    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
         .username("foo")
         .password("bar")
         .build();
@@ -39,6 +48,49 @@ public class ElasticsearchDependenciesJobTest {
         .isEqualTo("foo");
     assertThat(job.conf.get("es.net.http.auth.pass"))
         .isEqualTo("bar");
+  }
+
+  @Test public void authWorks() throws InterruptedException {
+    es.enqueue(new MockResponse()); // let the HEAD request pass, so we can trap the header value
+    es.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AT_START)); // kill the job
+    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
+        .username("foo")
+        .password("bar")
+        .hosts(es.url("").toString())
+        .build();
+
+    try {
+      job.run();
+    } catch (EsHadoopParsingException e) {
+      // this is ok as we aren't trying to emulate the whole server
+    }
+    assertThat(es.takeRequest().getHeader("Authorization"))
+        .isEqualTo("Basic " + encodeBase64String("foo:bar".getBytes(Util.UTF_8)).trim());
+  }
+
+  @Test public void authWorksWithSsl() throws InterruptedException {
+    es.useHttps(SslClient.localhost().socketFactory, false);
+
+    es.enqueue(new MockResponse()); // let the HEAD request pass, so we can trap the header value
+    es.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AT_START)); // kill the job
+
+    ElasticsearchDependenciesJob.Builder builder = ElasticsearchDependenciesJob.builder()
+        .username("foo")
+        .password("bar")
+        .hosts(es.url("").toString());
+
+    // temporarily hack-in self-signed until https://github.com/openzipkin/zipkin/issues/1683
+    builder.sparkProperties.put("es.net.ssl.cert.allow.self.signed", "true");
+
+    ElasticsearchDependenciesJob job = builder.build();
+
+    try {
+      job.run();
+    } catch (EsHadoopParsingException e) {
+      // this is ok as we aren't trying to emulate the whole server
+    }
+    assertThat(es.takeRequest().getHeader("Authorization"))
+        .isEqualTo("Basic " + encodeBase64String("foo:bar".getBytes(Util.UTF_8)).trim());
   }
 
   @Test public void parseHosts_default() {
