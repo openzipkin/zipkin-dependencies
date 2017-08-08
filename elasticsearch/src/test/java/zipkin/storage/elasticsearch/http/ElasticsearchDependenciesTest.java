@@ -52,7 +52,7 @@ abstract class ElasticsearchDependenciesTest extends DependenciesTest {
     }
 
     for (long day : days) {
-      ElasticsearchDependenciesJob.builder().index(INDEX).esNodes(esNodes()).day(day).build().run();
+      ElasticsearchDependenciesJob.builder().index(INDEX).hosts(esNodes()).day(day).build().run();
     }
   }
 }
