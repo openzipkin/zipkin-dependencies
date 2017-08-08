@@ -35,8 +35,7 @@
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch-spark-20_${scala.binary.version}</artifactId>
       <!--
-      can't use 6.x as it results in EsHadoopInvalidRequest on prior versions
-      See https://github.com/elastic/elasticsearch-hadoop/issues/1032
+      can't use 6.x, yet as 2.x fails due to https://github.com/elastic/elasticsearch-hadoop/issues/1034
       -->
       <version>5.5.1</version>
     </dependency>
