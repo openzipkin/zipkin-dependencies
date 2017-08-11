@@ -63,6 +63,14 @@ public final class ElasticsearchDependenciesJob {
       // don't die if there are no spans
       sparkProperties.put("es.index.read.missing.as.empty", "true");
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
+      sparkProperties.put("es.net.ssl.keystore.location",
+              getSystemPropertyAsFileResource("javax.net.ssl.keyStore"));
+      sparkProperties.put("es.net.ssl.keystore.pass",
+              System.getProperty("javax.net.ssl.keyStorePassword", ""));
+      sparkProperties.put("es.net.ssl.truststore.location",
+              getSystemPropertyAsFileResource("javax.net.ssl.trustStore"));
+      sparkProperties.put("es.net.ssl.truststore.pass",
+              System.getProperty("javax.net.ssl.trustStorePassword", ""));
     }
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
@@ -119,6 +127,11 @@ public final class ElasticsearchDependenciesJob {
     public ElasticsearchDependenciesJob build() {
       return new ElasticsearchDependenciesJob(this);
     }
+  }
+
+  private static String getSystemPropertyAsFileResource(String key) {
+    String prop = System.getProperty(key, "");
+    return prop != null && !prop.isEmpty() ? "file:" + prop : prop;
   }
 
   final String index;

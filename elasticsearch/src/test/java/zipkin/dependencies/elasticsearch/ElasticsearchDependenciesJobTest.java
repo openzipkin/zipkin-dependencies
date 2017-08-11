@@ -112,4 +112,28 @@ public class ElasticsearchDependenciesJobTest {
     assertThat(parseHosts("https://1.1.1.1"))
         .isEqualTo("1.1.1.1:443");
   }
+
+  @Test public void javaSslOptsRedirected() {
+    System.setProperty("javax.net.ssl.keyStore", "keystore.jks");
+    System.setProperty("javax.net.ssl.keyStorePassword", "superSecret");
+    System.setProperty("javax.net.ssl.trustStore", "truststore.jks");
+    System.setProperty("javax.net.ssl.trustStorePassword", "secretSuper");
+
+    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
+        .build();
+
+    assertThat(job.conf.get("es.net.ssl.keystore.location"))
+        .isEqualTo("file:keystore.jks");
+    assertThat(job.conf.get("es.net.ssl.keystore.pass"))
+        .isEqualTo("superSecret");
+    assertThat(job.conf.get("es.net.ssl.truststore.location"))
+        .isEqualTo("file:truststore.jks");
+    assertThat(job.conf.get("es.net.ssl.truststore.pass"))
+        .isEqualTo("secretSuper");
+
+    System.clearProperty("javax.net.ssl.keyStore");
+    System.clearProperty("javax.net.ssl.keyStorePassword");
+    System.clearProperty("javax.net.ssl.trustStore");
+    System.clearProperty("javax.net.ssl.trustStorePassword");
+  }
 }
