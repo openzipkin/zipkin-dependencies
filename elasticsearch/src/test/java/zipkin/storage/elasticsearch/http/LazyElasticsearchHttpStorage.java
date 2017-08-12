@@ -29,7 +29,8 @@ import zipkin.internal.LazyCloseable;
 
 class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorage>
     implements TestRule {
-  static final String INDEX = "test_zipkin_dependency";
+  /** Need to watch index pattern from 1970 doesn't result in a request line longer than 4096 */
+  static final String INDEX = "test_zipkin";
 
   final String image;
   final boolean singleTypeIndexingEnabled;
