@@ -102,6 +102,16 @@ $ STORAGE_TYPE=elasticsearch ES_HOSTS=host1,host2 java -jar zipkin-dependencies.
 $ STORAGE_TYPE=elasticsearch ES_HOSTS=host1:9201 java -jar zipkin-dependencies.jar
 ```
 
+#### Custom certificates
+
+When using an https endpoint in `ES_HOSTS`, you can use the following standard properties to
+customize the certificates used for the connection:
+
+* javax.net.ssl.keyStore
+* javax.net.ssl.keyStorePassword
+* javax.net.ssl.trustStore
+* javax.net.ssl.trustStorePassword
+
 ## Building locally
 
 To build the job from source and run against a local cassandra, in Spark's standalone mode.
