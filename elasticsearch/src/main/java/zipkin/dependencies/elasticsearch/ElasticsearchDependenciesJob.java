@@ -17,27 +17,28 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TimeZone;
+import javax.annotation.Nullable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import zipkin.Codec;
 import zipkin.DependencyLink;
-import zipkin.Span;
-import zipkin.internal.Nullable;
-import zipkin.internal.Span2Codec;
-import zipkin.internal.Span2Converter;
+import zipkin.internal.Util;
+import zipkin.internal.V2SpanConverter;
 import zipkin.internal.gson.stream.JsonReader;
 import zipkin.internal.gson.stream.MalformedJsonException;
+import zipkin.internal.v2.Span;
+import zipkin.internal.v2.codec.SpanBytesCodec;
 
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
@@ -176,24 +177,28 @@ public final class ElasticsearchDependenciesJob {
     log.info("Done");
   }
 
+  interface SpanAcceptor {
+    void decodeInto(String json, Collection<Span> sameTraceId);
+  }
   // enums are used here because they are naturally serializable
-  enum SpanDecoder implements Function<byte[], Span> {
+  enum SpanDecoder implements SpanAcceptor {
+    INSTANCE {
+      @Override public void decodeInto(String json, Collection<Span> sameTraceId) {
+        zipkin.Span v1Span = Codec.JSON.readSpan(json.getBytes(Util.UTF_8));
+        sameTraceId.addAll(V2SpanConverter.fromSpan(v1Span));
+      }
+    };
+  }
+
+  enum Span2Decoder implements SpanAcceptor {
     INSTANCE;
 
-    @Override public Span call(byte[] bytes) throws Exception {
-      return Codec.JSON.readSpan(bytes);
+    @Override public void decodeInto(String json, Collection<Span> sameTraceId) {
+      sameTraceId.add(SpanBytesCodec.JSON_V2.decode(json.getBytes(Util.UTF_8)));
     }
   }
 
-  enum Span2Decoder implements Function<byte[], Span> {
-    INSTANCE;
-
-    @Override public Span call(byte[] bytes) throws Exception {
-      return Span2Converter.toSpan(Span2Codec.JSON.readSpan(bytes));
-    }
-  }
-
-  void run(String spanResource, String dependencyLinkResource, Function<byte[], Span> decoder) {
+  void run(String spanResource, String dependencyLinkResource, SpanAcceptor decoder) {
     log.info("Processing spans from {}", spanResource);
     JavaSparkContext sc = new JavaSparkContext(conf);
     try {

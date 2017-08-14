@@ -13,20 +13,20 @@
  */
 package zipkin.dependencies.elasticsearch;
 
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import scala.Tuple2;
-import zipkin.Codec;
 import zipkin.DependencyLink;
-import zipkin.Span;
+import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob.SpanAcceptor;
 import zipkin.internal.DependencyLinker;
-import zipkin.internal.GroupByTraceId;
-import zipkin.internal.Nullable;
-import zipkin.internal.Util;
+import zipkin.internal.v2.Span;
 
 final class TraceIdAndJsonToDependencyLinks implements Serializable,
     Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
@@ -34,27 +34,25 @@ final class TraceIdAndJsonToDependencyLinks implements Serializable,
   private static final Logger log = LoggerFactory.getLogger(TraceIdAndJsonToDependencyLinks.class);
 
   @Nullable final Runnable logInitializer;
-  final Function<byte[], Span> decoder;
+  final SpanAcceptor decoder;
 
-  TraceIdAndJsonToDependencyLinks(Runnable logInitializer, Function<byte[], Span> decoder) {
+  TraceIdAndJsonToDependencyLinks(Runnable logInitializer, SpanAcceptor decoder) {
     this.logInitializer = logInitializer;
     this.decoder = decoder;
   }
 
   @Override public Iterable<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
     if (logInitializer != null) logInitializer.run();
-    List<Span> sameTraceId = new LinkedList<>();
+    Set<Span> sameTraceId = new LinkedHashSet<>();
     for (Tuple2<String, String> row : traceIdJson) {
       try {
-        sameTraceId.add(decoder.call(row._2.getBytes(Util.UTF_8)));
+        decoder.decodeInto(row._2, sameTraceId);
       } catch (Exception e) {
         log.warn("Unable to decode span from traces where trace_id=" + row._1, e);
       }
     }
     DependencyLinker linker = new DependencyLinker();
-    for (List<Span> trace : GroupByTraceId.apply(sameTraceId, false, true)) {
-      linker.putTrace(trace);
-    }
+    linker.putTrace(sameTraceId.iterator());
     return linker.link();
   }
 }

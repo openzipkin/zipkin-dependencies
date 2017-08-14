@@ -31,6 +31,7 @@ import static zipkin.storage.elasticsearch.http.LazyElasticsearchHttpStorage.IND
 abstract class ElasticsearchDependenciesTest extends DependenciesTest {
 
   @Override protected abstract ElasticsearchHttpStorage storage();
+
   protected abstract String esNodes();
 
   @Override public void clear() throws IOException {

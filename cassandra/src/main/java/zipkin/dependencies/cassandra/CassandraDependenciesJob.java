@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.slf4j.Logger;
@@ -37,7 +38,6 @@ import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 import zipkin.DependencyLink;
 import zipkin.internal.Dependencies;
-import zipkin.internal.Nullable;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static zipkin.internal.Util.checkNotNull;
