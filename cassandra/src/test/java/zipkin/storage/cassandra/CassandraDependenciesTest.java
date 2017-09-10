@@ -30,7 +30,7 @@ import static zipkin.internal.Util.midnightUTC;
 
 public class CassandraDependenciesTest extends DependenciesTest {
   @ClassRule public static LazyCassandraStorage storage =
-      new LazyCassandraStorage("openzipkin/zipkin-cassandra:1.29.3", "test_zipkin_dependency");
+      new LazyCassandraStorage("openzipkin/zipkin-cassandra:1.31.1", "test_zipkin_dependency");
 
   @Override protected CassandraStorage storage() {
     return storage.get();

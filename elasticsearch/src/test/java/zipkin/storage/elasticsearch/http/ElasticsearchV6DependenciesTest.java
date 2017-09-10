@@ -15,10 +15,10 @@ package zipkin.storage.elasticsearch.http;
 
 import org.junit.ClassRule;
 
-public class ElasticsearchV5WithSingleTypeIndexingDependenciesTest
-    extends ElasticsearchDependenciesTest {
+public class ElasticsearchV6DependenciesTest extends ElasticsearchDependenciesTest {
+
   @ClassRule public static LazyElasticsearchHttpStorage storage =
-      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch5:1.31.1", true);
+      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch6:1.31.1");
 
   @Override protected ElasticsearchHttpStorage storage() {
     return storage.get();
