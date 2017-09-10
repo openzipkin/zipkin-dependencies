@@ -24,8 +24,8 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.HttpWaitStrategy;
-import zipkin.Component;
 import zipkin.internal.LazyCloseable;
+import zipkin.internal.v2.CheckResult;
 
 class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorage>
     implements TestRule {
@@ -33,17 +33,11 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
   static final String INDEX = "test_zipkin";
 
   final String image;
-  final boolean singleTypeIndexingEnabled;
 
   GenericContainer container;
 
   LazyElasticsearchHttpStorage(String image) {
-    this(image, false);
-  }
-
-  LazyElasticsearchHttpStorage(String image, boolean singleTypeIndexingEnabled) {
     this.image = image;
-    this.singleTypeIndexingEnabled = singleTypeIndexingEnabled;
   }
 
   @Override protected ElasticsearchHttpStorage compute() {
@@ -62,11 +56,11 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
     }
 
     ElasticsearchHttpStorage result = computeStorageBuilder().build();
-    Component.CheckResult check = result.check();
-    if (check.ok) {
+    CheckResult check = result.internalDelegate().check();
+    if (check.ok()) {
       return result;
     } else {
-      throw new AssumptionViolatedException(check.exception.getMessage(), check.exception);
+      throw new AssumptionViolatedException(check.error().getMessage(), check.error());
     }
   }
 
@@ -80,7 +74,6 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
         : new OkHttpClient();
     ElasticsearchHttpStorage.Builder builder = ElasticsearchHttpStorage.builder(ok).index(INDEX);
     builder.flushOnWrites(true);
-    builder.singleTypeIndexingEnabled(singleTypeIndexingEnabled);
     return builder.hosts(Arrays.asList("http://" + esNodes()));
   }
 

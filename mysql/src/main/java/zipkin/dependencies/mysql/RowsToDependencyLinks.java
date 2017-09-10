@@ -15,6 +15,7 @@ package zipkin.dependencies.mysql;
 
 import java.util.Collections;
 import java.util.Iterator;
+import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
@@ -22,8 +23,7 @@ import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import zipkin.DependencyLink;
 import zipkin.internal.DependencyLinker;
-import zipkin.internal.Nullable;
-import zipkin.internal.Span2;
+import zipkin.internal.v2.Span;
 
 final class RowsToDependencyLinks
     implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {
@@ -40,8 +40,8 @@ final class RowsToDependencyLinks
 
   @Override public Iterable<DependencyLink> call(Iterable<Row> rows) {
     if (logInitializer != null) logInitializer.run();
-    Iterator<Iterator<Span2>> traces =
-        new DependencyLinkSpan2Iterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
+    Iterator<Iterator<Span>> traces =
+        new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
 
     if (!traces.hasNext()) return Collections.emptyList();
 

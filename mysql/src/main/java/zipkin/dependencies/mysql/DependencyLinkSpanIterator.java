@@ -14,13 +14,13 @@
 package zipkin.dependencies.mysql;
 
 import java.util.Iterator;
+import javax.annotation.Nullable;
 import org.apache.spark.sql.Row;
 import zipkin.BinaryAnnotation;
 import zipkin.Constants;
-import zipkin.Endpoint;
-import zipkin.internal.Nullable;
 import zipkin.internal.PeekingIterator;
-import zipkin.internal.Span2;
+import zipkin.internal.v2.Endpoint;
+import zipkin.internal.v2.Span;
 
 import static zipkin.Constants.CLIENT_ADDR;
 import static zipkin.Constants.CLIENT_SEND;
@@ -28,20 +28,20 @@ import static zipkin.Constants.ERROR;
 import static zipkin.Constants.SERVER_ADDR;
 import static zipkin.Constants.SERVER_RECV;
 import static zipkin.internal.Util.equal;
+import static zipkin.internal.Util.toLowerHex;
 
 /**
- * Lazy converts rows into {@linkplain Span2} objects suitable for dependency links. This takes
+ * Lazy converts rows into {@linkplain Span} objects suitable for dependency links. This takes
  * short-cuts to require less data. For example, it folds shared RPC spans into one, and doesn't
  * include tags, non-core annotations or time units.
  *
- * <p>Out-of-date schemas may be missing the trace_id_high field. When present, this becomes {@link
- * Span2#traceIdHigh()} used as the left-most 16 characters of the traceId in logging
- * statements.
+ * <p>Out-of-date schemas may be missing the trace_id_high field. When present, the {@link
+ * Span#traceId()} could be 32 characters in logging statements.
  */
-final class DependencyLinkSpan2Iterator implements Iterator<Span2> {
+final class DependencyLinkSpanIterator implements Iterator<Span> {
 
   /** Assumes the input records are sorted by trace id, span id */
-  static final class ByTraceId implements Iterator<Iterator<Span2>> {
+  static final class ByTraceId implements Iterator<Iterator<Span>> {
     final PeekingIterator<Row> delegate;
     final boolean hasTraceIdHigh;
     final int traceIdIndex;
@@ -59,11 +59,11 @@ final class DependencyLinkSpan2Iterator implements Iterator<Span2> {
       return delegate.hasNext();
     }
 
-    @Override public Iterator<Span2> next() {
+    @Override public Iterator<Span> next() {
       Row peeked = delegate.peek();
       currentTraceIdHi = hasTraceIdHigh ? peeked.getLong(0) : null;
       currentTraceIdLo = peeked.getLong(traceIdIndex);
-      return new DependencyLinkSpan2Iterator(delegate, currentTraceIdHi, currentTraceIdLo);
+      return new DependencyLinkSpanIterator(delegate, currentTraceIdHi, currentTraceIdLo);
     }
 
     @Override public void remove() {
@@ -76,7 +76,7 @@ final class DependencyLinkSpan2Iterator implements Iterator<Span2> {
   @Nullable final Long traceIdHi;
   final long traceIdLo;
 
-  DependencyLinkSpan2Iterator(PeekingIterator<Row> delegate, Long traceIdHi, long traceIdLo) {
+  DependencyLinkSpanIterator(PeekingIterator<Row> delegate, Long traceIdHi, long traceIdLo) {
     this.delegate = delegate;
     this.traceIdIndex = traceIdHi != null ? 1 : 0;
     this.traceIdHi = traceIdHi;
@@ -92,7 +92,7 @@ final class DependencyLinkSpan2Iterator implements Iterator<Span2> {
   }
 
   @Override
-  public Span2 next() {
+  public Span next() {
     Row row = delegate.peek();
 
     long spanId = row.getLong(traceIdIndex + 2);
@@ -133,29 +133,29 @@ final class DependencyLinkSpan2Iterator implements Iterator<Span2> {
     // Skip the client side, so it isn't mistaken for a loopback request
     if (equal(saService, caService)) caService = null;
 
-    Span2.Builder result = Span2.builder()
-        .traceIdHigh(traceIdHi != null ? traceIdHi : 0L)
-        .traceId(traceIdLo)
-        .parentId(row.isNullAt(traceIdIndex + 1) ? null : row.getLong(traceIdIndex + 1))
-        .id(spanId);
+    Long parentId = row.isNullAt(traceIdIndex + 1) ? null : row.getLong(traceIdIndex + 1);
+    Span.Builder result = Span.newBuilder()
+        .traceId(toLowerHex(traceIdHi != null ? traceIdHi : 0L, traceIdLo))
+        .parentId(parentId != null ? toLowerHex(parentId) : null)
+        .id(toLowerHex(spanId));
 
     if (error) {
       result.putTag(Constants.ERROR, "" /* actual value doesn't matter */);
     }
 
     if (srService != null) {
-      return result.kind(Span2.Kind.SERVER)
+      return result.kind(Span.Kind.SERVER)
           .localEndpoint(ep(srService))
           .remoteEndpoint(ep(caService))
           .build();
     } else if (saService != null) {
       return result
-          .kind(csService != null ? Span2.Kind.CLIENT : null)
+          .kind(csService != null ? Span.Kind.CLIENT : null)
           .localEndpoint(ep(caService))
           .remoteEndpoint(ep(saService))
           .build();
     } else if (csService != null) {
-      return result.kind(Span2.Kind.SERVER)
+      return result.kind(Span.Kind.SERVER)
           .localEndpoint(ep(caService))
           .build();
     }
@@ -173,6 +173,6 @@ final class DependencyLinkSpan2Iterator implements Iterator<Span2> {
   }
 
   static Endpoint ep(@Nullable String serviceName) {
-    return serviceName != null ? Endpoint.builder().serviceName(serviceName).build() : null;
+    return serviceName != null ? Endpoint.newBuilder().serviceName(serviceName).build() : null;
   }
 }

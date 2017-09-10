@@ -14,10 +14,10 @@
 package zipkin.storage.mysql;
 
 import java.sql.SQLException;
+import javax.annotation.Nullable;
 import org.junit.AssumptionViolatedException;
 import org.mariadb.jdbc.MariaDbDataSource;
 import zipkin.internal.LazyCloseable;
-import zipkin.internal.Nullable;
 
 import static zipkin.internal.Util.envOr;
 
@@ -41,8 +41,7 @@ public enum MySQLTestGraph {
     }
   };
 
-  @Nullable
-  private static String mysqlUrlFromEnv() {
+  @Nullable private static String mysqlUrlFromEnv() {
     if (System.getenv("MYSQL_USER") == null) return null;
     String mysqlHost = envOr("MYSQL_HOST", "localhost");
     int mysqlPort = envOr("MYSQL_TCP_PORT", 3306);

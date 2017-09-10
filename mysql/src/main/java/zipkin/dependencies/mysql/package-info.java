@@ -11,20 +11,5 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.storage.elasticsearch.http;
-
-import org.junit.ClassRule;
-
-public class ElasticsearchV5WithSingleTypeIndexingDependenciesTest
-    extends ElasticsearchDependenciesTest {
-  @ClassRule public static LazyElasticsearchHttpStorage storage =
-      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch5:1.31.1", true);
-
-  @Override protected ElasticsearchHttpStorage storage() {
-    return storage.get();
-  }
-
-  @Override protected String esNodes() {
-    return storage.esNodes();
-  }
-}
+@javax.annotation.ParametersAreNonnullByDefault
+package zipkin.dependencies.mysql;

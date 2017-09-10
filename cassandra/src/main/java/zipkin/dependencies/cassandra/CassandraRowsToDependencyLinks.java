@@ -16,6 +16,7 @@ package zipkin.dependencies.cassandra;
 import com.datastax.spark.connector.japi.CassandraRow;
 import java.util.LinkedList;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,6 @@ import zipkin.DependencyLink;
 import zipkin.Span;
 import zipkin.internal.DependencyLinker;
 import zipkin.internal.GroupByTraceId;
-import zipkin.internal.Nullable;
 
 import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 
