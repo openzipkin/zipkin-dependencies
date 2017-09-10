@@ -38,7 +38,7 @@
     <scala.binary.version>2.11</scala.binary.version>
     <!-- spark-cassandra-connector doesn't yet support spark 2.2 -->
     <spark.version>2.1.1</spark.version>
-    <zipkin.version>1.31.2</zipkin.version>
+    <zipkin.version>1.31.3</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.8.0</assertj.version>
     <jackson.version>2.9.0</jackson.version>
