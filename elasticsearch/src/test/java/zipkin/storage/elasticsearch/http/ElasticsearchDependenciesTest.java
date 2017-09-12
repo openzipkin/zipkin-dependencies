@@ -14,15 +14,18 @@
 package zipkin.storage.elasticsearch.http;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import zipkin.Span;
 import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob;
-import zipkin.internal.CallbackCaptor;
 import zipkin.internal.MergeById;
+import zipkin.internal.V2SpanConverter;
+import zipkin.internal.V2StorageComponent;
 import zipkin.storage.DependenciesTest;
 import zipkin.storage.QueryRequest;
+import zipkin.storage.StorageComponent;
 
 import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 import static zipkin.internal.Util.midnightUTC;
@@ -30,21 +33,27 @@ import static zipkin.storage.elasticsearch.http.LazyElasticsearchHttpStorage.IND
 
 abstract class ElasticsearchDependenciesTest extends DependenciesTest {
 
-  @Override protected abstract ElasticsearchHttpStorage storage();
+  protected abstract ElasticsearchHttpStorage esStorage();
+
+  @Override protected final StorageComponent storage(){
+    return V2StorageComponent.create(esStorage());
+  }
 
   protected abstract String esNodes();
 
   @Override public void clear() throws IOException {
-    storage().clear();
+    esStorage().clear();
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
   @Override public void processDependencies(List<Span> spans) {
-    CallbackCaptor<Void> callback = new CallbackCaptor<>();
-    storage().asyncSpanConsumer().accept(spans, callback);
-    callback.get();
+    try {
+      esStorage().spanConsumer().accept(V2SpanConverter.fromSpans(spans)).execute();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
 
     Set<Long> days = new LinkedHashSet<>();
     for (List<Span> trace : storage().spanStore()

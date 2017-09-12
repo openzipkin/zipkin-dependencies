@@ -19,8 +19,8 @@ import org.apache.spark.sql.Row;
 import zipkin.BinaryAnnotation;
 import zipkin.Constants;
 import zipkin.internal.PeekingIterator;
-import zipkin.internal.v2.Endpoint;
-import zipkin.internal.v2.Span;
+import zipkin2.Endpoint;
+import zipkin2.Span;
 
 import static zipkin.Constants.CLIENT_ADDR;
 import static zipkin.Constants.CLIENT_SEND;

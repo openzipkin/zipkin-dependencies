@@ -20,7 +20,7 @@ public class ElasticsearchV6DependenciesTest extends ElasticsearchDependenciesTe
   @ClassRule public static LazyElasticsearchHttpStorage storage =
       new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch6:1.31.1");
 
-  @Override protected ElasticsearchHttpStorage storage() {
+  @Override protected ElasticsearchHttpStorage esStorage() {
     return storage.get();
   }
 
