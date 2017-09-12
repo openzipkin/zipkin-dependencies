@@ -21,9 +21,9 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Serializable;
-import zipkin.DependencyLink;
-import zipkin.internal.DependencyLinker;
-import zipkin.internal.v2.Span;
+import zipkin2.DependencyLink;
+import zipkin2.internal.DependencyLinker;
+import zipkin2.Span;
 
 final class RowsToDependencyLinks
     implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {

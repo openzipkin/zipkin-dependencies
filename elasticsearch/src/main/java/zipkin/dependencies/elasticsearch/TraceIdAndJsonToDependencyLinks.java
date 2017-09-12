@@ -26,7 +26,7 @@ import scala.Tuple2;
 import zipkin.DependencyLink;
 import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob.SpanAcceptor;
 import zipkin.internal.DependencyLinker;
-import zipkin.internal.v2.Span;
+import zipkin2.Span;
 
 final class TraceIdAndJsonToDependencyLinks implements Serializable,
     Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {

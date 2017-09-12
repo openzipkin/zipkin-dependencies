@@ -25,7 +25,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.HttpWaitStrategy;
 import zipkin.internal.LazyCloseable;
-import zipkin.internal.v2.CheckResult;
+import zipkin2.CheckResult;
 
 class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorage>
     implements TestRule {
@@ -56,7 +56,7 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
     }
 
     ElasticsearchHttpStorage result = computeStorageBuilder().build();
-    CheckResult check = result.internalDelegate().check();
+    CheckResult check = result.check();
     if (check.ok()) {
       return result;
     } else {

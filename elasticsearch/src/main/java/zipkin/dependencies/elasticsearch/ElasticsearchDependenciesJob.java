@@ -37,8 +37,8 @@ import zipkin.internal.Util;
 import zipkin.internal.V2SpanConverter;
 import zipkin.internal.gson.stream.JsonReader;
 import zipkin.internal.gson.stream.MalformedJsonException;
-import zipkin.internal.v2.Span;
-import zipkin.internal.v2.codec.SpanBytesCodec;
+import zipkin2.Span;
+import zipkin2.codec.SpanBytesDecoder;
 
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
@@ -180,6 +180,7 @@ public final class ElasticsearchDependenciesJob {
   interface SpanAcceptor {
     void decodeInto(String json, Collection<Span> sameTraceId);
   }
+
   // enums are used here because they are naturally serializable
   enum SpanDecoder implements SpanAcceptor {
     INSTANCE {
@@ -194,7 +195,7 @@ public final class ElasticsearchDependenciesJob {
     INSTANCE;
 
     @Override public void decodeInto(String json, Collection<Span> sameTraceId) {
-      sameTraceId.add(SpanBytesCodec.JSON_V2.decode(json.getBytes(Util.UTF_8)));
+      SpanBytesDecoder.JSON_V2.decode(json.getBytes(Util.UTF_8), sameTraceId);
     }
   }
 
@@ -206,7 +207,7 @@ public final class ElasticsearchDependenciesJob {
           .groupBy(pair -> traceId(pair._2))
           .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
           .values()
-          .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
+          .mapToPair(link -> new Tuple2<>(new Tuple2<>(link.parent, link.child), link))
           .reduceByKey((l, r) -> DependencyLink.builder()
               .parent(l.parent)
               .child(l.child)
@@ -260,11 +261,6 @@ public final class ElasticsearchDependenciesJob {
       }
     }
     throw new MalformedJsonException("no traceId in " + json);
-  }
-
-  /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
-  private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
-    return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
   }
 
   static String parseHosts(String hosts) {

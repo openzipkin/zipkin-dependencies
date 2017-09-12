@@ -32,7 +32,7 @@ import org.apache.spark.sql.SQLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
-import zipkin.DependencyLink;
+import zipkin2.DependencyLink;
 
 import static zipkin.internal.Util.checkNotNull;
 import static zipkin.internal.Util.midnightUTC;
@@ -207,8 +207,11 @@ public final class MySQLDependenciesJob {
         .groupBy(r -> r.getLong(hasTraceIdHigh ? 1 : 0) /* trace_id */)
         .flatMapValues(new RowsToDependencyLinks(logInitializer, hasTraceIdHigh))
         .values()
-        .mapToPair(link -> tuple2(tuple2(link.parent, link.child), link))
-        .reduceByKey((l, r) -> DependencyLink.create(l.parent, l.child, l.callCount + r.callCount))
+        .mapToPair(link -> new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link))
+        .reduceByKey((l, r) -> l.toBuilder()
+            .callCount(l.callCount() + r.callCount())
+            .errorCount(l.errorCount() + r.errorCount())
+            .build())
         .values().collect();
 
     sc.stop();
@@ -234,12 +237,13 @@ public final class MySQLDependenciesJob {
   void saveToMySQL(List<DependencyLink> links) {
     try (Connection con = DriverManager.getConnection(url, user, password)) {
       PreparedStatement replace = con.prepareStatement(
-              "REPLACE INTO zipkin_dependencies (day, parent, child, call_count) VALUES (?,?,?,?)");
+              "REPLACE INTO zipkin_dependencies (day, parent, child, call_count, error_count) VALUES (?,?,?,?,?)");
       for (DependencyLink link : links) {
         replace.setDate(1, new java.sql.Date(day));
-        replace.setString(2, link.parent);
-        replace.setString(3, link.child);
-        replace.setLong(4, link.callCount);
+        replace.setString(2, link.parent());
+        replace.setString(3, link.child());
+        replace.setLong(4, link.callCount());
+        replace.setLong(5, link.errorCount());
         replace.executeUpdate();
       }
     } catch (SQLException e) {
@@ -250,10 +254,5 @@ public final class MySQLDependenciesJob {
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
     return result != null ? result : defaultValue;
-  }
-
-  /** Added so the code is compilable against scala 2.10 (used in spark 1.6.2) */
-  private static <T1, T2> Tuple2<T1, T2> tuple2(T1 v1, T2 v2) {
-    return new Tuple2<>(v1, v2); // in scala 2.11+ Tuple.apply works naturally
   }
 }
