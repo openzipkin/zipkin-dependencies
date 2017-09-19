@@ -56,6 +56,7 @@ import zipkin.internal.DependencyLinker;
 // after an task deserializes on an executor. Until such is available, this is the least touch way.
 public final class LogInitializer implements Serializable, Runnable {
   private static final long serialVersionUID = 0L;
+  static final String[] LOG_CATEGORIES = {"zipkin", "zipkin2"};
 
   /**
    * Call this prior to any phase to ensure zipkin logging is setup
@@ -75,14 +76,16 @@ public final class LogInitializer implements Serializable, Runnable {
   }
 
   @Override public void run() {
-    Logger zipkinLogger = LogManager.getLogger("zipkin");
-    if (!log4Jlevel.equals(zipkinLogger.getLevel())) {
-      zipkinLogger.setLevel(log4Jlevel);
-      if (zipkinLogger.getAdditivity()) {
-        addLogAppendersFromRoot(zipkinLogger);
+    for (String category : LOG_CATEGORIES) {
+      Logger zipkinLogger = LogManager.getLogger(category);
+      if (!log4Jlevel.equals(zipkinLogger.getLevel())) {
+        zipkinLogger.setLevel(log4Jlevel);
+        if (zipkinLogger.getAdditivity()) {
+          addLogAppendersFromRoot(zipkinLogger);
+        }
       }
+      java.util.logging.Logger.getLogger(category).setLevel(julLevel);
     }
-    java.util.logging.Logger.getLogger("zipkin").setLevel(julLevel);
   }
 
   private static java.util.logging.Level toJul(Level log4Jlevel) {
