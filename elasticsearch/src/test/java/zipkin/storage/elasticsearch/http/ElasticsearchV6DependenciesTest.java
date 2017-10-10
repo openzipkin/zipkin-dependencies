@@ -18,7 +18,7 @@ import org.junit.ClassRule;
 public class ElasticsearchV6DependenciesTest extends ElasticsearchDependenciesTest {
 
   @ClassRule public static LazyElasticsearchHttpStorage storage =
-      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch6:1.31.1");
+      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch6:2.2.0");
 
   @Override protected ElasticsearchHttpStorage esStorage() {
     return storage.get();
