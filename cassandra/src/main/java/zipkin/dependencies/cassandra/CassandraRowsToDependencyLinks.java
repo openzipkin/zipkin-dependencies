@@ -14,7 +14,7 @@
 package zipkin.dependencies.cassandra;
 
 import com.datastax.spark.connector.japi.CassandraRow;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
@@ -46,7 +46,7 @@ final class CassandraRowsToDependencyLinks implements Serializable,
 
   @Override public Iterable<DependencyLink> call(Iterable<CassandraRow> rows) {
     if (logInitializer != null) logInitializer.run();
-    List<Span> sameTraceId = new LinkedList<>();
+    List<Span> sameTraceId = new ArrayList<>();
     for (CassandraRow row : rows) {
       try {
         sameTraceId.add(Codec.THRIFT.readSpan(row.getBytes("span")));
