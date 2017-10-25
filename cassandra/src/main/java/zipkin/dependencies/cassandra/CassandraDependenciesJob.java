@@ -21,9 +21,9 @@ import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -193,7 +193,7 @@ public final class CassandraDependenciesJob {
   }
 
   static String parseHosts(String contactPoints) {
-    List<String> result = new LinkedList<>();
+    List<String> result = new ArrayList<>();
     for (String contactPoint : contactPoints.split(",")) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
       result.add(parsed.getHostText());
