@@ -24,6 +24,7 @@
 
   <modules>
     <module>cassandra</module>
+    <module>cassandra3</module>
     <module>mysql</module>
     <module>elasticsearch</module>
     <module>main</module>
@@ -43,6 +44,7 @@
     <jackson.version>2.9.0</jackson.version>
     <!-- keep this in sync with zipkin's version -->
     <okhttp.version>3.9.0</okhttp.version>
+    <spark-cassandra-connector.version>2.0.5</spark-cassandra-connector.version>
     <testcontainers.version>1.4.3</testcontainers.version>
 
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
@@ -117,6 +119,12 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-dependencies-cassandra</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>zipkin-dependencies-cassandra3</artifactId>
         <version>${project.version}</version>
       </dependency>
 

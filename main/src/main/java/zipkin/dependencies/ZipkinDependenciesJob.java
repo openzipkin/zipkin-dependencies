@@ -47,6 +47,14 @@ public final class ZipkinDependenciesJob {
             .build()
             .run();
         break;
+      case "cassandra3":
+        zipkin.dependencies.cassandra3.CassandraDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .build()
+            .run();
+        break;
       case "mysql":
         MySQLDependenciesJob.builder()
             .logInitializer(logInitializer)
