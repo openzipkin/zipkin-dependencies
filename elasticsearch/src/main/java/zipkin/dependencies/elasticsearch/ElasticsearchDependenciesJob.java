@@ -163,11 +163,13 @@ public final class ElasticsearchDependenciesJob {
   }
 
   public void run() {
+    /*
     run( // multi-type index
         index + "-" + dateStamp + "/span",
         index + "-" + dateStamp + "/dependencylink",
         SpanDecoder.INSTANCE
     );
+    */
 
     run( // single-type index
         index + ":span-" + dateStamp + "/span",
