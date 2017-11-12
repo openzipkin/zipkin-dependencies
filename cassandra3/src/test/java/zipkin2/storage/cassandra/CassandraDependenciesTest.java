@@ -41,7 +41,7 @@ import static zipkin.internal.Util.midnightUTC;
 
 public class CassandraDependenciesTest extends DependenciesTest {
   @ClassRule public static CassandraStorageRule cassandraStorageRule =
-      new CassandraStorageRule("openzipkin/zipkin-cassandra:2.2.2");
+      new CassandraStorageRule("openzipkin/zipkin-cassandra:2.3.0");
 
   @Rule public TestName testName = new TestName();
 
