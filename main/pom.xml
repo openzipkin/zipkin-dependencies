@@ -128,6 +128,13 @@
                     <include>**</include>
                   </includes>
                 </filter>
+                <filter>
+                  <!-- org.apache.xerces.jaxp.DocumentBuilderFactoryImpl -->
+                  <artifact>xerces:xercesImpl</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
                 <!-- Prevent Invalid signature file digest for Manifest main attributes -->
                 <filter>
                   <artifact>*:*</artifact>

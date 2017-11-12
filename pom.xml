@@ -37,7 +37,7 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.2.0</spark.version>
-    <zipkin.version>2.2.2</zipkin.version>
+    <zipkin.version>2.3.0</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.8.0</assertj.version>
     <jackson.version>2.9.0</jackson.version>
