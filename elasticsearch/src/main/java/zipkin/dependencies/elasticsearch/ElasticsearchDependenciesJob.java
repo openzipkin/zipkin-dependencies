@@ -62,8 +62,10 @@ public final class ElasticsearchDependenciesJob {
     Builder() {
       sparkProperties.put("spark.ui.enabled", "false");
       // maybe support more spark properties?
-      sparkProperties.put("spark.hadoop.yarn.resourcemanager.address",
-              System.getProperty("spark.hadoop.yarn.resourcemanager.address", "0.0.0.0:8032"));
+      if (System.getProperty("spark.hadoop.yarn.resourcemanager.address") != null) {
+          sparkProperties.put("spark.hadoop.yarn.resourcemanager.address",
+                  System.getProperty("spark.hadoop.yarn.resourcemanager.address"));
+      }
       // don't die if there are no spans
       sparkProperties.put("es.index.read.missing.as.empty", "true");
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
