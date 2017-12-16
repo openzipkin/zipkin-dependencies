@@ -38,14 +38,14 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.2.0</spark.version>
-    <zipkin.version>2.3.0</zipkin.version>
+    <zipkin.version>2.4.1</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.8.0</assertj.version>
     <jackson.version>2.9.0</jackson.version>
     <!-- keep this in sync with zipkin's version -->
-    <okhttp.version>3.9.0</okhttp.version>
-    <spark-cassandra-connector.version>2.0.5</spark-cassandra-connector.version>
-    <testcontainers.version>1.4.3</testcontainers.version>
+    <okhttp.version>3.9.1</okhttp.version>
+    <spark-cassandra-connector.version>2.0.6</spark-cassandra-connector.version>
+    <testcontainers.version>1.5.0</testcontainers.version>
 
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
@@ -60,7 +60,7 @@
 
     <!-- Catch common Java mistakes as compile-time errors -->
     <plexus-compiler-javac-errorprone.version>2.8.2</plexus-compiler-javac-errorprone.version>
-    <errorprone.version>2.1.2</errorprone.version>
+    <errorprone.version>2.1.3</errorprone.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
