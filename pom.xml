@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2016-2017 The OpenZipkin Authors
+    Copyright 2016-2018 The OpenZipkin Authors
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
     in compliance with the License. You may obtain a copy of the License at
@@ -37,15 +37,15 @@
     <main.basedir>${project.basedir}</main.basedir>
 
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.2.0</spark.version>
-    <zipkin.version>2.4.1</zipkin.version>
+    <spark.version>2.2.1</spark.version>
+    <zipkin.version>2.4.5</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.8.0</assertj.version>
     <jackson.version>2.9.0</jackson.version>
     <!-- keep this in sync with zipkin's version -->
     <okhttp.version>3.9.1</okhttp.version>
     <spark-cassandra-connector.version>2.0.6</spark-cassandra-connector.version>
-    <testcontainers.version>1.5.0</testcontainers.version>
+    <testcontainers.version>1.5.1</testcontainers.version>
 
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
@@ -56,11 +56,11 @@
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     <!-- Tools to ensure we can run on Java 7 JVMs -->
     <animal-sniffer-maven-plugin.version>1.16</animal-sniffer-maven-plugin.version>
-    <retrolambda-maven-plugin.version>2.5.1</retrolambda-maven-plugin.version>
+    <retrolambda-maven-plugin.version>2.5.3</retrolambda-maven-plugin.version>
 
     <!-- Catch common Java mistakes as compile-time errors -->
     <plexus-compiler-javac-errorprone.version>2.8.2</plexus-compiler-javac-errorprone.version>
-    <errorprone.version>2.1.3</errorprone.version>
+    <errorprone.version>2.2.0</errorprone.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
@@ -220,11 +220,11 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.0 -->
+        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.2 -->
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.4.3</version>
+          <version>0.5.0</version>
         </plugin>
 
         <plugin>
