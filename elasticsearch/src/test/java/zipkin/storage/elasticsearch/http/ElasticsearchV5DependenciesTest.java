@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,7 +18,7 @@ import org.junit.ClassRule;
 public class ElasticsearchV5DependenciesTest extends ElasticsearchDependenciesTest {
 
   @ClassRule public static LazyElasticsearchHttpStorage storage =
-      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch5:2.4.1");
+      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch5:2.5.0");
 
   @Override protected ElasticsearchHttpStorage esStorage() {
     return storage.get();
