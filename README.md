@@ -43,6 +43,7 @@ $ STORAGE_TYPE=cassandra3 java -jar zipkin-dependencies.jar `date -u -d '1 day a
 moment, separate binaries are made for each storage layer.
 
 The following variables are common to all storage layers:
+
     * `SPARK_MASTER`: Spark master to submit the job to; Defaults to `local[*]`
     * `ZIPKIN_LOG_LEVEL`: Log level for zipkin-related status; Defaults to INFO (use DEBUG for details)
 
@@ -52,6 +53,7 @@ Cassandra is used when `STORAGE_TYPE=cassandra` or `STORAGE_TYPE=cassandra3`.
 * `cassandra3` is compatible with Zipkin's [Cassandra v3 storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/zipkin2_cassandra).
 
 Here are the variables that apply
+
     * `CASSANDRA_KEYSPACE`: The keyspace to use. Defaults to "zipkin".
     * `CASSANDRA_CONTACT_POINTS`: Comma separated list of hosts / ip addresses part of Cassandra cluster. Defaults to localhost
     * `CASSANDRA_LOCAL_DC`: The local DC to connect to (other nodes will be ignored)
