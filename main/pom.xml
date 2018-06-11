@@ -20,7 +20,7 @@
   <parent>
     <groupId>io.zipkin.dependencies</groupId>
     <artifactId>zipkin-dependencies-parent</artifactId>
-    <version>1.11.5-SNAPSHOT</version>
+    <version>1.12.0</version>
   </parent>
 
   <artifactId>zipkin-dependencies</artifactId>
