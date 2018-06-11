@@ -38,16 +38,16 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.2.1</spark.version>
-    <zipkin.version>2.8.1</zipkin.version>
+    <zipkin.version>2.9.1</zipkin.version>
     <junit.version>4.12</junit.version>
-    <assertj.version>3.9.1</assertj.version>
+    <assertj.version>3.10.0</assertj.version>
     <jackson.version>2.9.4</jackson.version>
     <!-- keep this in sync with zipkin's version -->
     <okhttp.version>3.10.0</okhttp.version>
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.5.0</cassandra-driver-core.version>
     <spark-cassandra-connector.version>2.0.7</spark-cassandra-connector.version>
-    <testcontainers.version>1.7.1</testcontainers.version>
+    <testcontainers.version>1.7.3</testcontainers.version>
 
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
@@ -61,8 +61,8 @@
     <retrolambda-maven-plugin.version>2.5.3</retrolambda-maven-plugin.version>
 
     <!-- Catch common Java mistakes as compile-time errors -->
-    <plexus-compiler-javac-errorprone.version>2.8.2</plexus-compiler-javac-errorprone.version>
-    <errorprone.version>2.2.0</errorprone.version>
+    <plexus-compiler-javac-errorprone.version>2.8.4</plexus-compiler-javac-errorprone.version>
+    <errorprone.version>2.3.1</errorprone.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
@@ -196,7 +196,7 @@
       <artifactId>spark-core_${scala.binary.version}</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.zipkin.java</groupId>
+      <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin</artifactId>
       <version>${zipkin.version}</version>
     </dependency>
@@ -385,6 +385,27 @@
         <configuration>
           <packageName>zipkin-dependencies</packageName>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.0.0-M1</version>
+        <executions>
+          <execution>
+            <id>enforce-java</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <!-- retrolambda breaks trying to backport things in java 9 -->
+                  <version>[1.8,9)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -19,6 +19,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,11 +35,11 @@ import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import zipkin2.DependencyLink;
 
-import static zipkin.internal.Util.checkNotNull;
-import static zipkin.internal.Util.midnightUTC;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class MySQLDependenciesJob {
-  private static final Logger log = LoggerFactory.getLogger(MySQLDependenciesJob.class);
+  static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+  static final Logger log = LoggerFactory.getLogger(MySQLDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -188,7 +189,7 @@ public final class MySQLDependenciesJob {
         "select distinct %s "+
             "from zipkin_spans s left outer join zipkin_annotations a on " +
             "  (s.trace_id = a.trace_id and s.id = a.span_id " +
-            "     and a.a_key in ('ca', 'cs', 'sr', 'sa', 'error')) " +
+            "     and a.a_key in ('lc', 'ca', 'cs', 'sr', 'sa', 'error')) " +
             "where s.start_ts between %s and %s group by %s",
         fields, microsLower, microsUpper, groupByFields);
 
@@ -254,5 +255,16 @@ public final class MySQLDependenciesJob {
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
     return result != null ? result : defaultValue;
+  }
+
+  /** For bucketed data floored to the day. For example, dependency links. */
+  static long midnightUTC(long epochMillis) {
+    Calendar day = Calendar.getInstance(UTC);
+    day.setTimeInMillis(epochMillis);
+    day.set(Calendar.MILLISECOND, 0);
+    day.set(Calendar.SECOND, 0);
+    day.set(Calendar.MINUTE, 0);
+    day.set(Calendar.HOUR_OF_DAY, 0);
+    return day.getTimeInMillis();
   }
 }

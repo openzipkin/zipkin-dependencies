@@ -11,20 +11,23 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.storage.elasticsearch.http;
+package zipkin2.elasticsearch;
 
 import org.junit.ClassRule;
 
 public class ElasticsearchV6DependenciesTest extends ElasticsearchDependenciesTest {
 
-  @ClassRule public static LazyElasticsearchHttpStorage storage =
-      new LazyElasticsearchHttpStorage("openzipkin/zipkin-elasticsearch6:2.5.0");
+  @ClassRule
+  public static LazyElasticsearchStorage storage =
+      new LazyElasticsearchStorage("openzipkin/zipkin-elasticsearch6:2.9.0");
 
-  @Override protected ElasticsearchHttpStorage esStorage() {
+  @Override
+  protected ElasticsearchStorage esStorage() {
     return storage.get();
   }
 
-  @Override protected String esNodes() {
+  @Override
+  protected String esNodes() {
     return storage.esNodes();
   }
 }

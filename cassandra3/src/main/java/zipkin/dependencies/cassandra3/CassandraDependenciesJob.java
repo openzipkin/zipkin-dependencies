@@ -22,6 +22,7 @@ import com.google.common.net.HostAndPort;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,17 +39,16 @@ import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
-import zipkin.storage.StorageComponent;
 import zipkin2.DependencyLink;
 import zipkin2.Span;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapToRow;
-import static zipkin.internal.Util.checkNotNull;
-import static zipkin.internal.Util.midnightUTC;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class CassandraDependenciesJob {
-  private static final Logger log = LoggerFactory.getLogger(CassandraDependenciesJob.class);
+  static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+  static final Logger log = LoggerFactory.getLogger(CassandraDependenciesJob.class);
 
   public static Builder builder() {
     return new Builder();
@@ -120,7 +120,7 @@ public final class CassandraDependenciesJob {
       return this;
     }
 
-    /** @see StorageComponent.Builder#strictTraceId(boolean) */
+    /** @see {@code StorageComponent.Builder#strictTraceId(boolean)} */
     public Builder strictTraceId(boolean strictTraceId) {
       this.strictTraceId = strictTraceId;
       return this;
@@ -290,5 +290,16 @@ public final class CassandraDependenciesJob {
     String traceId = r.getString("trace_id");
     if (traceId.length() > 16) traceId = traceId.substring(traceId.length() - 16);
     return traceId;
+  }
+
+  /** For bucketed data floored to the day. For example, dependency links. */
+  static long midnightUTC(long epochMillis) {
+    Calendar day = Calendar.getInstance(UTC);
+    day.setTimeInMillis(epochMillis);
+    day.set(Calendar.MILLISECOND, 0);
+    day.set(Calendar.SECOND, 0);
+    day.set(Calendar.MINUTE, 0);
+    day.set(Calendar.HOUR_OF_DAY, 0);
+    return day.getTimeInMillis();
   }
 }

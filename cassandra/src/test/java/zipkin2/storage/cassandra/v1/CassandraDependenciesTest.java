@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.storage.cassandra;
+package zipkin2.storage.cassandra.v1;
 
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Session;
@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.InetSocketAddress;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import zipkin.Span;
-import zipkin.dependencies.cassandra3.CassandraDependenciesJob;
+import zipkin.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin.internal.MergeById;
 import zipkin.internal.V2SpanConverter;
 import zipkin.internal.V2StorageComponent;
@@ -98,14 +99,11 @@ public class CassandraDependenciesTest extends DependenciesTest {
       days.add(midnightUTC(guessTimestamp(MergeById.apply(trace).get(0)) / 1000));
     }
 
+    InetSocketAddress contactPoint = cassandraStorageRule.contactPoint();
     for (long day : days) {
       CassandraDependenciesJob.builder()
           .keyspace(keyspace)
-          .localDc(storage.localDc())
-          .contactPoints(storage.contactPoints())
-          // probably a bad test name.. strictTraceId actually tests strictTraceId = false
-          .strictTraceId(!"getDependencies_strictTraceId".equals(testName.getMethodName()))
-          .internalInTest(true)
+          .contactPoints(contactPoint.getHostString() + ":" + contactPoint.getPort())
           .day(day)
           .build()
           .run();

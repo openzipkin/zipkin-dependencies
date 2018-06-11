@@ -45,8 +45,8 @@ final class SpansToDependencyLinks
     for (Span span : spans) {
       // check to see if the trace is within the interval
       if (span.parentId() == null) {
-        Long timestamp = span.timestamp();
-        if (timestamp == null || timestamp < startTs || timestamp > endTs) {
+        long timestamp = span.timestampAsLong();
+        if (timestamp == 0 || timestamp < startTs || timestamp > endTs) {
           return Collections.emptyList();
         }
       }
