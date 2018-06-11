@@ -29,35 +29,32 @@ import static zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob.par
 public class ElasticsearchDependenciesJobTest {
   @Rule public MockWebServer es = new MockWebServer();
 
-  @Test public void buildHttps() {
-    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
-        .hosts("https://foobar")
-        .build();
-    assertThat(job.conf.get("es.nodes"))
-        .isEqualTo("foobar:443");
-    assertThat(job.conf.get("es.net.ssl"))
-        .isEqualTo("true");
+  @Test
+  public void buildHttps() {
+    ElasticsearchDependenciesJob job =
+        ElasticsearchDependenciesJob.builder().hosts("https://foobar").build();
+    assertThat(job.conf.get("es.nodes")).isEqualTo("foobar:443");
+    assertThat(job.conf.get("es.net.ssl")).isEqualTo("true");
   }
 
-  @Test public void buildAuth() {
-    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
-        .username("foo")
-        .password("bar")
-        .build();
-    assertThat(job.conf.get("es.net.http.auth.user"))
-        .isEqualTo("foo");
-    assertThat(job.conf.get("es.net.http.auth.pass"))
-        .isEqualTo("bar");
+  @Test
+  public void buildAuth() {
+    ElasticsearchDependenciesJob job =
+        ElasticsearchDependenciesJob.builder().username("foo").password("bar").build();
+    assertThat(job.conf.get("es.net.http.auth.user")).isEqualTo("foo");
+    assertThat(job.conf.get("es.net.http.auth.pass")).isEqualTo("bar");
   }
 
-  @Test public void authWorks() throws InterruptedException {
+  @Test
+  public void authWorks() throws InterruptedException {
     es.enqueue(new MockResponse()); // let the HEAD request pass, so we can trap the header value
     es.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AT_START)); // kill the job
-    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
-        .username("foo")
-        .password("bar")
-        .hosts(es.url("").toString())
-        .build();
+    ElasticsearchDependenciesJob job =
+        ElasticsearchDependenciesJob.builder()
+            .username("foo")
+            .password("bar")
+            .hosts(es.url("").toString())
+            .build();
 
     try {
       job.run();
@@ -68,16 +65,18 @@ public class ElasticsearchDependenciesJobTest {
         .isEqualTo("Basic " + encodeBase64String("foo:bar".getBytes(Util.UTF_8)).trim());
   }
 
-  @Test public void authWorksWithSsl() throws InterruptedException {
+  @Test
+  public void authWorksWithSsl() throws InterruptedException {
     es.useHttps(SslClient.localhost().socketFactory, false);
 
     es.enqueue(new MockResponse()); // let the HEAD request pass, so we can trap the header value
     es.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AT_START)); // kill the job
 
-    ElasticsearchDependenciesJob.Builder builder = ElasticsearchDependenciesJob.builder()
-        .username("foo")
-        .password("bar")
-        .hosts(es.url("").toString());
+    ElasticsearchDependenciesJob.Builder builder =
+        ElasticsearchDependenciesJob.builder()
+            .username("foo")
+            .password("bar")
+            .hosts(es.url("").toString());
 
     // temporarily hack-in self-signed until https://github.com/openzipkin/zipkin/issues/1683
     builder.sparkProperties.put("es.net.ssl.cert.allow.self.signed", "true");
@@ -93,43 +92,39 @@ public class ElasticsearchDependenciesJobTest {
         .isEqualTo("Basic " + encodeBase64String("foo:bar".getBytes(Util.UTF_8)).trim());
   }
 
-  @Test public void parseHosts_default() {
-    assertThat(parseHosts("1.1.1.1"))
-        .isEqualTo("1.1.1.1");
+  @Test
+  public void parseHosts_default() {
+    assertThat(parseHosts("1.1.1.1")).isEqualTo("1.1.1.1");
   }
 
-  @Test public void parseHosts_commaDelimits() {
-    assertThat(parseHosts("1.1.1.1:9200,2.2.2.2:9200"))
-        .isEqualTo("1.1.1.1:9200,2.2.2.2:9200");
+  @Test
+  public void parseHosts_commaDelimits() {
+    assertThat(parseHosts("1.1.1.1:9200,2.2.2.2:9200")).isEqualTo("1.1.1.1:9200,2.2.2.2:9200");
   }
 
-  @Test public void parseHosts_http_defaultPort() {
-    assertThat(parseHosts("http://1.1.1.1"))
-        .isEqualTo("1.1.1.1:80");
+  @Test
+  public void parseHosts_http_defaultPort() {
+    assertThat(parseHosts("http://1.1.1.1")).isEqualTo("1.1.1.1:80");
   }
 
-  @Test public void parseHosts_https_defaultPort() {
-    assertThat(parseHosts("https://1.1.1.1"))
-        .isEqualTo("1.1.1.1:443");
+  @Test
+  public void parseHosts_https_defaultPort() {
+    assertThat(parseHosts("https://1.1.1.1")).isEqualTo("1.1.1.1:443");
   }
 
-  @Test public void javaSslOptsRedirected() {
+  @Test
+  public void javaSslOptsRedirected() {
     System.setProperty("javax.net.ssl.keyStore", "keystore.jks");
     System.setProperty("javax.net.ssl.keyStorePassword", "superSecret");
     System.setProperty("javax.net.ssl.trustStore", "truststore.jks");
     System.setProperty("javax.net.ssl.trustStorePassword", "secretSuper");
 
-    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder()
-        .build();
+    ElasticsearchDependenciesJob job = ElasticsearchDependenciesJob.builder().build();
 
-    assertThat(job.conf.get("es.net.ssl.keystore.location"))
-        .isEqualTo("file:keystore.jks");
-    assertThat(job.conf.get("es.net.ssl.keystore.pass"))
-        .isEqualTo("superSecret");
-    assertThat(job.conf.get("es.net.ssl.truststore.location"))
-        .isEqualTo("file:truststore.jks");
-    assertThat(job.conf.get("es.net.ssl.truststore.pass"))
-        .isEqualTo("secretSuper");
+    assertThat(job.conf.get("es.net.ssl.keystore.location")).isEqualTo("file:keystore.jks");
+    assertThat(job.conf.get("es.net.ssl.keystore.pass")).isEqualTo("superSecret");
+    assertThat(job.conf.get("es.net.ssl.truststore.location")).isEqualTo("file:truststore.jks");
+    assertThat(job.conf.get("es.net.ssl.truststore.pass")).isEqualTo("secretSuper");
 
     System.clearProperty("javax.net.ssl.keyStore");
     System.clearProperty("javax.net.ssl.keyStorePassword");

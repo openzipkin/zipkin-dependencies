@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.storage.elasticsearch.http;
+package zipkin2.elasticsearch;
 
 import java.util.Arrays;
 import okhttp3.OkHttpClient;
@@ -24,28 +24,39 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.HttpWaitStrategy;
-import zipkin.internal.LazyCloseable;
 import zipkin2.CheckResult;
 
-class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorage>
-    implements TestRule {
+class LazyElasticsearchStorage implements TestRule {
   /** Need to watch index pattern from 1970 doesn't result in a request line longer than 4096 */
   static final String INDEX = "test_zipkin";
 
   final String image;
 
   GenericContainer container;
+  volatile ElasticsearchStorage storage;
 
-  LazyElasticsearchHttpStorage(String image) {
+  LazyElasticsearchStorage(String image) {
     this.image = image;
   }
 
-  @Override protected ElasticsearchHttpStorage compute() {
+  ElasticsearchStorage get() {
+    if (storage == null) {
+      synchronized (this) {
+        if (storage == null) {
+          storage = compute();
+        }
+      }
+    }
+    return storage;
+  }
+
+  ElasticsearchStorage compute() {
     try {
-      container = new GenericContainer(image)
-          .withExposedPorts(9200)
-          .withEnv("ES_JAVA_OPTS", "-Dmapper.allow_dots_in_name=true -Xms512m -Xmx512m")
-          .waitingFor(new HttpWaitStrategy().forPath("/"));
+      container =
+          new GenericContainer(image)
+              .withExposedPorts(9200)
+              .withEnv("ES_JAVA_OPTS", "-Dmapper.allow_dots_in_name=true -Xms512m -Xmx512m")
+              .waitingFor(new HttpWaitStrategy().forPath("/"));
       container.start();
       if (Boolean.valueOf(System.getenv("ES_DEBUG"))) {
         container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(image)));
@@ -55,7 +66,7 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
       // Ignore
     }
 
-    ElasticsearchHttpStorage result = computeStorageBuilder().build();
+    ElasticsearchStorage result = computeStorageBuilder().build();
     CheckResult check = result.check();
     if (check.ok()) {
       return result;
@@ -64,15 +75,19 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
     }
   }
 
-  ElasticsearchHttpStorage.Builder computeStorageBuilder() {
-    OkHttpClient ok = Boolean.valueOf(System.getenv("ES_DEBUG"))
-        ? new OkHttpClient.Builder()
-        .addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
-        .addNetworkInterceptor(chain -> chain.proceed( // logging interceptor doesn't gunzip
-            chain.request().newBuilder().removeHeader("Accept-Encoding").build()))
-        .build()
-        : new OkHttpClient();
-    ElasticsearchHttpStorage.Builder builder = ElasticsearchHttpStorage.builder(ok).index(INDEX);
+  ElasticsearchStorage.Builder computeStorageBuilder() {
+    OkHttpClient ok =
+        Boolean.valueOf(System.getenv("ES_DEBUG"))
+            ? new OkHttpClient.Builder()
+                .addInterceptor(
+                    new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
+                .addNetworkInterceptor(
+                    chain ->
+                        chain.proceed( // logging interceptor doesn't gunzip
+                            chain.request().newBuilder().removeHeader("Accept-Encoding").build()))
+                .build()
+            : new OkHttpClient();
+    ElasticsearchStorage.Builder builder = ElasticsearchStorage.newBuilder(ok).index(INDEX);
     builder.flushOnWrites(true);
     return builder.hosts(Arrays.asList("http://" + esNodes()));
   }
@@ -86,10 +101,11 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
     }
   }
 
-  @Override public void close() {
+  void close() {
     try {
-      ElasticsearchHttpStorage storage = maybeNull();
-      if (storage != null) storage.close();
+      ElasticsearchStorage maybeStorage = storage;
+      if (maybeStorage == null) return;
+      maybeStorage.close();
     } finally {
       if (container != null) {
         System.out.println("Stopping docker image " + image);
@@ -98,7 +114,8 @@ class LazyElasticsearchHttpStorage extends LazyCloseable<ElasticsearchHttpStorag
     }
   }
 
-  @Override public Statement apply(Statement base, Description description) {
+  @Override
+  public Statement apply(Statement base, Description description) {
     return new Statement() {
       @Override
       public void evaluate() throws Throwable {

@@ -42,6 +42,13 @@
       <version>${spark-cassandra-connector.version}</version>
     </dependency>
 
+    <!-- dependencies tests are still v1 code -->
+    <dependency>
+      <groupId>io.zipkin.java</groupId>
+      <artifactId>zipkin</artifactId>
+      <version>${zipkin.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-storage-cassandra</artifactId>

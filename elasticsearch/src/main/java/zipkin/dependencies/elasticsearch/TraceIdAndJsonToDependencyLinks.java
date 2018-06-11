@@ -14,8 +14,6 @@
 package zipkin.dependencies.elasticsearch;
 
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
@@ -23,30 +21,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import scala.Tuple2;
-import zipkin.DependencyLink;
-import zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob.SpanAcceptor;
-import zipkin.internal.DependencyLinker;
+import zipkin2.DependencyLink;
 import zipkin2.Span;
+import zipkin2.codec.SpanBytesDecoder;
+import zipkin2.internal.DependencyLinker;
 
-final class TraceIdAndJsonToDependencyLinks implements Serializable,
-    Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
+import static zipkin.dependencies.elasticsearch.ElasticsearchDependenciesJob.UTF_8;
+
+final class TraceIdAndJsonToDependencyLinks
+    implements Serializable, Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
   private static final long serialVersionUID = 0L;
   private static final Logger log = LoggerFactory.getLogger(TraceIdAndJsonToDependencyLinks.class);
 
   @Nullable final Runnable logInitializer;
-  final SpanAcceptor decoder;
+  final SpanBytesDecoder decoder;
 
-  TraceIdAndJsonToDependencyLinks(Runnable logInitializer, SpanAcceptor decoder) {
+  TraceIdAndJsonToDependencyLinks(Runnable logInitializer, SpanBytesDecoder decoder) {
     this.logInitializer = logInitializer;
     this.decoder = decoder;
   }
 
-  @Override public Iterable<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
+  @Override
+  public Iterable<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
     if (logInitializer != null) logInitializer.run();
     Set<Span> sameTraceId = new LinkedHashSet<>();
     for (Tuple2<String, String> row : traceIdJson) {
       try {
-        decoder.decodeInto(row._2, sameTraceId);
+        decoder.decode(row._2.getBytes(UTF_8), sameTraceId);
       } catch (Exception e) {
         log.warn("Unable to decode span from traces where trace_id=" + row._1, e);
       }

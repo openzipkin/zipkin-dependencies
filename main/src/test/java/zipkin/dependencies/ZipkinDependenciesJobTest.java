@@ -19,7 +19,6 @@ import java.util.TimeZone;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import zipkin.internal.Util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,14 +35,11 @@ public class ZipkinDependenciesJobTest {
     assertThat(new Date(date))
         .hasYear(2013)
         .hasMonth(5)
-        .hasDayOfMonth(15);
-  }
-
-  @Test
-  public void parseDate_midnightUTC() throws ParseException {
-    long date = ZipkinDependenciesJob.parseDay("2013-05-15");
-    assertThat(date)
-        .isEqualTo(Util.midnightUTC(date));
+        .hasDayOfMonth(15)
+        .hasHourOfDay(0)
+        .hasMinute(0)
+        .hasSecond(0)
+        .hasMillisecond(0);
   }
 
   @Test

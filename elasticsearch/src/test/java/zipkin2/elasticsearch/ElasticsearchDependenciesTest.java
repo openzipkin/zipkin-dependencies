@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.storage.elasticsearch.http;
+package zipkin2.elasticsearch;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -29,26 +29,29 @@ import zipkin.storage.StorageComponent;
 
 import static zipkin.internal.ApplyTimestampAndDuration.guessTimestamp;
 import static zipkin.internal.Util.midnightUTC;
-import static zipkin.storage.elasticsearch.http.LazyElasticsearchHttpStorage.INDEX;
+import static zipkin2.elasticsearch.LazyElasticsearchStorage.INDEX;
 
 abstract class ElasticsearchDependenciesTest extends DependenciesTest {
 
-  protected abstract ElasticsearchHttpStorage esStorage();
+  protected abstract ElasticsearchStorage esStorage();
 
-  @Override protected final StorageComponent storage(){
+  @Override
+  protected final StorageComponent storage() {
     return V2StorageComponent.create(esStorage());
   }
 
   protected abstract String esNodes();
 
-  @Override public void clear() throws IOException {
+  @Override
+  public void clear() throws IOException {
     esStorage().clear();
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override public void processDependencies(List<Span> spans) {
+  @Override
+  public void processDependencies(List<Span> spans) {
     try {
       esStorage().spanConsumer().accept(V2SpanConverter.fromSpans(spans)).execute();
     } catch (IOException e) {
@@ -56,8 +59,8 @@ abstract class ElasticsearchDependenciesTest extends DependenciesTest {
     }
 
     Set<Long> days = new LinkedHashSet<>();
-    for (List<Span> trace : storage().spanStore()
-        .getTraces(QueryRequest.builder().limit(10000).build())) {
+    for (List<Span> trace :
+        storage().spanStore().getTraces(QueryRequest.builder().limit(10000).build())) {
       days.add(midnightUTC(guessTimestamp(MergeById.apply(trace).get(0)) / 1000));
     }
 

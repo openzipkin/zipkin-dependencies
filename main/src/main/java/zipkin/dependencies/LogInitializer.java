@@ -19,7 +19,7 @@ import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import zipkin.internal.DependencyLinker;
+import zipkin2.internal.DependencyLinker;
 
 /**
  * The explicitly initializes log configuration for zipkin categories to a predefined level. This is

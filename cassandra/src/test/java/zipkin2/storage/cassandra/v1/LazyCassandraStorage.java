@@ -11,14 +11,13 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin.storage.cassandra;
+package zipkin2.storage.cassandra.v1;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.Session;
 import com.google.common.net.HostAndPort;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.junit.AssumptionViolatedException;
@@ -29,8 +28,8 @@ import org.rnorth.ducttape.unreliables.Unreliables;
 import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.traits.LinkableContainer;
-import zipkin.Component;
 import zipkin.internal.LazyCloseable;
+import zipkin2.CheckResult;
 
 class LazyCassandraStorage extends LazyCloseable<CassandraStorage> implements TestRule {
 
@@ -44,7 +43,8 @@ class LazyCassandraStorage extends LazyCloseable<CassandraStorage> implements Te
     this.keyspace = keyspace;
   }
 
-  @Override protected CassandraStorage compute() {
+  @Override
+  protected CassandraStorage compute() {
     try {
       container = new CassandraContainer(image).withExposedPorts(9042);
       container.start();
@@ -54,13 +54,13 @@ class LazyCassandraStorage extends LazyCloseable<CassandraStorage> implements Te
     }
 
     CassandraStorage result = computeStorageBuilder().build();
-    Component.CheckResult check = result.check();
-    if (check.ok) return result;
-    throw new AssumptionViolatedException(check.exception.getMessage(), check.exception);
+    CheckResult check = result.check();
+    if (check.ok()) return result;
+    throw new AssumptionViolatedException(check.error().getMessage(), check.error());
   }
 
   private CassandraStorage.Builder computeStorageBuilder() {
-    return CassandraStorage.builder()
+    return CassandraStorage.newBuilder()
         .contactPoints(contactPoints())
         .ensureSchema(true)
         .localDc(container != null ? "datacenter1" : null)
@@ -76,18 +76,18 @@ class LazyCassandraStorage extends LazyCloseable<CassandraStorage> implements Te
     }
   }
 
-  @Override public void close() {
+  @Override
+  public void close() {
     try {
       CassandraStorage storage = maybeNull();
       if (storage != null) storage.close();
-    } catch (IOException ioe) {
-      // Ignore
     } finally {
       if (container != null) container.stop();
     }
   }
 
-  @Override public Statement apply(Statement base, Description description) {
+  @Override
+  public Statement apply(Statement base, Description description) {
     return new Statement() {
       @Override
       public void evaluate() throws Throwable {
@@ -101,25 +101,30 @@ class LazyCassandraStorage extends LazyCloseable<CassandraStorage> implements Te
     };
   }
 
-  private static class CassandraContainer extends GenericContainer<CassandraContainer> implements
-      LinkableContainer {
+  private static class CassandraContainer extends GenericContainer<CassandraContainer>
+      implements LinkableContainer {
 
     CassandraContainer(String image) {
       super(image);
     }
 
-    @Override protected void waitUntilContainerStarted() {
-      Unreliables.retryUntilSuccess(120, TimeUnit.SECONDS, () -> {
-        if (!isRunning()) {
-          throw new ContainerLaunchException("Container failed to start");
-        }
+    @Override
+    protected void waitUntilContainerStarted() {
+      Unreliables.retryUntilSuccess(
+          120,
+          TimeUnit.SECONDS,
+          () -> {
+            if (!isRunning()) {
+              throw new ContainerLaunchException("Container failed to start");
+            }
 
-        try (Cluster cluster = getCluster(); Session session = cluster.newSession()) {
-          session.execute("SELECT now() FROM system.local");
-          logger().info("Obtained a connection to container ({})", cluster.getClusterName());
-          return null; // unused value
-        }
-      });
+            try (Cluster cluster = getCluster();
+                Session session = cluster.newSession()) {
+              session.execute("SELECT now() FROM system.local");
+              logger().info("Obtained a connection to container ({})", cluster.getClusterName());
+              return null; // unused value
+            }
+          });
     }
 
     private Cluster getCluster() {

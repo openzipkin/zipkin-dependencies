@@ -13,11 +13,14 @@
  */
 package zipkin.dependencies.elasticsearch;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.MalformedJsonException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -31,19 +34,15 @@ import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
-import zipkin.Codec;
-import zipkin.DependencyLink;
-import zipkin.internal.Util;
-import zipkin.internal.V2SpanConverter;
-import zipkin.internal.gson.stream.JsonReader;
-import zipkin.internal.gson.stream.MalformedJsonException;
-import zipkin2.Span;
+import zipkin2.DependencyLink;
 import zipkin2.codec.SpanBytesDecoder;
 
-import static zipkin.internal.Util.checkNotNull;
-import static zipkin.internal.Util.midnightUTC;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class ElasticsearchDependenciesJob {
+  static final Charset UTF_8 = Charset.forName("UTF-8");
+  static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+
   private static final Logger log = LoggerFactory.getLogger(ElasticsearchDependenciesJob.class);
 
   public static Builder builder() {
@@ -64,14 +63,16 @@ public final class ElasticsearchDependenciesJob {
       // don't die if there are no spans
       sparkProperties.put("es.index.read.missing.as.empty", "true");
       sparkProperties.put("es.nodes.wan.only", getEnv("ES_NODES_WAN_ONLY", "false"));
-      sparkProperties.put("es.net.ssl.keystore.location",
-              getSystemPropertyAsFileResource("javax.net.ssl.keyStore"));
-      sparkProperties.put("es.net.ssl.keystore.pass",
-              System.getProperty("javax.net.ssl.keyStorePassword", ""));
-      sparkProperties.put("es.net.ssl.truststore.location",
-              getSystemPropertyAsFileResource("javax.net.ssl.trustStore"));
-      sparkProperties.put("es.net.ssl.truststore.pass",
-              System.getProperty("javax.net.ssl.trustStorePassword", ""));
+      sparkProperties.put(
+          "es.net.ssl.keystore.location",
+          getSystemPropertyAsFileResource("javax.net.ssl.keyStore"));
+      sparkProperties.put(
+          "es.net.ssl.keystore.pass", System.getProperty("javax.net.ssl.keyStorePassword", ""));
+      sparkProperties.put(
+          "es.net.ssl.truststore.location",
+          getSystemPropertyAsFileResource("javax.net.ssl.trustStore"));
+      sparkProperties.put(
+          "es.net.ssl.truststore.pass", System.getProperty("javax.net.ssl.trustStorePassword", ""));
     }
 
     // local[*] master lets us run & test the job locally without setting a Spark cluster
@@ -148,14 +149,12 @@ public final class ElasticsearchDependenciesJob {
     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd".replace("-", dateSeparator));
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));
-    this.conf = new SparkConf(true)
-        .setMaster(builder.sparkMaster)
-        .setAppName(getClass().getName());
+    this.conf = new SparkConf(true).setMaster(builder.sparkMaster).setAppName(getClass().getName());
     if (builder.jars != null) conf.setJars(builder.jars);
     if (builder.username != null) conf.set("es.net.http.auth.user", builder.username);
     if (builder.password != null) conf.set("es.net.http.auth.pass", builder.password);
     conf.set("es.nodes", parseHosts(builder.hosts));
-    if (builder.hosts.indexOf("https") != -1) conf.set("es.net.ssl", "true");
+    if (builder.hosts.contains("https")) conf.set("es.net.ssl", "true");
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
@@ -166,61 +165,43 @@ public final class ElasticsearchDependenciesJob {
     run( // multi-type index
         index + "-" + dateStamp + "/span",
         index + "-" + dateStamp + "/dependencylink",
-        SpanDecoder.INSTANCE
-    );
+        SpanBytesDecoder.JSON_V1);
 
     run( // single-type index
         index + ":span-" + dateStamp + "/span",
         index + ":dependency-" + dateStamp + "/dependency",
-        Span2Decoder.INSTANCE
-    );
+        SpanBytesDecoder.JSON_V2);
     log.info("Done");
   }
 
-  interface SpanAcceptor {
-    void decodeInto(String json, Collection<Span> sameTraceId);
-  }
-
-  // enums are used here because they are naturally serializable
-  enum SpanDecoder implements SpanAcceptor {
-    INSTANCE {
-      @Override public void decodeInto(String json, Collection<Span> sameTraceId) {
-        zipkin.Span v1Span = Codec.JSON.readSpan(json.getBytes(Util.UTF_8));
-        sameTraceId.addAll(V2SpanConverter.fromSpan(v1Span));
-      }
-    };
-  }
-
-  enum Span2Decoder implements SpanAcceptor {
-    INSTANCE;
-
-    @Override public void decodeInto(String json, Collection<Span> sameTraceId) {
-      SpanBytesDecoder.JSON_V2.decode(json.getBytes(Util.UTF_8), sameTraceId);
-    }
-  }
-
-  void run(String spanResource, String dependencyLinkResource, SpanAcceptor decoder) {
+  void run(String spanResource, String dependencyLinkResource, SpanBytesDecoder decoder) {
     log.info("Processing spans from {}", spanResource);
     JavaSparkContext sc = new JavaSparkContext(conf);
     try {
-      JavaRDD<Map<String, Object>> links = JavaEsSpark.esJsonRDD(sc, spanResource)
-          .groupBy(pair -> traceId(pair._2))
-          .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
-          .values()
-          .mapToPair(link -> new Tuple2<>(new Tuple2<>(link.parent, link.child), link))
-          .reduceByKey((l, r) -> DependencyLink.builder()
-              .parent(l.parent)
-              .child(l.child)
-              .callCount(l.callCount + r.callCount)
-              .errorCount(l.errorCount + r.errorCount).build())
-          .values()
-          .map(ElasticsearchDependenciesJob::dependencyLinkJson);
+      JavaRDD<Map<String, Object>> links =
+          JavaEsSpark.esJsonRDD(sc, spanResource)
+              .groupBy(pair -> traceId(pair._2))
+              .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
+              .values()
+              .mapToPair(link -> new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link))
+              .reduceByKey(
+                  (l, r) ->
+                      DependencyLink.newBuilder()
+                          .parent(l.parent())
+                          .child(l.child())
+                          .callCount(l.callCount() + r.callCount())
+                          .errorCount(l.errorCount() + r.errorCount())
+                          .build())
+              .values()
+              .map(ElasticsearchDependenciesJob::dependencyLinkJson);
 
       if (links.isEmpty()) {
         log.info("No spans found at {}", spanResource);
       } else {
         log.info("Saving dependency links to {}", dependencyLinkResource);
-        JavaEsSpark.saveToEs(links, dependencyLinkResource,
+        JavaEsSpark.saveToEs(
+            links,
+            dependencyLinkResource,
             Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
       }
     } finally {
@@ -234,11 +215,11 @@ public final class ElasticsearchDependenciesJob {
    */
   static Map<String, Object> dependencyLinkJson(DependencyLink l) {
     Map<String, Object> result = new LinkedHashMap<>();
-    result.put("id", l.parent + "|" + l.child);
-    result.put("parent", l.parent);
-    result.put("child", l.child);
-    result.put("callCount", l.callCount);
-    result.put("errorCount", l.errorCount);
+    result.put("id", l.parent() + "|" + l.child());
+    result.put("parent", l.parent());
+    result.put("child", l.child());
+    result.put("callCount", l.callCount());
+    result.put("errorCount", l.errorCount());
     return result;
   }
 
@@ -283,5 +264,16 @@ public final class ElasticsearchDependenciesJob {
       }
     }
     return to.toString();
+  }
+
+  /** For bucketed data floored to the day. For example, dependency links. */
+  static long midnightUTC(long epochMillis) {
+    Calendar day = Calendar.getInstance(UTC);
+    day.setTimeInMillis(epochMillis);
+    day.set(Calendar.MILLISECOND, 0);
+    day.set(Calendar.SECOND, 0);
+    day.set(Calendar.MINUTE, 0);
+    day.set(Calendar.HOUR_OF_DAY, 0);
+    return day.getTimeInMillis();
   }
 }
