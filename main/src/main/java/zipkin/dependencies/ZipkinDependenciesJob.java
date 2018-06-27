@@ -13,6 +13,7 @@
  */
 package zipkin.dependencies;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -26,7 +27,7 @@ import zipkin.dependencies.mysql.MySQLDependenciesJob;
 public final class ZipkinDependenciesJob {
   /** Runs with defaults, starting today */
   public static void main(String[] args) throws UnsupportedEncodingException {
-    String jarPath = pathToUberJar();
+    String[] jarPath = pathToUberJar();
     long day = args.length == 1 ? parseDay(args[0]) : System.currentTimeMillis();
     String storageType = System.getenv("STORAGE_TYPE");
     if (storageType == null) {
@@ -76,9 +77,10 @@ public final class ZipkinDependenciesJob {
     }
   }
 
-  static String pathToUberJar() throws UnsupportedEncodingException {
+  static String[] pathToUberJar() throws UnsupportedEncodingException {
     URL jarFile = ZipkinDependenciesJob.class.getProtectionDomain().getCodeSource().getLocation();
-    return URLDecoder.decode(jarFile.getPath(), "UTF-8");
+    return new File(jarFile.getPath()).isDirectory() ? null
+        : new String[] {URLDecoder.decode(jarFile.getPath(), "UTF-8")};
   }
 
   static long parseDay(String formattedDate) {
