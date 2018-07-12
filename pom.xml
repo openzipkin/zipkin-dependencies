@@ -19,7 +19,7 @@
 
   <groupId>io.zipkin.dependencies</groupId>
   <artifactId>zipkin-dependencies-parent</artifactId>
-  <version>1.12.2-SNAPSHOT</version>
+  <version>2.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -38,7 +38,7 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.2.1</spark.version>
-    <zipkin.version>2.9.1</zipkin.version>
+    <zipkin.version>2.10.2</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.10.0</assertj.version>
     <jackson.version>2.9.4</jackson.version>
@@ -56,6 +56,7 @@
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
+    <maven-failsafe-plugin.version>2.21.0</maven-failsafe-plugin.version>
     <!-- Tools to ensure we can run on Java 7 JVMs -->
     <animal-sniffer-maven-plugin.version>1.16</animal-sniffer-maven-plugin.version>
     <retrolambda-maven-plugin.version>2.5.3</retrolambda-maven-plugin.version>
@@ -118,6 +119,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.zipkin.zipkin2</groupId>
+        <artifactId>zipkin</artifactId>
+        <type>test-jar</type>
+        <version>${zipkin.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-dependencies-cassandra</artifactId>
@@ -221,14 +229,6 @@
       <version>${assertj.version}</version>
       <scope>test</scope>
     </dependency>
-
-    <dependency>
-      <groupId>io.zipkin.java</groupId>
-      <artifactId>zipkin</artifactId>
-      <version>${zipkin.version}</version>
-      <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
@@ -290,6 +290,30 @@
             <version>${errorprone.version}</version>
           </dependency>
         </dependencies>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-failsafe-plugin.version}</version>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${maven-failsafe-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>integration-test</id>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>verify</id>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>

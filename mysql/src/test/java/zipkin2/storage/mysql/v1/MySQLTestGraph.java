@@ -17,32 +17,29 @@ import java.sql.SQLException;
 import javax.annotation.Nullable;
 import org.junit.AssumptionViolatedException;
 import org.mariadb.jdbc.MariaDbDataSource;
-import zipkin.internal.LazyCloseable;
-import zipkin2.storage.mysql.v1.MySQLStorage;
-
-import static zipkin.internal.Util.envOr;
 
 public enum MySQLTestGraph {
   INSTANCE;
 
-  final LazyCloseable<MySQLStorage> storage =
-      new LazyCloseable<MySQLStorage>() {
-        @Override
-        protected MySQLStorage compute() {
-          String mysqlUrl = mysqlUrlFromEnv();
-          if (mysqlUrl == null) {
-            throw new AssumptionViolatedException(
-                "Minimally, the environment variable MYSQL_USER must be set");
-          }
-          try {
-            MariaDbDataSource dataSource = new MariaDbDataSource();
-            dataSource.setUrl(mysqlUrl);
-            return MySQLStorage.newBuilder().datasource(dataSource).executor(Runnable::run).build();
-          } catch (SQLException e) {
-            throw new AssumptionViolatedException(e.getMessage());
-          }
-        }
-      };
+  MySQLStorage storage;
+
+  MySQLStorage get() {
+    // tests don't have race conditions as they aren't run multithreaded
+    if (storage != null) return storage;
+    String mysqlUrl = mysqlUrlFromEnv();
+    if (mysqlUrl == null) {
+      throw new AssumptionViolatedException(
+          "Minimally, the environment variable MYSQL_USER must be set");
+    }
+    try {
+      MariaDbDataSource dataSource = new MariaDbDataSource();
+      dataSource.setUrl(mysqlUrl);
+      return storage =
+          MySQLStorage.newBuilder().datasource(dataSource).executor(Runnable::run).build();
+    } catch (SQLException e) {
+      throw new AssumptionViolatedException(e.getMessage());
+    }
+  }
 
   @Nullable
   private static String mysqlUrlFromEnv() {
@@ -56,5 +53,13 @@ public enum MySQLTestGraph {
     return String.format(
         "jdbc:mysql://%s:%s/%s?user=%s&password=%s&autoReconnect=true",
         mysqlHost, mysqlPort, mysqlDb, mysqlUser, mysqlPass);
+  }
+
+  static int envOr(String key, int fallback) {
+    return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : fallback;
+  }
+
+  static String envOr(String key, String fallback) {
+    return System.getenv(key) != null ? System.getenv(key) : fallback;
   }
 }
