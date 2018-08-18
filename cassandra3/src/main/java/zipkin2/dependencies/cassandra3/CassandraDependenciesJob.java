@@ -189,7 +189,7 @@ public final class CassandraDependenciesJob {
               .build())
           .values();
       if (links.isEmpty()) {
-        log.info("No spans found at {}/span", keyspace);
+        log.info("No dependency links could be processed from spans in table {}/span", keyspace);
         return;
       }
       log.info("Saving dependency links for {} to {}.dependency", dateStamp, keyspace);

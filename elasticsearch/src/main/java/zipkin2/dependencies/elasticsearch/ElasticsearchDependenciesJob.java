@@ -195,7 +195,7 @@ public final class ElasticsearchDependenciesJob {
               .map(ElasticsearchDependenciesJob::dependencyLinkJson);
 
       if (links.isEmpty()) {
-        log.info("No spans found at {}", spanResource);
+        log.info("No dependency links could be processed from spans in index {}", spanResource);
       } else {
         log.info("Saving dependency links to {}", dependencyLinkResource);
         JavaEsSpark.saveToEs(
