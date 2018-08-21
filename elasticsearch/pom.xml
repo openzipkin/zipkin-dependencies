@@ -34,7 +34,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch-spark-20_${scala.binary.version}</artifactId>
-      <version>6.2.4</version>
+      <version>6.3.2</version>
     </dependency>
 
     <dependency>
@@ -45,7 +45,19 @@
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>${okhttp.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
       <artifactId>logging-interceptor</artifactId>
+      <version>${okhttp.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-tls</artifactId>
       <version>${okhttp.version}</version>
       <scope>test</scope>
     </dependency>

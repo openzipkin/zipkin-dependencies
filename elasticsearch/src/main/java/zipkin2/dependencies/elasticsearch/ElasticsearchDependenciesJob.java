@@ -29,6 +29,9 @@ import javax.annotation.Nullable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,20 +182,13 @@ public final class ElasticsearchDependenciesJob {
     try {
       JavaRDD<Map<String, Object>> links =
           JavaEsSpark.esJsonRDD(sc, spanResource)
-              .groupBy(pair -> traceId(pair._2))
+              .groupBy(JSON_TRACE_ID)
               .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
               .values()
-              .mapToPair(link -> new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link))
-              .reduceByKey(
-                  (l, r) ->
-                      DependencyLink.newBuilder()
-                          .parent(l.parent())
-                          .child(l.child())
-                          .callCount(l.callCount() + r.callCount())
-                          .errorCount(l.errorCount() + r.errorCount())
-                          .build())
+              .mapToPair(LINK_TO_PAIR)
+              .reduceByKey(MERGE_LINK)
               .values()
-              .map(ElasticsearchDependenciesJob::dependencyLinkJson);
+              .map(DEPENDENCY_LINK_JSON);
 
       if (links.isEmpty()) {
         log.info("No dependency links could be processed from spans in index {}", spanResource);
@@ -212,35 +208,22 @@ public final class ElasticsearchDependenciesJob {
    * Same as {@linkplain DependencyLink}, except it adds an ID field so the job can be re-run,
    * overwriting a prior run's value for the link.
    */
-  static Map<String, Object> dependencyLinkJson(DependencyLink l) {
-    Map<String, Object> result = new LinkedHashMap<>();
-    result.put("id", l.parent() + "|" + l.child());
-    result.put("parent", l.parent());
-    result.put("child", l.child());
-    result.put("callCount", l.callCount());
-    result.put("errorCount", l.errorCount());
-    return result;
-  }
+  static final Function<DependencyLink, Map<String, Object>> DEPENDENCY_LINK_JSON =
+    new Function<DependencyLink, Map<String, Object>>() {
+      @Override public Map<String, Object> call(DependencyLink l) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", l.parent() + "|" + l.child());
+        result.put("parent", l.parent());
+        result.put("child", l.child());
+        result.put("callCount", l.callCount());
+        result.put("errorCount", l.errorCount());
+        return result;
+      }
+    };
 
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
     return result != null && !result.isEmpty() ? result : defaultValue;
-  }
-
-  /** returns the lower 64 bits of the trace ID */
-  static String traceId(String json) throws IOException {
-    JsonReader reader = new JsonReader(new StringReader(json));
-    reader.beginObject();
-    while (reader.hasNext()) {
-      String nextName = reader.nextName();
-      if (nextName.equals("traceId")) {
-        String traceId = reader.nextString();
-        return traceId.length() > 16 ? traceId.substring(traceId.length() - 16) : traceId;
-      } else {
-        reader.skipValue();
-      }
-    }
-    throw new MalformedJsonException("no traceId in " + json);
   }
 
   static String parseHosts(String hosts) {
@@ -264,4 +247,51 @@ public final class ElasticsearchDependenciesJob {
     }
     return to.toString();
   }
+
+  // defining what could be lambdas here until we update to minimum JRE 8 or retrolambda works.
+  static final Function<Tuple2<String, String>, String> JSON_TRACE_ID = new Function<Tuple2<String, String>, String>() {
+    /** returns the lower 64 bits of the trace ID */
+    @Override public String call(Tuple2<String, String> pair) throws IOException {
+      JsonReader reader = new JsonReader(new StringReader(pair._2));
+      reader.beginObject();
+      while (reader.hasNext()) {
+        String nextName = reader.nextName();
+        if (nextName.equals("traceId")) {
+          String traceId = reader.nextString();
+          return traceId.length() > 16 ? traceId.substring(traceId.length() - 16) : traceId;
+        } else {
+          reader.skipValue();
+        }
+      }
+      throw new MalformedJsonException("no traceId in " + pair);
+    }
+
+    @Override public String toString() {
+      return "pair._2.traceId";
+    }
+  };
+  static final PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink> LINK_TO_PAIR =
+    new PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>() {
+      @Override public Tuple2<Tuple2<String, String>, DependencyLink> call(DependencyLink link) {
+        return new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link);
+      }
+
+      @Override public String toString() {
+        return "(link.parent(), link.child()), link)";
+      }
+    };
+  static final Function2<DependencyLink, DependencyLink, DependencyLink> MERGE_LINK =
+    new Function2<DependencyLink, DependencyLink, DependencyLink>() {
+      @Override public DependencyLink call(DependencyLink l, DependencyLink r) {
+        return DependencyLink.newBuilder()
+          .parent(l.parent())
+          .child(l.child())
+          .callCount(l.callCount() + r.callCount())
+          .errorCount(l.errorCount() + r.errorCount())
+          .build();
+      }
+      @Override public String toString() {
+        return "DependencyLink.sum(callCount, errorCount)";
+      }
+    };
 }

@@ -114,7 +114,7 @@
                   </includes>
                 </filter>
                 <filter>
-                  <artifact>net.jpountz.lz4:*</artifact>
+                  <artifact>org.lz4:*</artifact>
                   <includes>
                     <include>**</include>
                   </includes>

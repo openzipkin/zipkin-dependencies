@@ -36,34 +36,31 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.2.1</spark.version>
-    <zipkin.version>2.10.2</zipkin.version>
-    <junit.version>4.12</junit.version>
-    <assertj.version>3.10.0</assertj.version>
-    <jackson.version>2.9.4</jackson.version>
-    <!-- keep this in sync with zipkin's version -->
-    <okhttp.version>3.10.0</okhttp.version>
-    <!-- connector uses an old version of the driver -->
-    <cassandra-driver-core.version>3.5.0</cassandra-driver-core.version>
-    <spark-cassandra-connector.version>2.0.7</spark-cassandra-connector.version>
-    <testcontainers.version>1.7.3</testcontainers.version>
+    <!-- override to set exclusions per-project -->
+    <errorprone.args/>
 
-    <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
+    <scala.binary.version>2.11</scala.binary.version>
+    <spark.version>2.3.1</spark.version>
+    <zipkin.version>2.11.2</zipkin.version>
+    <junit.version>4.12</junit.version>
+    <assertj.version>3.11.0</assertj.version>
+    <jackson.version>2.9.6</jackson.version>
+    <!-- keep this in sync with zipkin's version -->
+    <okhttp.version>3.11.0</okhttp.version>
+    <!-- connector uses an old version of the driver -->
+    <cassandra-driver-core.version>3.5.1</cassandra-driver-core.version>
+    <spark-cassandra-connector.version>2.3.1</spark-cassandra-connector.version>
+    <testcontainers.version>1.8.3</testcontainers.version>
+
+    <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
-    <maven-failsafe-plugin.version>2.21.0</maven-failsafe-plugin.version>
-    <!-- Tools to ensure we can run on Java 7 JVMs -->
-    <animal-sniffer-maven-plugin.version>1.16</animal-sniffer-maven-plugin.version>
-    <retrolambda-maven-plugin.version>2.5.3</retrolambda-maven-plugin.version>
-
-    <!-- Catch common Java mistakes as compile-time errors -->
-    <plexus-compiler-javac-errorprone.version>2.8.4</plexus-compiler-javac-errorprone.version>
-    <errorprone.version>2.3.1</errorprone.version>
+    <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
+    <maven-failsafe-plugin.version>2.22.0</maven-failsafe-plugin.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
@@ -87,8 +84,7 @@
   <scm>
     <url>https://github.com/openzipkin/zipkin-dependencies</url>
     <connection>scm:git:https://github.com/openzipkin/zipkin-dependencies.git</connection>
-    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-dependencies.git
-    </developerConnection>
+    <developerConnection>scm:git:https://github.com/openzipkin/zipkin-dependencies.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -177,6 +173,11 @@
       <!-- Forcibly bump Jackson version to avoid CVE-2017-4995 -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
         <version>${jackson.version}</version>
       </dependency>
@@ -234,11 +235,25 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.3 -->
+        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.4 -->
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.6.0</version>
+          <version>0.6.1</version>
+        </plugin>
+
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+          <inherited>true</inherited>
+          <configuration>
+            <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
+            <source>1.8</source>
+            <target>1.8</target>
+            <!-- or die! com.sun.tools.javac.api.JavacTool -->
+            <fork>true</fork>
+            <showWarnings>true</showWarnings>
+          </configuration>
         </plugin>
 
         <plugin>
@@ -247,9 +262,14 @@
         </plugin>
 
         <plugin>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>${maven-shade-plugin.version}</version>
+        </plugin>
+
+        <plugin>
           <groupId>net.orfjackal.retrolambda</groupId>
           <artifactId>retrolambda-maven-plugin</artifactId>
-          <version>${retrolambda-maven-plugin.version}</version>
+          <version>2.5.5</version>
           <executions>
             <execution>
               <goals>
@@ -267,29 +287,41 @@
 
     <plugins>
       <plugin>
-        <inherited>true</inherited>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${maven-compiler-plugin.version}</version>
+        <groupId>net.orfjackal.retrolambda</groupId>
+        <artifactId>retrolambda-maven-plugin</artifactId>
+        <version>2.5.5</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>process-main</goal>
+            </goals>
+            <configuration>
+              <target>${main.java.version}</target>
+              <fork>true</fork>
+              <quiet>true</quiet>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+        <version>1.17</version>
         <configuration>
-          <!-- Retrolamda will rewrite lambdas as Java 7 bytecode -->
-          <source>1.8</source>
-          <target>1.8</target>
-          <compilerId>javac-with-errorprone</compilerId>
-          <forceJavacCompilerUse>true</forceJavacCompilerUse>
-          <showWarnings>true</showWarnings>
+          <signature>
+            <groupId>org.codehaus.mojo.signature</groupId>
+            <artifactId>java17</artifactId>
+            <version>1.0</version>
+          </signature>
         </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-compiler-javac-errorprone</artifactId>
-            <version>${plexus-compiler-javac-errorprone.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_core</artifactId>
-            <version>${errorprone.version}</version>
-          </dependency>
-        </dependencies>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
@@ -311,28 +343,6 @@
             <id>verify</id>
             <goals>
               <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <version>${animal-sniffer-maven-plugin.version}</version>
-        <configuration>
-          <signature>
-            <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java17</artifactId>
-            <version>1.0</version>
-          </signature>
-        </configuration>
-        <executions>
-          <execution>
-            <id>signature-check</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>check</goal>
             </goals>
           </execution>
         </executions>
@@ -413,7 +423,7 @@
 
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.0.0-M2</version>
         <executions>
           <execution>
             <id>enforce-java</id>
@@ -422,8 +432,8 @@
             </goals>
             <configuration>
               <rules>
+                <!-- Spark doesn't support Java 9+, yet https://issues.apache.org/jira/browse/SPARK-24421 -->
                 <requireJavaVersion>
-                  <!-- retrolambda breaks trying to backport things in java 9 -->
                   <version>[1.8,9)</version>
                 </requireJavaVersion>
               </rules>
@@ -435,6 +445,49 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>error-prone-1.8</id>
+      <activation>
+        <jdk>1.8</jdk>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <executions>
+              <execution>
+                <!-- only use errorprone on main source tree -->
+                <id>default-compile</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>compile</goal>
+                </goals>
+                <configuration>
+                  <compilerId>javac-with-errorprone</compilerId>
+                  <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                  <compilerArgs>
+                    <arg>${errorprone.args}</arg>
+                  </compilerArgs>
+                </configuration>
+              </execution>
+            </executions>
+            <dependencies>
+              <dependency>
+                <groupId>org.codehaus.plexus</groupId>
+                <artifactId>plexus-compiler-javac-errorprone</artifactId>
+                <version>2.8.4</version>
+              </dependency>
+              <dependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_core</artifactId>
+                <version>2.3.1</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>release</id>
       <build>
