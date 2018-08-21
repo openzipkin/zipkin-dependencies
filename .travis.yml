@@ -12,6 +12,7 @@ addons:
 
 language: java
 
+# Spark doesn't support Java 9+, yet https://issues.apache.org/jira/browse/SPARK-24421
 jdk:
   - oraclejdk8
 

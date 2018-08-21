@@ -16,6 +16,7 @@ package zipkin2.dependencies.cassandra;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.spark.connector.cql.CassandraConnector;
+import com.datastax.spark.connector.japi.CassandraRow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
@@ -32,6 +33,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -153,32 +157,20 @@ public final class CassandraDependenciesJob {
     long microsLower = day * 1000;
     long microsUpper = (day * 1000) + TimeUnit.DAYS.toMicros(1) - 1;
 
-    log.info(
-        "Running Dependencies job for {}: {} ≤ Span.timestamp {}",
-        dateStamp,
-        microsLower,
+    log.info("Running Dependencies job for {}: {} ≤ Span.timestamp {}", dateStamp, microsLower,
         microsUpper);
 
     SparkContext sc = new SparkContext(conf);
 
-    List<DependencyLink> links =
-        javaFunctions(sc)
-            .cassandraTable(keyspace, "traces")
-            .spanBy(r -> r.getLong("trace_id"), Long.class)
-            .flatMapValues(
-                new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper))
-            .values()
-            .mapToPair(link -> new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link))
-            .reduceByKey(
-                (l, r) ->
-                    DependencyLink.newBuilder()
-                        .parent(l.parent())
-                        .child(l.child())
-                        .callCount(l.callCount() + r.callCount())
-                        .errorCount(l.errorCount() + r.errorCount())
-                        .build())
-            .values()
-            .collect();
+    List<DependencyLink> links = javaFunctions(sc)
+      .cassandraTable(keyspace, "traces")
+      .spanBy(ROW_TRACE_ID, Long.class)
+      .flatMapValues(new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper))
+      .values()
+      .mapToPair(LINK_TO_PAIR)
+      .reduceByKey(MERGE_LINK)
+      .values()
+      .collect();
 
     sc.stop();
 
@@ -186,26 +178,19 @@ public final class CassandraDependenciesJob {
   }
 
   void saveToCassandra(List<DependencyLink> links) {
-    Dependencies thrift =
-        Dependencies.create(
-            day,
-            day, /* ignored */
-            links);
+    Dependencies thrift = Dependencies.create(day, day /** ignored */, links);
     ByteBuffer blob = thrift.toThrift();
 
     log.info("Saving with day={}", dateStamp);
-    CassandraConnector.apply(conf)
-        .withSessionDo(
-            new AbstractFunction1<Session, Void>() {
-              @Override
-              public Void apply(Session session) {
-                session.execute(
-                    QueryBuilder.insertInto(keyspace, "dependencies")
-                        .value("day", new Date(day))
-                        .value("dependencies", blob));
-                return null;
-              }
-            });
+    CassandraConnector.apply(conf).withSessionDo(new AbstractFunction1<Session, Void>() {
+      @Override public Void apply(Session session) {
+        session.execute(QueryBuilder.insertInto(keyspace, "dependencies")
+            .value("day", new Date(day))
+            .value("dependencies", blob)
+        );
+        return null;
+      }
+    });
     log.info("Done");
   }
 
@@ -227,4 +212,39 @@ public final class CassandraDependenciesJob {
     }
     return ports.size() == 1 ? String.valueOf(ports.iterator().next()) : "9042";
   }
+
+  // defining what could be lambdas here until we update to minimum JRE 8 or retrolambda works.
+  static final Function<CassandraRow, Long> ROW_TRACE_ID = new Function<CassandraRow, Long>() {
+    @Override public Long call(CassandraRow r) {
+      return r.getLong("trace_id");
+    }
+
+    @Override public String toString() {
+      return "CassandraRow.getLong(\"trace_id\")";
+    }
+  };
+  static final PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink> LINK_TO_PAIR =
+    new PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>() {
+      @Override public Tuple2<Tuple2<String, String>, DependencyLink> call(DependencyLink link) {
+        return new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link);
+      }
+
+      @Override public String toString() {
+        return "(link.parent(), link.child()), link)";
+      }
+    };
+  static final Function2<DependencyLink, DependencyLink, DependencyLink> MERGE_LINK =
+    new Function2<DependencyLink, DependencyLink, DependencyLink>() {
+      @Override public DependencyLink call(DependencyLink l, DependencyLink r) {
+        return DependencyLink.newBuilder()
+          .parent(l.parent())
+          .child(l.child())
+          .callCount(l.callCount() + r.callCount())
+          .errorCount(l.errorCount() + r.errorCount())
+          .build();
+      }
+      @Override public String toString() {
+        return "DependencyLink.sum(callCount, errorCount)";
+      }
+    };
 }

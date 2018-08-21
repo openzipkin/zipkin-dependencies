@@ -15,13 +15,13 @@ package zipkin2.dependencies.elasticsearch;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.internal.tls.SslClient;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.hadoop.rest.EsHadoopParsingException;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
+import static okhttp3.tls.internal.TlsUtil.localhost;
 import static org.apache.commons.net.util.Base64.encodeBase64String;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,7 +66,7 @@ public class ElasticsearchDependenciesJobTest {
 
   @Test
   public void authWorksWithSsl() throws Exception {
-    es.useHttps(SslClient.localhost().socketFactory, false);
+    es.useHttps(localhost().sslSocketFactory(), false);
 
     es.enqueue(new MockResponse()); // let the HEAD request pass, so we can trap the header value
     es.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AT_START)); // kill the job
