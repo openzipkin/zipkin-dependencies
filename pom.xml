@@ -41,7 +41,7 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.3.1</spark.version>
-    <zipkin.version>2.11.5</zipkin.version>
+    <zipkin.version>2.11.6</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.11.0</assertj.version>
     <jackson.version>2.9.6</jackson.version>
@@ -50,7 +50,7 @@
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.5.1</cassandra-driver-core.version>
     <spark-cassandra-connector.version>2.3.1</spark-cassandra-connector.version>
-    <testcontainers.version>1.8.3</testcontainers.version>
+    <testcontainers.version>1.9.1</testcontainers.version>
 
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
