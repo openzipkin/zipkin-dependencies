@@ -89,7 +89,7 @@ Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatibl
     * `ES_DATE_SEPARATOR`: The separator used when generating dates in index.
                            Defaults to '-' so the queried index look like zipkin-yyyy-DD-mm
                            Could for example be changed to '.' to give zipkin-yyyy.MM.dd
-    * `ES_HOSTS`: A comma separated list of elasticsearch hosts advertising http. Defaults to
+    * `ES_NODES`: A comma separated list of elasticsearch hosts advertising http. Defaults to
                   localhost. Add port section if not listening on port 9200. Only one of these hosts
                   needs to be available to fetch the remaining nodes in the cluster. It is
                   recommended to set this to all the master nodes of the cluster. Use url format for
