@@ -13,9 +13,9 @@
  */
 package zipkin2.dependencies.cassandra3;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import scala.Serializable;
@@ -40,8 +40,7 @@ final class SpansToDependencyLinks
   @Override
   public Iterable<DependencyLink> call(Iterable<Span> spans) {
     if (logInitializer != null) logInitializer.run();
-    // use a hash set to dedupe any redundantly accepted spans
-    Set<Span> sameTraceId = new LinkedHashSet<>();
+    List<Span> sameTraceId = new ArrayList<>();
     for (Span span : spans) {
       // check to see if the trace is within the interval
       if (span.parentId() == null) {
@@ -52,6 +51,6 @@ final class SpansToDependencyLinks
       }
       sameTraceId.add(span);
     }
-    return new DependencyLinker().putTrace(sameTraceId.iterator()).link();
+    return new DependencyLinker().putTrace(sameTraceId).link();
   }
 }

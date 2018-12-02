@@ -71,6 +71,6 @@ final class CassandraRowsToDependencyLinks
             e);
       }
     }
-    return new DependencyLinker().putTrace(sameTraceId.iterator()).link();
+    return new DependencyLinker().putTrace(sameTraceId).link();
   }
 }
