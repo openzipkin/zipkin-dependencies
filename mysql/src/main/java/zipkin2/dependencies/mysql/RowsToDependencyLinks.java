@@ -13,8 +13,10 @@
  */
 package zipkin2.dependencies.mysql;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
@@ -22,8 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import zipkin2.DependencyLink;
-import zipkin2.internal.DependencyLinker;
 import zipkin2.Span;
+import zipkin2.internal.DependencyLinker;
 
 final class RowsToDependencyLinks
     implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {
@@ -46,8 +48,12 @@ final class RowsToDependencyLinks
     if (!traces.hasNext()) return Collections.emptyList();
 
     DependencyLinker linker = new DependencyLinker();
+    List<Span> nextTrace = new ArrayList<>();
     while (traces.hasNext()) {
-      linker.putTrace(traces.next());
+      Iterator<Span> i = traces.next();
+      while (i.hasNext()) nextTrace.add(i.next());
+      linker.putTrace(nextTrace);
+      nextTrace.clear();
     }
     return linker.link();
   }

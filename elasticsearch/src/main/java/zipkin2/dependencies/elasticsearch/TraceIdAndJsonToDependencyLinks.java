@@ -13,8 +13,8 @@
  */
 package zipkin2.dependencies.elasticsearch;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
@@ -42,7 +42,7 @@ final class TraceIdAndJsonToDependencyLinks
   @Override
   public Iterable<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
     if (logInitializer != null) logInitializer.run();
-    Set<Span> sameTraceId = new LinkedHashSet<>();
+    List<Span> sameTraceId = new ArrayList<>();
     for (Tuple2<String, String> row : traceIdJson) {
       try {
         decoder.decode(row._2.getBytes(ElasticsearchDependenciesJob.UTF_8), sameTraceId);
@@ -51,7 +51,7 @@ final class TraceIdAndJsonToDependencyLinks
       }
     }
     DependencyLinker linker = new DependencyLinker();
-    linker.putTrace(sameTraceId.iterator());
+    linker.putTrace(sameTraceId);
     return linker.link();
   }
 }

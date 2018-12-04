@@ -41,27 +41,28 @@
     <errorprone.version>2.3.2</errorprone.version>
 
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.3.2</spark.version>
-    <zipkin.version>2.11.7</zipkin.version>
+    <spark.version>2.4.0</spark.version>
+    <zipkin.version>2.11.9</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.11.1</assertj.version>
     <jackson.version>2.9.7</jackson.version>
     <!-- keep this in sync with zipkin's version -->
-    <okhttp.version>3.11.0</okhttp.version>
+    <okhttp.version>3.12.0</okhttp.version>
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.6.0</cassandra-driver-core.version>
-    <spark-cassandra-connector.version>2.3.2</spark-cassandra-connector.version>
-    <testcontainers.version>1.9.1</testcontainers.version>
+    <spark-cassandra-connector.version>2.4.0</spark-cassandra-connector.version>
+    <testcontainers.version>1.10.2</testcontainers.version>
 
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
-    <maven-install-plugin.version>2.5.2</maven-install-plugin.version>
+    <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
+    <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-    <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+    <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
-    <maven-jar-plugin.version>3.0.2</maven-jar-plugin.version>
+    <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
-    <maven-shade-plugin.version>3.2.0</maven-shade-plugin.version>
-    <maven-failsafe-plugin.version>2.22.1</maven-failsafe-plugin.version>
+    <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
+    <maven-failsafe-plugin.version>3.0.0-M1</maven-failsafe-plugin.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
@@ -236,7 +237,7 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.5.4 -->
+        <!-- mvn -N io.takari:maven:wrapper -Dmaven=3.6.0 -->
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
@@ -270,7 +271,7 @@
         <plugin>
           <groupId>net.orfjackal.retrolambda</groupId>
           <artifactId>retrolambda-maven-plugin</artifactId>
-          <version>2.5.5</version>
+          <version>2.5.6</version>
           <executions>
             <execution>
               <goals>
@@ -290,7 +291,6 @@
       <plugin>
         <groupId>net.orfjackal.retrolambda</groupId>
         <artifactId>retrolambda-maven-plugin</artifactId>
-        <version>2.5.5</version>
         <executions>
           <execution>
             <goals>
@@ -349,13 +349,16 @@
         </executions>
       </plugin>
 
-      <!-- Ensures checksums are added to published jars -->
+
       <plugin>
         <artifactId>maven-install-plugin</artifactId>
         <version>${maven-install-plugin.version}</version>
-        <configuration>
-          <createChecksum>true</createChecksum>
-        </configuration>
+      </plugin>
+
+      <!-- Uploads occur as a last step (which also adds checksums) -->
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>${maven-deploy-plugin.version}</version>
       </plugin>
 
       <plugin>
