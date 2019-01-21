@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2016-2018 The OpenZipkin Authors
+    Copyright 2016-2019 The OpenZipkin Authors
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
     in compliance with the License. You may obtain a copy of the License at
@@ -42,16 +42,16 @@
 
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.4.0</spark.version>
-    <zipkin.version>2.11.10</zipkin.version>
+    <zipkin.version>2.12.0</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.11.1</assertj.version>
     <jackson.version>2.9.7</jackson.version>
     <!-- keep this in sync with zipkin's version -->
-    <okhttp.version>3.12.0</okhttp.version>
+    <okhttp.version>3.12.1</okhttp.version>
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.6.0</cassandra-driver-core.version>
     <spark-cassandra-connector.version>2.4.0</spark-cassandra-connector.version>
-    <testcontainers.version>1.10.2</testcontainers.version>
+    <testcontainers.version>1.10.5</testcontainers.version>
 
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
@@ -62,7 +62,7 @@
     <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
-    <maven-failsafe-plugin.version>3.0.0-M1</maven-failsafe-plugin.version>
+    <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
