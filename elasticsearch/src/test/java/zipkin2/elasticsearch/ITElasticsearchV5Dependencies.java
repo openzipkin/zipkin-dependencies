@@ -19,7 +19,7 @@ public class ITElasticsearchV5Dependencies extends ITElasticsearchDependencies {
 
   @ClassRule
   public static LazyElasticsearchStorage storage =
-      new LazyElasticsearchStorage("openzipkin/zipkin-elasticsearch5:2.12.0");
+      new LazyElasticsearchStorage("openzipkin/zipkin-elasticsearch5:2.12.2");
 
   @Override
   protected ElasticsearchStorage esStorage() {
