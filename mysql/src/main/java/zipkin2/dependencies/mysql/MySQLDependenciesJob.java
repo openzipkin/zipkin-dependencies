@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -194,7 +194,7 @@ public final class MySQLDependenciesJob {
         "select distinct %s "+
             "from zipkin_spans s left outer join zipkin_annotations a on " +
             "  (s.trace_id = a.trace_id and s.id = a.span_id " +
-            "     and a.a_key in ('lc', 'ca', 'cs', 'sr', 'sa', 'error')) " +
+            "     and a.a_key in ('lc', 'ca', 'cs', 'sa', 'sr', 'ma', 'ms', 'mr', 'error')) " +
             "where s.start_ts between %s and %s group by %s",
         fields, microsLower, microsUpper, groupByFields);
 

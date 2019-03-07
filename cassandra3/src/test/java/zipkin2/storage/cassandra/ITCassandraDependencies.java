@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ITCassandraDependencies extends ITDependencies {
   @ClassRule
   public static CassandraStorageRule cassandraStorageRule =
-      new CassandraStorageRule("openzipkin/zipkin-cassandra:2.12.3");
+      new CassandraStorageRule("openzipkin/zipkin-cassandra:2.12.4");
 
   @Rule public TestName testName = new TestName();
 
