@@ -90,7 +90,8 @@ final class DependencyLinkSpanIterator implements Iterator<Span> {
 
     long spanId = row.getLong(traceIdIndex + 2);
     boolean error = false;
-    String lcService = null, srService = null, csService = null, caService = null, saService = null;
+    String lcService = null, srService = null, csService = null, caService = null, saService = null,
+      maService = null, mrService = null, msService = null;
     while (hasNext()) { // there are more values for this trace
       if (spanId != delegate.peek().getLong(traceIdIndex + 2) /* id */) {
         break; // if we are in a new span
@@ -112,6 +113,15 @@ final class DependencyLinkSpanIterator implements Iterator<Span> {
           break;
         case "sa":
           saService = value;
+          break;
+        case "ma":
+          maService = value;
+          break;
+        case "mr":
+          mrService = value;
+          break;
+        case "ms":
+          msService = value;
           break;
         case "sr":
           srService = value;
@@ -154,6 +164,18 @@ final class DependencyLinkSpanIterator implements Iterator<Span> {
           .build();
     } else if (csService != null) {
       return result.kind(Span.Kind.SERVER).localEndpoint(ep(caService)).build();
+    } else if (mrService != null) {
+      return result
+        .kind(Span.Kind.CONSUMER)
+        .localEndpoint(ep(mrService))
+        .remoteEndpoint(ep(maService))
+        .build();
+    } else if (msService != null) {
+      return result
+        .kind(Span.Kind.PRODUCER)
+        .localEndpoint(ep(msService))
+        .remoteEndpoint(ep(maService))
+        .build();
     }
     return result.build();
   }
