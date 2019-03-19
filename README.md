@@ -147,7 +147,7 @@ For example, if you are connecting to spark running on the same host:
 $ STORAGE_TYPE=cassandra3 SPARK_MASTER=spark://$HOSTNAME:7077 java -jar zipkin-dependencies.jar
 ```
 
-Note that the Zipkin focuses on tracing, not Spark support. If you have Spark cluster related
+Note that the Zipkin team focuses on tracing, not Spark support. If you have Spark cluster related
 troubleshooting questions, please use their [support tools](https://spark.apache.org/community.html).
 
 ## Troubleshooting
