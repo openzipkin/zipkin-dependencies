@@ -17,7 +17,7 @@ The quickest way to get started is to fetch the [latest released job](https://se
 Note that Zipkin Dependencies requires minimum JRE 7. For example:
 
 ```bash
-$ wget -O zipkin-dependencies.jar 'https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST'
+$ curl -sSL https://zipkin.io/quickstart.sh | bash -s io.zipkin.dependencies:zipkin-dependencies:LATEST zipkin-dependencies.jar
 $ STORAGE_TYPE=cassandra3 java -jar zipkin-dependencies.jar
 ```
 
@@ -127,6 +127,28 @@ To build the job from source and run against a local cassandra, in Spark's stand
 $ ./mvnw -DskipTests clean install
 $ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
+
+## Running in a Spark cluster
+
+The jar file produced by this build can also run against spark directly. Before anything
+else, make sure you are running the same version of spark as used here.
+
+You can use the following command to display what this project is built against:
+```bash
+$ SPARK_VERSION=$(./mvnw help:evaluate -Dexpression=spark.version -q -DforceStdout)
+$ echo $SPARK_VERSION
+2.4.0
+```
+
+Once you've verified your setup is on the correct version, set the `SPARK_MASTER` variable:
+
+For example, if you are connecting to spark running on the same host:
+```bash
+$ STORAGE_TYPE=cassandra3 SPARK_MASTER=spark://$HOSTNAME:7077 java -jar zipkin-dependencies.jar
+```
+
+Note that the Zipkin team focuses on tracing, not Spark support. If you have Spark cluster related
+troubleshooting questions, please use their [support tools](https://spark.apache.org/community.html).
 
 ## Troubleshooting
 
