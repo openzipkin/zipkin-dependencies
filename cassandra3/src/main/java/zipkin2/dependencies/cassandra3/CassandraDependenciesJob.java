@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -38,9 +38,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -183,8 +180,13 @@ public final class CassandraDependenciesJob {
       JavaRDD<DependencyLink> links = flatMapToLinksByTraceId(
         javaFunctions(sc).cassandraTable(keyspace, "span"), microsUpper, microsLower, inTest
       ).values()
-        .mapToPair(LINK_TO_PAIR)
-        .reduceByKey(MERGE_LINK)
+        .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
+        .reduceByKey((l, r) -> DependencyLink.newBuilder()
+          .parent(l.parent())
+          .child(l.child())
+          .callCount(l.callCount() + r.callCount())
+          .errorCount(l.errorCount() + r.errorCount())
+          .build())
         .values();
       if (links.isEmpty()) {
         log.info("No dependency links could be processed from spans in table {}/span", keyspace);
@@ -227,12 +229,12 @@ public final class CassandraDependenciesJob {
       long microsUpper, long microsLower, boolean inTest
   ) {
     if (strictTraceId) {
-      return spans.spanBy(ROW_TRACE_ID, String.class)
+      return spans.spanBy(r -> r.getString("trace_id"), String.class)
           .flatMapValues(
               new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper, inTest));
     }
     return spans.map(new CassandraRowToSpan(inTest))
-        .groupBy(SPAN_TRACE_ID) // groupBy instead of spanBy because trace_id is mixed length
+        .groupBy(Span::traceId) // groupBy instead of spanBy because trace_id is mixed length
         .flatMapValues(new SpansToDependencyLinks(logInitializer, microsLower, microsUpper));
   }
 
@@ -243,7 +245,7 @@ public final class CassandraDependenciesJob {
 
   static String parseHosts(String contactPoints) {
     List<String> result = new ArrayList<>();
-    for (String contactPoint : contactPoints.split(",")) {
+    for (String contactPoint : contactPoints.split(",", -1)) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
       result.add(parsed.getHostText());
     }
@@ -253,7 +255,7 @@ public final class CassandraDependenciesJob {
   /** Returns the consistent port across all contact points or 9042 */
   static String parsePort(String contactPoints) {
     Set<Integer> ports = Sets.newLinkedHashSet();
-    for (String contactPoint : contactPoints.split(",")) {
+    for (String contactPoint : contactPoints.split(",", -1)) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
       ports.add(parsed.getPortOrDefault(9042));
     }
@@ -265,48 +267,4 @@ public final class CassandraDependenciesJob {
     if (traceId.length() > 16) traceId = traceId.substring(traceId.length() - 16);
     return traceId;
   }
-
-  // defining what could be lambdas here until we update to minimum JRE 8 or retrolambda works.
-  static final Function<CassandraRow, String> ROW_TRACE_ID = new Function<CassandraRow, String>() {
-    @Override public String call(CassandraRow r) {
-      return r.getString("trace_id");
-    }
-
-    @Override public String toString() {
-      return "CassandraRow.String(\"trace_id\")";
-    }
-  };
-  static final Function<Span, String> SPAN_TRACE_ID = new Function<Span, String>() {
-    @Override public String call(Span span) throws Exception {
-      return span.traceId();
-    }
-
-    @Override public String toString() {
-      return "Span::traceId";
-    }
-  };
-  static final PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink> LINK_TO_PAIR =
-    new PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>() {
-      @Override public Tuple2<Tuple2<String, String>, DependencyLink> call(DependencyLink link) {
-        return new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link);
-      }
-
-      @Override public String toString() {
-        return "(link.parent(), link.child()), link)";
-      }
-    };
-  static final Function2<DependencyLink, DependencyLink, DependencyLink> MERGE_LINK =
-    new Function2<DependencyLink, DependencyLink, DependencyLink>() {
-      @Override public DependencyLink call(DependencyLink l, DependencyLink r) {
-        return DependencyLink.newBuilder()
-          .parent(l.parent())
-          .child(l.child())
-          .callCount(l.callCount() + r.callCount())
-          .errorCount(l.errorCount() + r.errorCount())
-          .build();
-      }
-      @Override public String toString() {
-        return "DependencyLink.sum(callCount, errorCount)";
-      }
-    };
 }

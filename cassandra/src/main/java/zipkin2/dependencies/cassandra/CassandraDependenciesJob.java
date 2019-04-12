@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package zipkin2.dependencies.cassandra;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.spark.connector.cql.CassandraConnector;
-import com.datastax.spark.connector.japi.CassandraRow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
@@ -33,9 +32,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -164,11 +160,16 @@ public final class CassandraDependenciesJob {
 
     List<DependencyLink> links = javaFunctions(sc)
       .cassandraTable(keyspace, "traces")
-      .spanBy(ROW_TRACE_ID, Long.class)
+      .spanBy(r -> r.getLong("trace_id"), Long.class)
       .flatMapValues(new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper))
       .values()
-      .mapToPair(LINK_TO_PAIR)
-      .reduceByKey(MERGE_LINK)
+      .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
+      .reduceByKey((l, r) -> DependencyLink.newBuilder()
+        .parent(l.parent())
+        .child(l.child())
+        .callCount(l.callCount() + r.callCount())
+        .errorCount(l.errorCount() + r.errorCount())
+        .build())
       .values()
       .collect();
 
@@ -196,7 +197,7 @@ public final class CassandraDependenciesJob {
 
   static String parseHosts(String contactPoints) {
     List<String> result = new ArrayList<>();
-    for (String contactPoint : contactPoints.split(",")) {
+    for (String contactPoint : contactPoints.split(",", -1)) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
       result.add(parsed.getHostText());
     }
@@ -206,45 +207,10 @@ public final class CassandraDependenciesJob {
   /** Returns the consistent port across all contact points or 9042 */
   static String parsePort(String contactPoints) {
     Set<Integer> ports = Sets.newLinkedHashSet();
-    for (String contactPoint : contactPoints.split(",")) {
+    for (String contactPoint : contactPoints.split(",", -1)) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
       ports.add(parsed.getPortOrDefault(9042));
     }
     return ports.size() == 1 ? String.valueOf(ports.iterator().next()) : "9042";
   }
-
-  // defining what could be lambdas here until we update to minimum JRE 8 or retrolambda works.
-  static final Function<CassandraRow, Long> ROW_TRACE_ID = new Function<CassandraRow, Long>() {
-    @Override public Long call(CassandraRow r) {
-      return r.getLong("trace_id");
-    }
-
-    @Override public String toString() {
-      return "CassandraRow.getLong(\"trace_id\")";
-    }
-  };
-  static final PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink> LINK_TO_PAIR =
-    new PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>() {
-      @Override public Tuple2<Tuple2<String, String>, DependencyLink> call(DependencyLink link) {
-        return new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link);
-      }
-
-      @Override public String toString() {
-        return "(link.parent(), link.child()), link)";
-      }
-    };
-  static final Function2<DependencyLink, DependencyLink, DependencyLink> MERGE_LINK =
-    new Function2<DependencyLink, DependencyLink, DependencyLink>() {
-      @Override public DependencyLink call(DependencyLink l, DependencyLink r) {
-        return DependencyLink.newBuilder()
-          .parent(l.parent())
-          .child(l.child())
-          .callCount(l.callCount() + r.callCount())
-          .errorCount(l.errorCount() + r.errorCount())
-          .build();
-      }
-      @Override public String toString() {
-        return "DependencyLink.sum(callCount, errorCount)";
-      }
-    };
 }

@@ -56,7 +56,6 @@
     <plugins>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.0</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -173,10 +172,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>net.orfjackal.retrolambda</groupId>
-        <artifactId>retrolambda-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

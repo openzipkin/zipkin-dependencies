@@ -14,7 +14,7 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 ## Quick-start
 
 The quickest way to get started is to fetch the [latest released job](https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST) as a self-contained jar.
-Note that Zipkin Dependencies requires minimum JRE 7. For example:
+Note that Zipkin Dependencies requires minimum JRE 1.8. For example:
 
 ```bash
 $ curl -sSL https://zipkin.io/quickstart.sh | bash -s io.zipkin.dependencies:zipkin-dependencies:LATEST zipkin-dependencies.jar

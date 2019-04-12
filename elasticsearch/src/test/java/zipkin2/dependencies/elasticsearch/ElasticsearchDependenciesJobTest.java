@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,7 +16,7 @@ package zipkin2.dependencies.elasticsearch;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.assertj.core.api.Assertions;
-import org.elasticsearch.hadoop.rest.EsHadoopParsingException;
+import org.elasticsearch.hadoop.EsHadoopException;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -24,6 +24,7 @@ import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
 import static okhttp3.tls.internal.TlsUtil.localhost;
 import static org.apache.commons.net.util.Base64.encodeBase64String;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 
 public class ElasticsearchDependenciesJobTest {
   @Rule public MockWebServer es = new MockWebServer();
@@ -57,7 +58,8 @@ public class ElasticsearchDependenciesJobTest {
 
     try {
       job.run();
-    } catch (EsHadoopParsingException e) {
+      failBecauseExceptionWasNotThrown(EsHadoopException.class);
+    } catch (EsHadoopException e) {
       // this is ok as we aren't trying to emulate the whole server
     }
     assertThat(es.takeRequest().getHeader("Authorization"))
@@ -84,7 +86,8 @@ public class ElasticsearchDependenciesJobTest {
 
     try {
       job.run();
-    } catch (EsHadoopParsingException e) {
+      failBecauseExceptionWasNotThrown(EsHadoopException.class);
+    } catch (EsHadoopException e) {
       // this is ok as we aren't trying to emulate the whole server
     }
     assertThat(es.takeRequest().getHeader("Authorization"))
