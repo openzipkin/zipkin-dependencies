@@ -14,7 +14,6 @@
 package zipkin2.dependencies.mysql;
 
 import com.google.common.collect.ImmutableMap;
-import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -30,8 +29,6 @@ import javax.annotation.Nullable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
 import org.slf4j.Logger;
@@ -182,7 +179,7 @@ public final class MySQLDependenciesJob {
     options.put("password", password);
 
     boolean hasTraceIdHigh = hasTraceIdHigh();
-    Function<Row, Long> rowTraceId = new GetTraceId(hasTraceIdHigh);
+    Function<Row, Long> rowTraceId = r -> r.getLong(hasTraceIdHigh ? 1 : 0); // trace_id
 
     long microsLower = day * 1000;
     long microsUpper = (day * 1000) + TimeUnit.DAYS.toMicros(1) - 1;
@@ -213,8 +210,13 @@ public final class MySQLDependenciesJob {
         .groupBy(rowTraceId)
         .flatMapValues(new RowsToDependencyLinks(logInitializer, hasTraceIdHigh))
         .values()
-        .mapToPair(LINK_TO_PAIR)
-        .reduceByKey(MERGE_LINK)
+        .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
+        .reduceByKey((l, r) -> DependencyLink.newBuilder()
+          .parent(l.parent())
+          .child(l.child())
+          .callCount(l.callCount() + r.callCount())
+          .errorCount(l.errorCount() + r.errorCount())
+          .build())
         .values().collect();
 
     sc.stop();
@@ -258,45 +260,4 @@ public final class MySQLDependenciesJob {
     String result = System.getenv(key);
     return result != null ? result : defaultValue;
   }
-
-  // defining what could be lambdas here until we update to minimum JRE 8 or retrolambda works.
-  static final class GetTraceId implements Function<Row, Long>, Serializable {
-    private final boolean hasTraceIdHigh;
-
-    GetTraceId(boolean hasTraceIdHigh) {
-      this.hasTraceIdHigh = hasTraceIdHigh;
-    }
-
-    @Override public Long call(Row r) {
-      return r.getLong(hasTraceIdHigh ? 1 : 0); /* trace_id */
-    }
-
-    @Override public String toString() {
-      return "Row.getLong(\"trace_id\")";
-    }
-  }
-  static final PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink> LINK_TO_PAIR =
-    new PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>() {
-      @Override public Tuple2<Tuple2<String, String>, DependencyLink> call(DependencyLink link) {
-        return new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link);
-      }
-
-      @Override public String toString() {
-        return "(link.parent(), link.child()), link)";
-      }
-    };
-  static final Function2<DependencyLink, DependencyLink, DependencyLink> MERGE_LINK =
-    new Function2<DependencyLink, DependencyLink, DependencyLink>() {
-      @Override public DependencyLink call(DependencyLink l, DependencyLink r) {
-        return DependencyLink.newBuilder()
-          .parent(l.parent())
-          .child(l.child())
-          .callCount(l.callCount() + r.callCount())
-          .errorCount(l.errorCount() + r.errorCount())
-          .build();
-      }
-      @Override public String toString() {
-        return "DependencyLink.sum(callCount, errorCount)";
-      }
-    };
 }

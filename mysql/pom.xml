@@ -33,8 +33,7 @@
 
          MariaDB has a friendlier license, LGPL, which is less scary in audits.
     -->
-    <!-- Version 1.7.4 for minimum java compatibility 1.7 -->
-    <mariadb-java-client.version>1.7.4</mariadb-java-client.version>
+    <mariadb-java-client.version>2.4.1</mariadb-java-client.version>
   </properties>
 
   <dependencies>
@@ -59,13 +58,4 @@
       <type>test-jar</type>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>net.orfjackal.retrolambda</groupId>
-        <artifactId>retrolambda-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
 </project>

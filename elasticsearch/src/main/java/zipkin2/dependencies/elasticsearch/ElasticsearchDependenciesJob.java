@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -30,8 +30,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,8 +183,13 @@ public final class ElasticsearchDependenciesJob {
               .groupBy(JSON_TRACE_ID)
               .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
               .values()
-              .mapToPair(LINK_TO_PAIR)
-              .reduceByKey(MERGE_LINK)
+              .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
+              .reduceByKey((l, r) -> DependencyLink.newBuilder()
+                .parent(l.parent())
+                .child(l.child())
+                .callCount(l.callCount() + r.callCount())
+                .errorCount(l.errorCount() + r.errorCount())
+                .build())
               .values()
               .map(DEPENDENCY_LINK_JSON);
 
@@ -208,18 +211,15 @@ public final class ElasticsearchDependenciesJob {
    * Same as {@linkplain DependencyLink}, except it adds an ID field so the job can be re-run,
    * overwriting a prior run's value for the link.
    */
-  static final Function<DependencyLink, Map<String, Object>> DEPENDENCY_LINK_JSON =
-    new Function<DependencyLink, Map<String, Object>>() {
-      @Override public Map<String, Object> call(DependencyLink l) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("id", l.parent() + "|" + l.child());
-        result.put("parent", l.parent());
-        result.put("child", l.child());
-        result.put("callCount", l.callCount());
-        result.put("errorCount", l.errorCount());
-        return result;
-      }
-    };
+  static final Function<DependencyLink, Map<String, Object>> DEPENDENCY_LINK_JSON = l -> {
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("id", l.parent() + "|" + l.child());
+    result.put("parent", l.parent());
+    result.put("child", l.child());
+    result.put("callCount", l.callCount());
+    result.put("errorCount", l.errorCount());
+    return result;
+  };
 
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
@@ -237,7 +237,7 @@ public final class ElasticsearchDependenciesJob {
         if (port == -1) {
           port = host.startsWith("https") ? 443 : 80;
         }
-        to.append(httpUri.getHost() + ":" + port);
+        to.append(httpUri.getHost()).append(":").append(port);
       } else {
         to.append(host);
       }
@@ -270,28 +270,4 @@ public final class ElasticsearchDependenciesJob {
       return "pair._2.traceId";
     }
   };
-  static final PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink> LINK_TO_PAIR =
-    new PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>() {
-      @Override public Tuple2<Tuple2<String, String>, DependencyLink> call(DependencyLink link) {
-        return new Tuple2<>(new Tuple2<>(link.parent(), link.child()), link);
-      }
-
-      @Override public String toString() {
-        return "(link.parent(), link.child()), link)";
-      }
-    };
-  static final Function2<DependencyLink, DependencyLink, DependencyLink> MERGE_LINK =
-    new Function2<DependencyLink, DependencyLink, DependencyLink>() {
-      @Override public DependencyLink call(DependencyLink l, DependencyLink r) {
-        return DependencyLink.newBuilder()
-          .parent(l.parent())
-          .child(l.child())
-          .callCount(l.callCount() + r.callCount())
-          .errorCount(l.errorCount() + r.errorCount())
-          .build();
-      }
-      @Override public String toString() {
-        return "DependencyLink.sum(callCount, errorCount)";
-      }
-    };
 }

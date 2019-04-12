@@ -40,18 +40,19 @@
     <errorprone.args />
     <errorprone.version>2.3.3</errorprone.version>
 
+    <!-- can't switch to 2.12 until spark-cassandra-connector updates -->
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.0</spark.version>
-    <zipkin.version>2.12.5</zipkin.version>
+    <spark.version>2.4.1</spark.version>
+    <zipkin.version>2.12.9</zipkin.version>
     <junit.version>4.12</junit.version>
-    <assertj.version>3.12.1</assertj.version>
+    <assertj.version>3.12.2</assertj.version>
     <jackson.version>2.9.8</jackson.version>
     <!-- keep this in sync with zipkin's version -->
-    <okhttp.version>3.13.1</okhttp.version>
+    <okhttp.version>3.14.0</okhttp.version>
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.7.1</cassandra-driver-core.version>
     <spark-cassandra-connector.version>2.4.1</spark-cassandra-connector.version>
-    <testcontainers.version>1.10.6</testcontainers.version>
+    <testcontainers.version>1.11.1</testcontainers.version>
 
     <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
     <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
@@ -59,7 +60,7 @@
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
-    <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
+    <maven-jar-plugin.version>3.1.1</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
@@ -241,7 +242,7 @@
         <plugin>
           <groupId>io.takari</groupId>
           <artifactId>maven</artifactId>
-          <version>0.7.4</version>
+          <version>0.7.5</version>
           <configuration>
             <maven>3.6.0</maven>
           </configuration>
@@ -252,7 +253,6 @@
           <version>${maven-compiler-plugin.version}</version>
           <inherited>true</inherited>
           <configuration>
-            <!-- Retrolambda will rewrite lambdas as Java 6 bytecode -->
             <source>1.8</source>
             <target>1.8</target>
             <!-- or die! com.sun.tools.javac.api.JavacTool -->
@@ -270,64 +270,10 @@
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
         </plugin>
-
-        <plugin>
-          <groupId>net.orfjackal.retrolambda</groupId>
-          <artifactId>retrolambda-maven-plugin</artifactId>
-          <version>2.5.6</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>process-main</goal>
-              </goals>
-              <configuration>
-                <target>1.7</target>
-                <fork>true</fork>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
       </plugins>
     </pluginManagement>
 
     <plugins>
-      <plugin>
-        <groupId>net.orfjackal.retrolambda</groupId>
-        <artifactId>retrolambda-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>process-main</goal>
-            </goals>
-            <configuration>
-              <target>${main.java.version}</target>
-              <fork>true</fork>
-              <quiet>true</quiet>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <version>1.17</version>
-        <configuration>
-          <signature>
-            <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java17</artifactId>
-            <version>1.0</version>
-          </signature>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven-failsafe-plugin.version}</version>
@@ -351,7 +297,6 @@
           </execution>
         </executions>
       </plugin>
-
 
       <plugin>
         <artifactId>maven-install-plugin</artifactId>
