@@ -137,14 +137,12 @@ public final class ElasticsearchDependenciesJob {
   }
 
   final String index;
-  final long day;
   final String dateStamp;
   final SparkConf conf;
   @Nullable final Runnable logInitializer;
 
   ElasticsearchDependenciesJob(Builder builder) {
     this.index = builder.index;
-    this.day = builder.day;
     String dateSeparator = getEnv("ES_DATE_SEPARATOR", "-");
     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd".replace("-", dateSeparator));
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
