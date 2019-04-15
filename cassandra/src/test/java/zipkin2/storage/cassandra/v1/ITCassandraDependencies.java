@@ -27,8 +27,8 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestName;
-import zipkin2.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin2.Span;
+import zipkin2.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin2.storage.ITDependencies;
 import zipkin2.storage.StorageComponent;
 

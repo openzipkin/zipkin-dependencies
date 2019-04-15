@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,8 +16,8 @@ package zipkin2.elasticsearch;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin2.Span;
+import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin2.storage.ITDependencies;
 import zipkin2.storage.StorageComponent;
 

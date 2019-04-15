@@ -139,7 +139,6 @@ public final class MySQLDependenciesJob {
     }
   }
 
-  final String db;
   final long day;
   final String dateStamp;
   final String url;
@@ -149,7 +148,6 @@ public final class MySQLDependenciesJob {
   @Nullable final Runnable logInitializer;
 
   MySQLDependenciesJob(Builder builder) {
-    this.db = builder.db;
     this.day = builder.day;
     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));

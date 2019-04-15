@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 The OpenZipkin Authors
+ * Copyright 2016-2019 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -20,8 +20,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.Serializable;
 import zipkin2.DependencyLink;
 import zipkin2.Span;
@@ -30,7 +28,6 @@ import zipkin2.internal.DependencyLinker;
 final class RowsToDependencyLinks
     implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {
   private static final long serialVersionUID = 0L;
-  private static final Logger log = LoggerFactory.getLogger(RowsToDependencyLinks.class);
 
   @Nullable final Runnable logInitializer;
   final boolean hasTraceIdHigh;
