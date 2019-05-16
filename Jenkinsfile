@@ -54,7 +54,8 @@ pipeline {
             steps {
                 // use install, as opposed to verify, to ensure invoker tests use latest code
                 // skip docker tests so that we don't take 2hrs to build. Travis will run these.
-                sh './mvnw clean install --batch-mode -nsu -Ddocker.skip=true'
+                // Use quiet as shade plugin creates too many logs
+                sh './mvnw clean install -q --batch-mode -nsu -Ddocker.skip=true'
             }
         }
 
