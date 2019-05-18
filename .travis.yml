@@ -28,7 +28,7 @@ before_install:
   # install mysql schema
   - mysql -uroot -e 'SET GLOBAL innodb_file_format=Barracuda'
   - mysql -uroot -e 'create database if not exists zipkin'
-  - curl -SL https://raw.githubusercontent.com/openzipkin/zipkin/master/zipkin-storage/mysql-v1/src/main/resources/mysql.sql | mysql -uroot -Dzipkin
+  - curl -SL https://raw.githubusercontent.com/apache/incubator-zipkin/master/zipkin-storage/mysql-v1/src/main/resources/mysql.sql | mysql -uroot -Dzipkin
   # Required for Elasticsearch 5 (See https://github.com/docker-library/docs/tree/master/elasticsearch#host-setup)
   - sudo sysctl -w vm.max_map_count=262144
 
@@ -37,16 +37,9 @@ before_install:
 install: ./mvnw -q install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 script: ./mvnw clean verify -B
 
-# Don't build release tags. This avoids publish conflicts because the version commit exists both on master and the release tag.
-# See https://github.com/travis-ci/travis-ci/issues/1532
-branches:
-  except:
-    - /^[0-9]/
-
 notifications:
   webhooks:
-    urls:  # skip license on travis due to zipkin #1512
-
+    urls:
       - https://webhooks.gitter.im/e/637e968b45032d16ee26
     on_success: change
     on_failure: always
