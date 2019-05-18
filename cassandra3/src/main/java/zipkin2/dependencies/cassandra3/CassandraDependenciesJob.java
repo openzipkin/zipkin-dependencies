@@ -125,7 +125,7 @@ public final class CassandraDependenciesJob {
       return this;
     }
 
-    Builder strictTraceId(boolean strictTraceId) {
+    public Builder strictTraceId(boolean strictTraceId) {
       this.strictTraceId = strictTraceId;
       return this;
     }
