@@ -295,7 +295,6 @@
           <version>${maven-javadoc-plugin.version}</version>
           <configuration>
             <failOnError>false</failOnError>
-            <excludePackageNames>zipkin2.internal,zipkin2.internal.*</excludePackageNames>
             <!-- hush pedantic warnings: we don't put param and return on everything! -->
             <doclint>none</doclint>
           </configuration>
