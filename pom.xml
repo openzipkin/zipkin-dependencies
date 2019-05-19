@@ -74,8 +74,8 @@
     <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
   </properties>
 
-  <name>Apache Zipkin (incubating) Dependencies (Parent)</name>
-  <description>Apache Zipkin (incubating) Dependencies (Parent)</description>
+  <name>Apache Zipkin Dependencies (incubating) (Parent)</name>
+  <description>Apache Zipkin Dependencies (incubating) (Parent)</description>
   <url>https://github.com/apache/incubator-zipkin-dependencies</url>
 
   <inceptionYear>2016</inceptionYear>

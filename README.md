@@ -4,7 +4,7 @@
 
 # zipkin-dependencies
 
-This is a Spark job that will collect spans from your datastore, analyze links between services,
+Apache Zipkin Dependencies (incubating) is a Spark job that will collect spans from your datastore, analyze links between services,
 and store them for later presentation in the [web UI](https://github.com/apache/incubator-zipkin/tree/master/zipkin-lens) (ex. http://localhost:8080/dependency).
 
 This job parses all traces in the current day in UTC time. This means you should schedule it to run
