@@ -70,7 +70,6 @@
     <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-jar-plugin.version>3.1.2</maven-jar-plugin.version>
-    <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M3</maven-failsafe-plugin.version>
   </properties>
@@ -292,6 +291,16 @@
         </plugin>
 
         <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven-javadoc-plugin.version}</version>
+          <configuration>
+            <failOnError>false</failOnError>
+            <!-- hush pedantic warnings: we don't put param and return on everything! -->
+            <doclint>none</doclint>
+          </configuration>
+        </plugin>
+
+        <plugin>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${maven-shade-plugin.version}</version>
         </plugin>
@@ -375,26 +384,6 @@
             <phase>compile</phase>
           </execution>
         </executions>
-      </plugin>
-
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>${maven-release-plugin.version}</version>
-        <configuration>
-          <useReleaseProfile>false</useReleaseProfile>
-          <releaseProfiles>release</releaseProfiles>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
-          <tagNameFormat>@{project.version}</tagNameFormat>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>io.zipkin.centralsync-maven-plugin</groupId>
-        <artifactId>centralsync-maven-plugin</artifactId>
-        <version>0.1.0</version>
-        <configuration>
-          <packageName>zipkin-dependencies</packageName>
-        </configuration>
       </plugin>
 
       <plugin>
@@ -530,6 +519,29 @@
         </plugins>
       </build>
     </profile>
-
+    <profile>
+      <id>apache-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-release-assembly</id>
+                <configuration>
+                  <!-- make the source release zip includes the word incubating -->
+                  <finalName>apache-zipkin-dependencies-incubating-${project.version}</finalName>
+                  <descriptors>
+                    <descriptor>src/main/assemblies/source-release.xml</descriptor>
+                  </descriptors>
+                  <!-- don't inherit the source-release as we are overriding it -->
+                  <descriptorRefs combine.self="override" />
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>

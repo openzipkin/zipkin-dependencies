@@ -1,16 +1,16 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin)
 [![Build Status](https://builds.apache.org/view/Z/view/Zipkin/job/GH-incubator-zipkin/job/incubator-zipkin-dependencies/job/master/badge/icon)](https://builds.apache.org/view/Z/view/Zipkin/job/GH-incubator-zipkin/job/incubator-zipkin-dependencies/job/master/)
-[![Maven Central](https://img.shields.io/maven-central/v/org.apache.zipkin/zipkin-server.svg)](https://search.maven.org/search?q=g:org.apache.zipkin.dependencies%20AND%20a:zipkin-dependencies)
+[![Maven Central](https://img.shields.io/maven-central/v/org.apache.zipkin.dependencies/zipkin-dependencies.svg)](https://search.maven.org/search?q=g:org.apache.zipkin.dependencies%20AND%20a:zipkin-dependencies)
 
 # zipkin-dependencies
 
 This is a Spark job that will collect spans from your datastore, analyze links between services,
-and store them for later presentation in the [web UI](https://github.com/openzipkin/zipkin/tree/master/zipkin-ui) (ex. http://localhost:8080/dependency).
+and store them for later presentation in the [web UI](https://github.com/apache/incubator-zipkin/tree/master/zipkin-lens) (ex. http://localhost:8080/dependency).
 
 This job parses all traces in the current day in UTC time. This means you should schedule it to run
 just prior to midnight UTC.
 
-All Zipkin [Storage Components](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/)
+All Zipkin [Storage Components](https://github.com/apache/incubator-zipkin/blob/master/zipkin-storage/)
 are supported, including Cassandra, MySQL and Elasticsearch.
 
 ## Quick-start
@@ -51,8 +51,8 @@ The following variables are common to all storage layers:
 
 ### Cassandra
 Cassandra is used when `STORAGE_TYPE=cassandra` or `STORAGE_TYPE=cassandra3`.
-* `cassandra` is compatible with Zipkin's [Legacy Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
-* `cassandra3` is compatible with Zipkin's [Cassandra v3 storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/zipkin2_cassandra).
+* `cassandra` is compatible with Zipkin's [Legacy Cassandra storage component](https://github.com/apache/incubator-zipkin/tree/master/zipkin-storage/cassandra).
+* `cassandra3` is compatible with Zipkin's [Cassandra v3 storage component](https://github.com/apache/incubator-zipkin/tree/master/zipkin-storage/zipkin2_cassandra).
 
 Here are the variables that apply
 
@@ -70,7 +70,7 @@ $ STORAGE_TYPE=cassandra3 CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -
 ```
 
 ### MySQL Storage
-MySQL is used when `STORAGE_TYPE=mysql`. The schema is compatible with Zipkin's [MySQL storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/mysql).
+MySQL is used when `STORAGE_TYPE=mysql`. The schema is compatible with Zipkin's [MySQL storage component](https://github.com/apache/incubator-zipkin/tree/master/zipkin-storage/mysql-v1).
 
     * `MYSQL_DB`: The database to use. Defaults to "zipkin".
     * `MYSQL_USER` and `MYSQL_PASS`: MySQL authentication, which defaults to empty string.
@@ -85,7 +85,7 @@ $ STORAGE_TYPE=mysql MYSQL_USER=root java -jar zipkin-dependencies.jar
 ```
 
 ### Elasticsearch Storage
-Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch-http).
+Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/apache/incubator-zipkin/tree/master/zipkin-storage/elasticsearch).
 
     * `ES_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
     * `ES_DATE_SEPARATOR`: The separator used when generating dates in index.
@@ -126,7 +126,7 @@ To build the job from source and run against a local cassandra, in Spark's stand
 
 ```bash
 # Build the spark jobs
-$ ./mvnw -DskipTests clean install
+$ mvn -DskipTests clean install
 $ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
@@ -137,7 +137,7 @@ else, make sure you are running the same version of spark as used here.
 
 You can use the following command to display what this project is built against:
 ```bash
-$ SPARK_VERSION=$(./mvnw help:evaluate -Dexpression=spark.version -q -DforceStdout)
+$ SPARK_VERSION=$(mvn help:evaluate -Dexpression=spark.version -q -DforceStdout)
 $ echo $SPARK_VERSION
 2.4.0
 ```
