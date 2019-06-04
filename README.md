@@ -13,6 +13,13 @@ just prior to midnight UTC.
 All Zipkin [Storage Components](https://github.com/apache/incubator-zipkin/blob/master/zipkin-storage/)
 are supported, including Cassandra, MySQL and Elasticsearch.
 
+## Versions
+
+`STORAGE_TYPE=cassandra3` - requires Cassandra 3.11.3+; tested against the latest patch of 3.11
+`STORAGE_TYPE=cassandra` - requires Cassandra 2.2+; tested against the latest patch of 3.11
+`STORAGE_TYPE=mysql` - requires MySQL 5.6+; tested against MySQL 5.6
+`STORAGE_TYPE=elasticsearch` - requires Elasticsearch 5+; tested against last minor release of 6.x and 7.x
+
 ## Quick-start
 
 The quickest way to get started is to fetch the [latest released job](https://search.maven.org/remote_content?g=org.apache.zipkin.dependencies&a=zipkin-dependencies&v=LATEST) as a self-contained jar.
