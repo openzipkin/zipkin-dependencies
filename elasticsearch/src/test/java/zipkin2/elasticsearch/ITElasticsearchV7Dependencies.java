@@ -18,11 +18,11 @@ package zipkin2.elasticsearch;
 
 import org.junit.ClassRule;
 
-public class ITElasticsearchV5Dependencies extends ITElasticsearchDependencies {
+public class ITElasticsearchV7Dependencies extends ITElasticsearchDependencies {
 
   @ClassRule
   public static LazyElasticsearchStorage storage =
-      new LazyElasticsearchStorage("openzipkin/zipkin-elasticsearch5:2.13.0");
+      new LazyElasticsearchStorage("openzipkin/zipkin-elasticsearch7:2.14.0");
 
   @Override
   protected ElasticsearchStorage esStorage() {

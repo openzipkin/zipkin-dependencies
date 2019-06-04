@@ -28,6 +28,7 @@ import scala.Serializable;
 import zipkin2.DependencyLink;
 import zipkin2.Span;
 import zipkin2.internal.DependencyLinker;
+import zipkin2.internal.ReadBuffer;
 import zipkin2.internal.V1ThriftSpanReader;
 import zipkin2.v1.V1Span;
 import zipkin2.v1.V1SpanConverter;
@@ -55,7 +56,7 @@ final class CassandraRowsToDependencyLinks
     List<Span> sameTraceId = new ArrayList<>();
     for (CassandraRow row : rows) {
       try {
-        V1Span v1Span = reader.read(row.getBytes("span"));
+        V1Span v1Span = reader.read(ReadBuffer.wrapUnsafe(row.getBytes("span")));
         for (Span span : converter.convert(v1Span)) {
           // check to see if the trace is within the interval
           if (span.parentId() == null) {
