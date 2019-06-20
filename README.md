@@ -4,11 +4,9 @@
 
 # zipkin-dependencies
 
-Zipkin Dependencies is a Spark job that will collect spans from your datastore, analyze links between services,
-and store them for later presentation in the [web UI](https://github.com/openzipkin/zipkin/tree/master/zipkin-lens) (ex. http://localhost:8080/dependency).
+Zipkin Dependencies collects spans from storage, analyzes links between services, and stores them for later presentation in the [web UI](https://github.com/openzipkin/zipkin/tree/master/zipkin-lens) (ex. http://localhost:8080/dependency).
 
-This job parses all traces in the current day in UTC time. This means you should schedule it to run
-just prior to midnight UTC.
+This process is implemented as an Apache Spark job. This job parses all traces in the current day in UTC time. This means you should schedule it to run just prior to midnight UTC.
 
 All Zipkin [Storage Components](https://github.com/openzipkin/zipkin/blob/master/zipkin-storage/)
 are supported, including Cassandra, MySQL and Elasticsearch.
