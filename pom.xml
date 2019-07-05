@@ -42,11 +42,11 @@
 
     <!-- can't switch to 2.12 until spark-cassandra-connector updates -->
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.1</spark.version>
-    <zipkin.version>2.14.2</zipkin.version>
+    <spark.version>2.4.3</spark.version>
+    <zipkin.version>2.15.0</zipkin.version>
     <junit.version>4.12</junit.version>
     <assertj.version>3.12.2</assertj.version>
-    <jackson.version>2.9.8</jackson.version>
+    <jackson.version>2.9.9</jackson.version>
     <!-- keep this in sync with zipkin's version -->
     <okhttp.version>3.14.2</okhttp.version>
     <!-- connector uses an old version of the driver -->
