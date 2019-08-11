@@ -11,44 +11,34 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.storage.cassandra;
+package zipkin2.storage.cassandra.v1;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.Session;
-import com.google.common.io.Closer;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
-import org.junit.AssumptionViolatedException;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.traits.LinkableContainer;
 
-public class CassandraStorageRule extends ExternalResource {
-  static final Logger LOGGER = LoggerFactory.getLogger(CassandraStorageRule.class);
+public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCallback {
+  static final Logger LOGGER = LoggerFactory.getLogger(CassandraStorageExtension.class);
   static final int CASSANDRA_PORT = 9042;
   final String image;
   CassandraContainer container;
-  Session session;
-  Closer closer = Closer.create();
 
-  CassandraStorageRule(String image) {
+  CassandraStorageExtension(String image) {
     this.image = image;
   }
 
-  Session session() {
-    return session;
-  }
-
-  @Override
-  protected void before() throws Throwable {
-    System.setProperty("zipkin.dependencies.inTests", "true");
+  @Override public void beforeAll(ExtensionContext context) {
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         LOGGER.info("Starting docker image " + image);
@@ -60,70 +50,39 @@ public class CassandraStorageRule extends ExternalResource {
     } else {
       LOGGER.info("Skipping startup of docker " + image);
     }
-
-    try {
-      session = tryToInitializeSession();
-    } catch (RuntimeException | Error e) {
-      if (container == null) throw e;
-      LOGGER.warn("Couldn't connect to docker image " + image + ": " + e.getMessage(), e);
-      container.stop();
-      container = null; // try with local connection instead
-      session = tryToInitializeSession();
-    }
-  }
-
-  Session tryToInitializeSession() throws IOException {
-    Cluster cluster = closer.register(getCluster(contactPoint()));
-    Session session = closer.register(cluster.newSession());
-    try {
-      session.execute("SELECT now() FROM system.local");
-    } catch (RuntimeException e) {
-      closer.close();
-      throw new AssumptionViolatedException(e.getMessage(), e);
-    }
-    return session;
   }
 
   CassandraStorage.Builder computeStorageBuilder() {
     InetSocketAddress contactPoint = contactPoint();
     return CassandraStorage.newBuilder()
-        .contactPoints(contactPoint.getHostString() + ":" + contactPoint.getPort())
-        .ensureSchema(true);
+      .contactPoints(contactPoint.getHostString() + ":" + contactPoint.getPort())
+      .ensureSchema(true)
+      .keyspace("test_cassandra");
   }
 
-  private InetSocketAddress contactPoint() {
+  InetSocketAddress contactPoint() {
     if (container != null && container.isRunning()) {
       return new InetSocketAddress(
-          container.getContainerIpAddress(), container.getMappedPort(CASSANDRA_PORT)
-      );
+        container.getContainerIpAddress(), container.getMappedPort(CASSANDRA_PORT));
     } else {
       return new InetSocketAddress("127.0.0.1", CASSANDRA_PORT);
     }
   }
 
-  @Override
-  protected void after() {
-    try {
-      closer.close();
-    } catch (Exception | Error e) {
-      LOGGER.warn("error closing session " + e.getMessage(), e);
-    } finally {
-      if (container != null) {
-        LOGGER.info("Stopping docker image " + image);
-        container.stop();
-      }
+  @Override public void afterAll(ExtensionContext context) {
+    if (container != null) {
+      LOGGER.info("Stopping docker image " + image);
+      container.stop();
     }
   }
 
-  static final class CassandraContainer extends GenericContainer<CassandraContainer> implements
-      LinkableContainer {
-
+  static final class CassandraContainer extends GenericContainer<CassandraContainer> {
     CassandraContainer(String image) {
       super(image);
     }
 
     @Override protected void waitUntilContainerStarted() {
-      Unreliables.retryUntilSuccess(120, TimeUnit.SECONDS, () -> {
+      Unreliables.retryUntilSuccess(2, TimeUnit.MINUTES, () -> {
         if (!isRunning()) {
           throw new ContainerLaunchException("Container failed to start");
         }
@@ -142,9 +101,10 @@ public class CassandraStorageRule extends ExternalResource {
 
   static Cluster getCluster(InetSocketAddress contactPoint) {
     return Cluster.builder()
-        .addContactPointsWithPorts(contactPoint)
-        .withRetryPolicy(ZipkinRetryPolicy.INSTANCE)
-        .withPoolingOptions(new PoolingOptions().setMaxConnectionsPerHost(HostDistance.LOCAL, 1))
-        .build();
+      .withoutJMXReporting()
+      .addContactPointsWithPorts(contactPoint)
+      .withRetryPolicy(ZipkinRetryPolicy.INSTANCE)
+      .withPoolingOptions(new PoolingOptions().setMaxConnectionsPerHost(HostDistance.LOCAL, 1))
+      .build();
   }
 }

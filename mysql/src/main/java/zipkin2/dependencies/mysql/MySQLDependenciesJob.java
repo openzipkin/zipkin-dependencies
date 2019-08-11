@@ -230,7 +230,7 @@ public final class MySQLDependenciesJob {
       connection.createStatement().execute("select trace_id_high from zipkin_spans limit 1");
       hasTraceIdHigh = true;
     } catch (SQLException e) {
-      if (e.getMessage().indexOf("trace_id_high") == -1) throw new RuntimeException(e);
+      if (!e.getMessage().contains("trace_id_high")) throw new RuntimeException(e);
       log.warn("zipkin_spans.trace_id_high doesn't exist, so 128-bit trace ids are not supported.");
       hasTraceIdHigh = false;
     }

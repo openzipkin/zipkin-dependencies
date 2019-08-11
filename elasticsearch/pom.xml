@@ -14,7 +14,9 @@
     the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -28,13 +30,14 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
+    <okhttp.version>3.14.2</okhttp.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch-spark-20_${scala.binary.version}</artifactId>
-      <version>7.2.0</version>
+      <version>7.3.0</version>
     </dependency>
 
     <dependency>
@@ -45,13 +48,7 @@
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp</artifactId>
-      <version>${okhttp.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>logging-interceptor</artifactId>
+      <artifactId>mockwebserver</artifactId>
       <version>${okhttp.version}</version>
       <scope>test</scope>
     </dependency>
@@ -61,17 +58,17 @@
       <version>${okhttp.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>mockwebserver</artifactId>
-      <version>${okhttp.version}</version>
-      <scope>test</scope>
-    </dependency>
 
     <!-- integration tests -->
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-tests</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.linecorp.armeria</groupId>
+      <artifactId>armeria-testing-junit</artifactId>
+      <version>${armeria.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

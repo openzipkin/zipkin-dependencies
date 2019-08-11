@@ -16,39 +16,44 @@ package zipkin2.storage.mysql.v1;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Span;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;
 import zipkin2.storage.ITDependencies;
 import zipkin2.storage.StorageComponent;
 
-public class ITMySQLDependencies extends ITDependencies {
-  private final MySQLStorage storage;
+import static org.testcontainers.containers.MySQLContainer.MYSQL_PORT;
 
-  public ITMySQLDependencies() {
-    this.storage = MySQLTestGraph.INSTANCE.get();
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class ITMySQLDependencies extends ITDependencies<MySQLStorage> {
+  @RegisterExtension MySQLStorageExtension backend = new MySQLStorageExtension(
+    "openzipkin/zipkin-mysql:2.16.0");
+
+  @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
+    return backend.computeStorageBuilder();
   }
 
-  @Override
-  protected StorageComponent storage() {
-    return storage;
-  }
-
-  @Override
-  public void clear() {
+  @Override public void clear() {
     storage.clear();
   }
 
   /** This processes the job as if it were a batch. For each day we had traces, run the job again. */
-  @Override
-  public void processDependencies(List<Span> spans) throws IOException {
-    storage().spanConsumer().accept(spans).execute();
+  @Override public void processDependencies(List<Span> spans) throws IOException {
+    storage.spanConsumer().accept(spans).execute();
 
     // aggregate links in memory to determine which days they are in
     Set<Long> days = aggregateLinks(spans).keySet();
 
     // process the job for each day of links.
     for (long day : days) {
-      MySQLDependenciesJob.builder().day(day).build().run();
+      MySQLDependenciesJob.builder()
+        .user(backend.container.getUsername())
+        .password(backend.container.getPassword())
+        .port(backend.container.getMappedPort(MYSQL_PORT))
+        .db(backend.container.getDatabaseName())
+        .day(day).build().run();
     }
   }
 }
