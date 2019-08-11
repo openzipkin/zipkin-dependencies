@@ -16,42 +16,44 @@ package zipkin2.elasticsearch;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.TestInfo;
 import zipkin2.Span;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin2.storage.ITDependencies;
 import zipkin2.storage.StorageComponent;
 
-import static zipkin2.elasticsearch.LazyElasticsearchStorage.INDEX;
+abstract class ITElasticsearchDependencies extends ITDependencies<ElasticsearchStorage> {
+  String index;
 
-abstract class ITElasticsearchDependencies extends ITDependencies {
-
-  protected abstract ElasticsearchStorage esStorage();
-
-  @Override
-  protected final StorageComponent storage() {
-    return esStorage();
+  @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
+    index = testInfo.getTestMethod().get().getName().toLowerCase();
+    if (index.length() > 48) index = index.substring(index.length() - 48);
+    return backend().computeStorageBuilder().index(index);
   }
 
-  protected abstract String esNodes();
+  abstract ElasticsearchStorageExtension backend();
 
-  @Override
-  public void clear() throws IOException {
-    esStorage().clear();
+  @Override public void clear() throws IOException {
+    storage.clear();
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override
-  public void processDependencies(List<Span> spans) throws IOException {
-    esStorage().spanConsumer().accept(spans).execute();
+  @Override public void processDependencies(List<Span> spans) throws IOException {
+    storage.spanConsumer().accept(spans).execute();
 
     // aggregate links in memory to determine which days they are in
     Set<Long> days = aggregateLinks(spans).keySet();
 
     // process the job for each day of links.
     for (long day : days) {
-      ElasticsearchDependenciesJob.builder().index(INDEX).hosts(esNodes()).day(day).build().run();
+      ElasticsearchDependenciesJob.builder()
+        .index(index)
+        .hosts(backend().hostPort())
+        .day(day)
+        .build()
+        .run();
     }
   }
 }

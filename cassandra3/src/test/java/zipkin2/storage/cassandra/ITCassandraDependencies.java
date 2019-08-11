@@ -17,53 +17,42 @@ import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Span;
 import zipkin2.dependencies.cassandra3.CassandraDependenciesJob;
 import zipkin2.storage.ITDependencies;
 import zipkin2.storage.StorageComponent;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class ITCassandraDependencies extends ITDependencies {
-  @ClassRule
-  public static CassandraStorageRule cassandraStorageRule =
-      new CassandraStorageRule("openzipkin/zipkin-cassandra:2.15.0");
-
-  @Rule public TestName testName = new TestName();
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
+  @RegisterExtension CassandraStorageExtension backend = new CassandraStorageExtension(
+    "openzipkin/zipkin-cassandra:2.16.0");
 
   String keyspace;
-  CassandraStorage storage;
 
-  @Before
-  @Override
-  public void clear() {
-    keyspace = testName.getMethodName().toLowerCase();
-    if (keyspace.length() > 48) keyspace = keyspace.substring(keyspace.length() - 48);
-    Session session = cassandraStorageRule.session();
-    session.execute("DROP KEYSPACE IF EXISTS " + keyspace);
-    assertThat(session.getCluster().getMetadata().getKeyspace(keyspace)).isNull();
-
-    storage = cassandraStorageRule.computeStorageBuilder().keyspace(keyspace).build();
+  @Override protected boolean initializeStoragePerTest() {
+    return true;
   }
 
-  @Override
-  protected StorageComponent storage() {
-    return storage;
+  @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
+    keyspace = testInfo.getTestMethod().get().getName().toLowerCase();
+    if (keyspace.length() > 48) keyspace = keyspace.substring(keyspace.length() - 48);
+    return backend.computeStorageBuilder().keyspace(keyspace);
+  }
+
+  @Override public void clear() {
+    // Just let the data pile up to prevent warnings and slowness.
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override
-  public void processDependencies(List<Span> spans) throws IOException {
+  @Override protected void processDependencies(List<Span> spans) throws Exception {
     // TODO: this avoids overrunning the cluster with BusyPoolException
     for (List<Span> nextChunk : Lists.partition(spans, 100)) {
       storage.spanConsumer().accept(nextChunk).execute();
@@ -77,15 +66,15 @@ public class ITCassandraDependencies extends ITDependencies {
     // process the job for each day of links.
     for (long day : days) {
       CassandraDependenciesJob.builder()
-          .keyspace(keyspace)
-          .localDc(storage.localDc())
-          .contactPoints(storage.contactPoints())
-          // probably a bad test name.. strictTraceId actually tests strictTraceId = false
-          .strictTraceId(!"getDependencies_strictTraceId".equals(testName.getMethodName()))
-          .internalInTest(true)
-          .day(day)
-          .build()
-          .run();
+        .keyspace(keyspace)
+        .localDc(storage.localDc())
+        .contactPoints(storage.contactPoints())
+        // probably a bad test name.. strictTraceId actually tests strictTraceId = false
+        .strictTraceId(!"getdependencies_stricttraceid".equals(keyspace))
+        .internalInTest(true)
+        .day(day)
+        .build()
+        .run();
     }
   }
 

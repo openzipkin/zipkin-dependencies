@@ -13,21 +13,16 @@
  */
 package zipkin2.elasticsearch;
 
-import org.junit.ClassRule;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class ITElasticsearchV6Dependencies extends ITElasticsearchDependencies {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class ITElasticsearchV6Dependencies extends ITElasticsearchDependencies {
 
-  @ClassRule
-  public static LazyElasticsearchStorage storage =
-      new LazyElasticsearchStorage("openzipkin/zipkin-elasticsearch6:2.15.0");
+  @RegisterExtension ElasticsearchStorageExtension backend = new ElasticsearchStorageExtension(
+    "openzipkin/zipkin-elasticsearch6:2.16.0");
 
-  @Override
-  protected ElasticsearchStorage esStorage() {
-    return storage.get();
-  }
-
-  @Override
-  protected String esNodes() {
-    return storage.esNodes();
+  @Override ElasticsearchStorageExtension backend() {
+    return backend;
   }
 }
