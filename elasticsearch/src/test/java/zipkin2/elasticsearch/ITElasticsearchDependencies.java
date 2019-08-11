@@ -26,7 +26,7 @@ abstract class ITElasticsearchDependencies extends ITDependencies<ElasticsearchS
   String index;
 
   @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
-    index = testInfo.getTestMethod().get().getName().toLowerCase();
+    index = testInfo.getTestClass().get().getName().toLowerCase();
     if (index.length() > 48) index = index.substring(index.length() - 48);
     return backend().computeStorageBuilder().index(index);
   }
