@@ -23,7 +23,6 @@ before_install:
   # setup https authentication credentials, used by ./mvnw release:prepare
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://$GH_TOKEN:@github.com" > .git/credentials
-  - curl -sSL https://raw.githubusercontent.com/openzipkin/zipkin/master/zipkin-storage/mysql-v1/src/main/resources/mysql.sql | mysql -uroot -Dzipkin
   # Required for Elasticsearch 5 (See https://github.com/docker-library/docs/tree/master/elasticsearch#host-setup)
   - sudo sysctl -w vm.max_map_count=262144
 
