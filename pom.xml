@@ -50,6 +50,7 @@
     <junit.version>4.12</junit.version>
     <assertj.version>3.13.2</assertj.version>
     <jackson.version>2.9.9</jackson.version>
+    <jackson-databind.version>2.9.9.3</jackson-databind.version>
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.7.2</cassandra-driver-core.version>
     <spark-cassandra-connector.version>2.4.1</spark-cassandra-connector.version>
@@ -179,10 +180,11 @@
         <artifactId>jackson-core</artifactId>
         <version>${jackson.version}</version>
       </dependency>
+      <!-- Forcibly bump Jackson Databind version to avoid CVE-2019-14379 -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson-databind.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
