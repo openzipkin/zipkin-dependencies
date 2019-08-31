@@ -37,4 +37,4 @@ COPY docker/periodic/ /etc/periodic/
 RUN apk add --no-cache coreutils
 
 # Default entrypoint is to run the dependencies job on-demand, processing today's spans.
-CMD java ${JAVA_OPTS} -jar zipkin-dependencies.jar
+CMD java ${JAVA_OPTS} -jar zipkin-dependencies-*.jar
