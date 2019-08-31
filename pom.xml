@@ -334,7 +334,7 @@
             <exclude>**/nohup.out</exclude>
             <exclude>src/test/resources/**</exclude>
             <exclude>src/main/resources/**</exclude>
-            <exclude>docker/periodic</exclude>
+            <exclude>docker/periodic/**</exclude>
           </excludes>
           <strictCheck>true</strictCheck>
         </configuration>
