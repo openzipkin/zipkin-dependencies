@@ -104,6 +104,12 @@ public final class CassandraDependenciesJob {
       return this;
     }
 
+    /** Extending more configuration of spark. */
+    public Builder conf(Map<String, String> conf) {
+      sparkProperties.putAll(conf);
+      return this;
+    }
+
     /** Ensures that logging is setup. Particularly important when in cluster mode. */
     public Builder logInitializer(Runnable logInitializer) {
       this.logInitializer = checkNotNull(logInitializer, "logInitializer");
@@ -160,6 +166,7 @@ public final class CassandraDependenciesJob {
     if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
+      log.info("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
     }
     this.logInitializer = builder.logInitializer;
   }
