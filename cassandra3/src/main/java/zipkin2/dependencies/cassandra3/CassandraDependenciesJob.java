@@ -166,7 +166,7 @@ public final class CassandraDependenciesJob {
     if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
-      log.info("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
+      log.debug("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
     }
     this.logInitializer = builder.logInitializer;
   }

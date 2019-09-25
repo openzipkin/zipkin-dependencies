@@ -19,7 +19,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.TimeZone;
 
 import zipkin2.dependencies.cassandra.CassandraDependenciesJob;
@@ -42,7 +42,7 @@ public final class ZipkinDependenciesJob {
     logInitializer.run(); // Ensures local log commands emit
 
 
-    final HashMap<String, String> sparkConf = new HashMap<>();
+    final LinkedHashMap<String, String> sparkConf = new LinkedHashMap<>();
     String sparkConfRaw = System.getenv("SPARK_CONF");
     if (sparkConfRaw != null && !sparkConfRaw.isEmpty() && sparkConfRaw.indexOf("=") > -1) {
       for (String pair : sparkConfRaw.split(",")) {

@@ -161,7 +161,7 @@ public final class ElasticsearchDependenciesJob {
     if (builder.hosts.contains("https")) conf.set("es.net.ssl", "true");
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
-      log.info("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
+      log.debug("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
     }
     this.logInitializer = builder.logInitializer;
   }
