@@ -42,24 +42,26 @@
 
     <!-- can't switch to 2.12 until spark-cassandra-connector updates -->
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.3</spark.version>
+    <spark.version>2.4.4</spark.version>
 
-    <zipkin.version>2.16.0</zipkin.version>
-    <armeria.version>0.90.0</armeria.version>
+    <zipkin.version>2.18.0</zipkin.version>
+    <armeria.version>0.94.0</armeria.version>
 
     <junit.version>4.12</junit.version>
+    <junit.jupiter.version>5.5.2</junit.jupiter.version>
+
     <assertj.version>3.13.2</assertj.version>
-    <jackson.version>2.9.9</jackson.version>
+    <jackson.version>2.9.9.20190807</jackson.version>
     <!-- connector uses an old version of the driver -->
     <cassandra-driver-core.version>3.7.2</cassandra-driver-core.version>
     <spark-cassandra-connector.version>2.4.1</spark-cassandra-connector.version>
-    <testcontainers.version>1.12.0</testcontainers.version>
+    <testcontainers.version>1.12.2</testcontainers.version>
 
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
     <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
     <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
     <maven-source-plugin.version>3.1.0</maven-source-plugin.version>
-    <maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
+    <maven-javadoc-plugin.version>3.1.1</maven-javadoc-plugin.version>
     <license-maven-plugin.version>3.0</license-maven-plugin.version>
     <maven-jar-plugin.version>3.1.2</maven-jar-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
@@ -172,32 +174,13 @@
         <artifactId>testcontainers</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
-
       <!-- Forcibly bump Jackson version to avoid CVE-2017-4995 -->
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
         <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.module</groupId>
-        <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.module</groupId>
-        <artifactId>jackson-module-paranamer</artifactId>
-        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -224,7 +207,35 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
-      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
+    </dependency>
+
+    <!--
+    Current versions of JUnit5 provide the above junit-jupiter artifact for convenience but we may
+    still have transitive dependencies on these older artifacts and have to make sure they're all
+    using the same version.
+    -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.jupiter.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
     </dependency>
 
     <dependency>
@@ -244,7 +255,7 @@
           <artifactId>maven</artifactId>
           <version>0.7.6</version>
           <configuration>
-            <maven>3.6.1</maven>
+            <maven>3.6.2</maven>
           </configuration>
         </plugin>
 
