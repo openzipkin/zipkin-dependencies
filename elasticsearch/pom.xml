@@ -28,14 +28,14 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <okhttp.version>3.14.2</okhttp.version>
+    <okhttp.version>4.2.2</okhttp.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch-spark-20_${scala.binary.version}</artifactId>
-      <version>7.3.0</version>
+      <version>7.4.0</version>
     </dependency>
 
     <dependency>
