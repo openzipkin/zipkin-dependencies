@@ -53,6 +53,7 @@ The following variables are common to all storage layers:
 
     * `SPARK_MASTER`: Spark master to submit the job to; Defaults to `local[*]`
     * `ZIPKIN_LOG_LEVEL`: Log level for zipkin-related status; Defaults to INFO (use DEBUG for details)
+    * `SPARK_CONF`: Extend more spark configuration with value in properties format and separated with comma. Such as `spark.executor.heartbeatInterval=600000,spark.network.timeout=600000`
 
 ### Cassandra
 Cassandra is used when `STORAGE_TYPE=cassandra` or `STORAGE_TYPE=cassandra3`.

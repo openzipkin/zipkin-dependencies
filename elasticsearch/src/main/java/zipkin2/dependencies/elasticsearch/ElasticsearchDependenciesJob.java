@@ -120,6 +120,12 @@ public final class ElasticsearchDependenciesJob {
       return this;
     }
 
+    /** Extending more configuration of spark. */
+    public Builder conf(Map<String, String> conf) {
+      sparkProperties.putAll(conf);
+      return this;
+    }
+
     /** Ensures that logging is setup. Particularly important when in cluster mode. */
     public Builder logInitializer(Runnable logInitializer) {
       this.logInitializer = checkNotNull(logInitializer, "logInitializer");
@@ -155,6 +161,7 @@ public final class ElasticsearchDependenciesJob {
     if (builder.hosts.contains("https")) conf.set("es.net.ssl", "true");
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
+      log.debug("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
     }
     this.logInitializer = builder.logInitializer;
   }

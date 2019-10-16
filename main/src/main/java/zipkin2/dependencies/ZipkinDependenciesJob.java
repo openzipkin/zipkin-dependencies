@@ -19,7 +19,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.LinkedHashMap;
 import java.util.TimeZone;
+
 import zipkin2.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;
@@ -39,38 +41,54 @@ public final class ZipkinDependenciesJob {
     Runnable logInitializer = LogInitializer.create(zipkinLogLevel);
     logInitializer.run(); // Ensures local log commands emit
 
+
+    final LinkedHashMap<String, String> sparkConf = new LinkedHashMap<>();
+    String sparkConfRaw = System.getenv("SPARK_CONF");
+    if (sparkConfRaw != null && !sparkConfRaw.isEmpty() && sparkConfRaw.indexOf("=") > -1) {
+      for (String pair : sparkConfRaw.split(",")) {
+        final String[] splits = pair.split("=");
+        if (splits.length == 2) {
+          sparkConf.put(splits[0], splits[1]);
+        }
+      }
+    }
+
     switch (storageType) {
       case "cassandra":
         CassandraDependenciesJob.builder()
-            .logInitializer(logInitializer)
-            .jars(jarPath)
-            .day(day)
-            .build()
-            .run();
+          .logInitializer(logInitializer)
+          .jars(jarPath)
+          .day(day)
+          .conf(sparkConf)
+          .build()
+          .run();
         break;
       case "cassandra3":
         zipkin2.dependencies.cassandra3.CassandraDependenciesJob.builder()
-            .logInitializer(logInitializer)
-            .jars(jarPath)
-            .day(day)
-            .build()
-            .run();
+          .logInitializer(logInitializer)
+          .jars(jarPath)
+          .day(day)
+          .conf(sparkConf)
+          .build()
+          .run();
         break;
       case "mysql":
         MySQLDependenciesJob.builder()
-            .logInitializer(logInitializer)
-            .jars(jarPath)
-            .day(day)
-            .build()
-            .run();
+          .logInitializer(logInitializer)
+          .jars(jarPath)
+          .day(day)
+          .conf(sparkConf)
+          .build()
+          .run();
         break;
       case "elasticsearch":
         ElasticsearchDependenciesJob.builder()
-            .logInitializer(logInitializer)
-            .jars(jarPath)
-            .day(day)
-            .build()
-            .run();
+          .logInitializer(logInitializer)
+          .jars(jarPath)
+          .day(day)
+          .conf(sparkConf)
+          .build()
+          .run();
         break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType);
