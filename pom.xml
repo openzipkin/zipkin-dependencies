@@ -174,7 +174,7 @@
         <artifactId>testcontainers</artifactId>
         <version>${testcontainers.version}</version>
       </dependency>
-      <!-- Forcibly bump Jackson version to avoid CVE-2017-4995 -->
+
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>

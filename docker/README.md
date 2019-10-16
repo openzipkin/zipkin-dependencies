@@ -4,7 +4,7 @@ To build a zipkin-dependencies Docker image, in the top level of the repository,
 like
 
 ```bash
-$ docker build -t openzipkin/zipkin-dependencies:test
+$ docker build -t openzipkin/zipkin-dependencies:test -f docker/Dockerfile .
 ```
 
 ### Dockerfile migration
