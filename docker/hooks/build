@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -v
+
+# This hook is called with the current directory set to the same as the Dockerfile, so we go back
+# to top level.
+cd ..
+
+echo "Building images for $SOURCE_BRANCH"
+
+docker build --build-arg source_branch="$SOURCE_BRANCH" -f "$DOCKERFILE_PATH" -t "$IMAGE_NAME" .
+
+IFS=',' read -ra TAGS <<< "$DOCKER_TAG"
+for tag in ${TAGS[@]}; do
+  docker tag "$IMAGE_NAME" "${DOCKER_REPO}:${tag}"
+done
