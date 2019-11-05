@@ -104,6 +104,12 @@ safe_checkout_master() {
   fi
 }
 
+run_docker_hub_build() {
+  project_version="$(print_project_version)"
+  echo "Starting Docker Hub build for ${project_version}"
+  curl -X POST -H "Content-Type: application/json" -d "{\"build\": \"true\", \"source_type\": \"Tag\", \"source_name\": \"${project_version}\"}" "https://cloud.docker.com/api/build/v1/source/${DOCKER_HUB_SERVICE_UUID}/trigger/${DOCKER_HUB_TRIGGER_UUID}/call/"
+}
+
 #----------------------
 # MAIN
 #----------------------
@@ -132,6 +138,7 @@ elif is_travis_branch_master; then
 
   # If the deployment succeeded, sync it to Maven Central. Note: this needs to be done once per project, not module, hence -N
   if is_release_commit; then
+    run_docker_hub_build
     ./mvnw --batch-mode -s ./.settings.xml -nsu -N io.zipkin.centralsync-maven-plugin:centralsync-maven-plugin:sync
   fi
 
