@@ -20,6 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,9 +48,7 @@ public final class MySQLDependenciesJob {
   }
 
   public static final class Builder {
-    Map<String, String> sparkProperties = ImmutableMap.of(
-        "spark.ui.enabled", "false"
-    );
+    Map<String, String> sparkProperties = new LinkedHashMap<>();
 
     String db = getEnv("MYSQL_DB", "zipkin");
     String host = getEnv("MYSQL_HOST", "localhost");
@@ -142,6 +141,7 @@ public final class MySQLDependenciesJob {
     }
 
     Builder() {
+      sparkProperties.put("spark.ui.enabled", "false");
     }
   }
 
