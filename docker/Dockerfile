@@ -26,7 +26,7 @@ ENV JAVA_OPTS -Djava.security.egd=file:/dev/./urandom
 
 WORKDIR /zipkin-dependencies
 
-COPY --from=0 /code/main/target/zipkin-dependencies-*.jar /zipkin-dependencies/
+COPY --from=0 /code/main/target/zipkin-dependencies-*.jar /zipkin-dependencies/zipkin-dependencies.jar
 
 # Enable cron by running with entrypoint: crond -f -d 8
 # * Bundling this configuration is a convenience, noting not everyone will use cron
@@ -37,4 +37,4 @@ COPY docker/periodic/ /etc/periodic/
 RUN apk add --no-cache coreutils
 
 # Default entrypoint is to run the dependencies job on-demand, processing today's spans.
-CMD java ${JAVA_OPTS} -jar zipkin-dependencies-*.jar
+CMD java ${JAVA_OPTS} -jar zipkin-dependencies.jar
