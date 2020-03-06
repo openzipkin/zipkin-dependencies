@@ -31,7 +31,7 @@ import zipkin2.storage.StorageComponent;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
   @RegisterExtension CassandraStorageExtension backend = new CassandraStorageExtension(
-    "openzipkin/zipkin-cassandra:2.20.0");
+    "openzipkin/zipkin-cassandra:2.20.1");
 
   String keyspace;
 

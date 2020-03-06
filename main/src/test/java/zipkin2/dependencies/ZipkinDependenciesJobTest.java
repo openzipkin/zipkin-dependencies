@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -15,16 +15,11 @@ package zipkin2.dependencies;
 
 import java.util.Date;
 import java.util.TimeZone;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ZipkinDependenciesJobTest {
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void parseDate() {
     // Date assertions don't assume UTC
@@ -41,10 +36,8 @@ public class ZipkinDependenciesJobTest {
         .hasMillisecond(0);
   }
 
-  @Test
+  @Test(expected = IllegalArgumentException.class)
   public void parseDate_malformed() {
-    thrown.expect(IllegalArgumentException.class);
-
     ZipkinDependenciesJob.parseDay("2013/05/15");
   }
 }

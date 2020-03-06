@@ -29,7 +29,7 @@ import static org.testcontainers.containers.MySQLContainer.MYSQL_PORT;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITMySQLDependencies extends ITDependencies<MySQLStorage> {
   @RegisterExtension MySQLStorageExtension backend = new MySQLStorageExtension(
-    "openzipkin/zipkin-mysql:2.20.0");
+    "openzipkin/zipkin-mysql:2.20.1");
 
   @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
     return backend.computeStorageBuilder();

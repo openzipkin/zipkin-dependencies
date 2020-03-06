@@ -44,8 +44,8 @@
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.4.5</spark.version>
 
-    <zipkin.version>2.20.0</zipkin.version>
-    <armeria.version>0.98.3</armeria.version>
+    <zipkin.version>2.20.1</zipkin.version>
+    <armeria.version>0.98.4</armeria.version>
 
     <junit.version>4.13</junit.version>
     <junit-jupiter.version>5.6.0</junit-jupiter.version>
@@ -330,9 +330,12 @@
           <mapping>
             <!-- Don't use javadoc style as this makes code formatters break it by adding tags! -->
             <java>SLASHSTAR_STYLE</java>
+            <Dockerfile.release>SCRIPT_STYLE</Dockerfile.release>
+            <build>SCRIPT_STYLE</build>
           </mapping>
           <excludes>
             <exclude>.travis.yml</exclude>
+            <exclude>**/*.dockerignore</exclude>
             <exclude>.editorconfig</exclude>
             <exclude>.gitattributes</exclude>
             <exclude>.gitignore</exclude>
