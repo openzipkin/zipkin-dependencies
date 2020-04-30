@@ -5,7 +5,7 @@ dist: trusty
 
 language: java
 
-# Spark doesn't support Java 9+, yet https://issues.apache.org/jira/browse/SPARK-24421
+# Due to https://issues.apache.org/jira/browse/SPARK-26134, only 1.8 or 9 currently work. 
 jdk:
   - oraclejdk8
 
