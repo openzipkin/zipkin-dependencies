@@ -167,6 +167,10 @@ is important when figuring out why a trace didn't result in a link.
 If you set `SPARK_MASTER` to something besides local, remember that log
 output also ends up in `stderr` of the workers.
 
+By default, this job uses the value of system property `java.io.tmpdir` as location to store temporary data.
+If you're getting `java.io.IOException: No space left on device` while processing large sets
+of trace data, you can specify a different location that has enough space available using `-Djava.io.tmpdir=/other/location`.
+
 ## Artifacts
 All artifacts publish to the group ID "io.zipkin.dependencies". We use a common
 release version for all components.
