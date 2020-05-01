@@ -13,10 +13,10 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 
 ## Versions
 
-`STORAGE_TYPE=cassandra3` - requires Cassandra 3.11.3+; tested against the latest patch of 3.11
-`STORAGE_TYPE=cassandra` - requires Cassandra 2.2+; tested against the latest patch of 3.11
-`STORAGE_TYPE=mysql` - requires MySQL 5.6+; tested against MySQL 5.6
-`STORAGE_TYPE=elasticsearch` - requires Elasticsearch 5+; tested against last minor release of 6.x and 7.x
+* `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 3.11
+* `STORAGE_TYPE=cassandra` : requires Cassandra 2.2+; tested against the latest patch of 3.11
+* `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 5.6
+* `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 5+; tested against last minor release of 6.x and 7.x
 
 ## Quick-start
 
@@ -47,8 +47,7 @@ $ STORAGE_TYPE=cassandra3 java -jar zipkin-dependencies.jar `date -u -d '1 day a
 ```
 
 ## Environment Variables
-`zipkin-dependencies` applies configuration parameters through environment variables. At the
-moment, separate binaries are made for each storage layer.
+`zipkin-dependencies` applies configuration parameters through environment variables. 
 
 The following variables are common to all storage layers:
 
