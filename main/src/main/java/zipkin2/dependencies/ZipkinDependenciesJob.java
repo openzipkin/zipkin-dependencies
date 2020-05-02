@@ -45,8 +45,8 @@ public final class ZipkinDependenciesJob {
     final LinkedHashMap<String, String> sparkConf = new LinkedHashMap<>();
     String sparkConfRaw = System.getenv("SPARK_CONF");
     if (sparkConfRaw != null && !sparkConfRaw.isEmpty() && sparkConfRaw.indexOf("=") > -1) {
-      for (String pair : sparkConfRaw.split(",")) {
-        final String[] splits = pair.split("=");
+      for (String pair : sparkConfRaw.split(",", -1)) {
+        final String[] splits = pair.split("=", -1);
         if (splits.length == 2) {
           sparkConf.put(splits[0], splits[1]);
         }

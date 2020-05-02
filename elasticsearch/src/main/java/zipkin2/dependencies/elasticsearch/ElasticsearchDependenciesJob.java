@@ -234,7 +234,7 @@ public final class ElasticsearchDependenciesJob {
 
   static String parseHosts(String hosts) {
     StringBuilder to = new StringBuilder();
-    String[] hostParts = hosts.split(",");
+    String[] hostParts = hosts.split(",", -1);
     for (int i = 0; i < hostParts.length; i++) {
       String host = hostParts[i];
       if (host.startsWith("http")) {
