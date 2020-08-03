@@ -18,7 +18,7 @@ WORKDIR /code
 COPY . /code
 RUN mvn -B --no-transfer-progress package -DskipTests=true -pl main -am
 
-FROM openzipkin/jre-full:1.8.0_212
+FROM openzipkin/jre-full:1.8.0_252
 MAINTAINER OpenZipkin "https://zipkin.io/"
 
 # Use to set heap, trust store or other system properties.
