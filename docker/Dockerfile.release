@@ -50,7 +50,7 @@ RUN apk add --no-cache coreutils
 
 WORKDIR /zipkin-dependencies
 
-COPY --from=built /zipkin-dependencies/* /zipkin-dependencies/
+COPY --from=built /zipkin-dependencies/* /zipkin-dependencies/zipkin-dependencies.jar
 
 # Enable cron by running with entrypoint: crond -f -d 8
 # * Bundling this configuration is a convenience, noting not everyone will use cron
@@ -58,4 +58,4 @@ COPY --from=built /zipkin-dependencies/* /zipkin-dependencies/
 COPY docker/periodic/ /etc/periodic/
 
 # Default entrypoint is to run the dependencies job on-demand, processing today's spans.
-CMD java ${JAVA_OPTS} -jar zipkin-dependencies-*.jar
+CMD java ${JAVA_OPTS} -jar zipkin-dependencies.jar
