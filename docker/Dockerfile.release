@@ -38,7 +38,7 @@ RUN export version=$(echo "${source_branch}" | cut -d '-' -f 2) && \
   cp ~/.m2/repository/io/zipkin/dependencies/zipkin-dependencies/${version}/zipkin-dependencies-${version}.jar .
 
 FROM openzipkin/jre-full:1.8.0_252
-MAINTAINER OpenZipkin "http://zipkin.io/"
+MAINTAINER OpenZipkin "https://zipkin.io/"
 
 ARG STORAGE_TYPE
 
