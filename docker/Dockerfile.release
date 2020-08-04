@@ -50,7 +50,8 @@ RUN apk add --no-cache coreutils
 
 WORKDIR /zipkin-dependencies
 
-COPY --from=built /zipkin-dependencies/* /zipkin-dependencies/zipkin-dependencies.jar
+# remove the version as cron expects the filename without one
+COPY --from=built /zipkin-dependencies/zipkin-dependencies-*.jar /zipkin-dependencies/zipkin-dependencies.jar
 
 # Enable cron by running with entrypoint: crond -f -d 8
 # * Bundling this configuration is a convenience, noting not everyone will use cron
