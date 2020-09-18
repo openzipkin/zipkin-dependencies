@@ -1,6 +1,7 @@
 **/.*
 !.dockerignore
 !.git
+!.mvn
 !docker/zipkin/**
 !**/.eslintrc
 
@@ -15,4 +16,3 @@
 **/Dockerfile
 docker/hooks/**
 travis/**
-mvnw*
