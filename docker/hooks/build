@@ -22,7 +22,7 @@ cd ..
 
 echo "Building images for $SOURCE_BRANCH"
 
-docker build --build-arg source_branch="$SOURCE_BRANCH" -f "$DOCKERFILE_PATH" -t "$IMAGE_NAME" .
+docker build --build-arg RELEASE_VERSION="$(echo "${SOURCE_BRANCH}" | cut -d '-' -f 2)" -f "$DOCKERFILE_PATH" -t "$IMAGE_NAME" .
 
 IFS=',' read -ra TAGS <<< "$DOCKER_TAG"
 for tag in ${TAGS[@]}; do

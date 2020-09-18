@@ -38,35 +38,43 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.3.4</errorprone.version>
+    <errorprone.version>2.4.0</errorprone.version>
+    <javac.version>9+181-r4173-1</javac.version>
 
     <!-- can't switch to 2.12 until elasticsearch-spark updates -->
     <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.5</spark.version>
+    <spark.version>2.4.7</spark.version>
 
-    <zipkin.version>2.20.1</zipkin.version>
-    <armeria.version>0.98.4</armeria.version>
+    <zipkin.version>2.21.7</zipkin.version>
+    <armeria.version>0.99.9</armeria.version>
+    <jackson.version>2.11.2</jackson.version>
+
+    <!-- Can't upgrade to connector 2.5 until Zipkin upgrades to DataStax driver v4 -->
+    <spark-cassandra-connector.version>2.4.3</spark-cassandra-connector.version>
+    <!-- connector uses an old version of the driver -->
+    <cassandra-driver-core.version>3.10.2</cassandra-driver-core.version>
 
     <junit.version>4.13</junit.version>
-    <junit-jupiter.version>5.6.0</junit-jupiter.version>
+    <junit-jupiter.version>5.7.0</junit-jupiter.version>
+    <assertj.version>3.17.2</assertj.version>
+    <testcontainers.version>1.14.3</testcontainers.version>
 
-    <assertj.version>3.15.0</assertj.version>
-    <jackson.version>2.10.3</jackson.version>
-    <!-- connector uses an old version of the driver -->
-    <cassandra-driver-core.version>3.7.2</cassandra-driver-core.version>
-    <spark-cassandra-connector.version>2.4.3</spark-cassandra-connector.version>
-    <testcontainers.version>1.13.0</testcontainers.version>
-
+    <animal-sniffer-maven-plugin.version>1.19</animal-sniffer-maven-plugin.version>
+    <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
+    <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
+    <maven-bundle-plugin.version>5.1.1</maven-bundle-plugin.version>
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-    <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
     <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
-    <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-    <maven-javadoc-plugin.version>3.1.1</maven-javadoc-plugin.version>
-    <license-maven-plugin.version>3.0</license-maven-plugin.version>
+    <maven-enforcer-plugin.version>3.0.0-M3</maven-enforcer-plugin.version>
+    <!-- 3.0.0-M5 breaks the build: https://github.com/openzipkin/zipkin/issues/3159 -->
+    <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
+    <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
+    <maven-invoker-plugin.version>3.2.1</maven-invoker-plugin.version>
+    <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
     <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
     <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
-    <maven-shade-plugin.version>3.2.2</maven-shade-plugin.version>
-    <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
+    <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
+    <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
   </properties>
 
   <name>Zipkin Dependencies (Parent)</name>
@@ -400,7 +408,7 @@
             </goals>
             <configuration>
               <rules>
-                <!-- Spark doesn't support Java 9+, until v3.0
+                <!-- Spark doesn't support Java 9+ until v3.0
                      https://issues.apache.org/jira/browse/SPARK-24421 -->
                 <requireJavaVersion>
                   <version>[1.8,9)</version>
@@ -433,26 +441,24 @@
                   <goal>compile</goal>
                 </goals>
                 <configuration>
-                  <compilerId>javac-with-errorprone</compilerId>
-                  <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                  <fork>true</fork>
                   <compilerArgs>
                     <arg>${errorprone.args}</arg>
+                    <arg>-XDcompilePolicy=simple</arg>
+                    <arg>-Xplugin:ErrorProne</arg>
+                    <!-- using github.com/google/error-prone-javac is required when running on JDK 8 -->
+                    <arg>-J-Xbootclasspath/p:${settings.localRepository}/com/google/errorprone/javac/${javac.version}/javac-${javac.version}.jar</arg>
                   </compilerArgs>
+                  <annotationProcessorPaths>
+                    <path>
+                      <groupId>com.google.errorprone</groupId>
+                      <artifactId>error_prone_core</artifactId>
+                      <version>${errorprone.version}</version>
+                    </path>
+                  </annotationProcessorPaths>
                 </configuration>
               </execution>
             </executions>
-            <dependencies>
-              <dependency>
-                <groupId>org.codehaus.plexus</groupId>
-                <artifactId>plexus-compiler-javac-errorprone</artifactId>
-                <version>2.8.6</version>
-              </dependency>
-              <dependency>
-                <groupId>com.google.errorprone</groupId>
-                <artifactId>error_prone_core</artifactId>
-                <version>${errorprone.version}</version>
-              </dependency>
-            </dependencies>
           </plugin>
         </plugins>
       </build>

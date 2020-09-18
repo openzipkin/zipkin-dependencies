@@ -12,29 +12,51 @@
 # the License.
 #
 
-FROM maven:3-jdk-8-slim
+# We copy files from the context into a scratch container first to avoid a problem where docker and
+# docker-compose don't share layer hashes https://github.com/docker/compose/issues/883 normally.
+# COPY --from= works around the issue.
+FROM scratch as scratch
+
+COPY . /code/
+
+#####
+# zipkin-builder - An image that caches build repositories (.m2, .npm) to speed up subsequent builds.
+#####
+
+FROM openzipkin/zipkin-builder as built
+
+COPY --from=scratch /code /code
 
 WORKDIR /code
-COPY . /code
-RUN mvn -B --no-transfer-progress package -DskipTests=true -pl main -am
 
-FROM openzipkin/jre-full:1.8.0_252
+# Same command as we suggest in README.md: disables JDK enforcement only needed in tests
+RUN ./mvnw -q --batch-mode -DskipTests -Denforcer.fail=false --also-make -pl main package
+
+# Until we can upgrade to Spark 3, we are pinned to JRE 1.8
+FROM openzipkin/jre-full:1.8.0_252-b09
 MAINTAINER OpenZipkin "https://zipkin.io/"
 
-# Use to set heap, trust store or other system properties.
-ENV JAVA_OPTS -Djava.security.egd=file:/dev/./urandom
-
-WORKDIR /zipkin-dependencies
-
-COPY --from=0 /code/main/target/zipkin-dependencies-*.jar /zipkin-dependencies/zipkin-dependencies.jar
-
+# Adds coreutils to allow date formatting of 'yesterday'
+RUN apk add --no-cache coreutils
 # Enable cron by running with entrypoint: crond -f -d 8
 # * Bundling this configuration is a convenience, noting not everyone will use cron
 # * Cron invokes this job hourly to process today's spans and daily to process yesterday's
 COPY docker/periodic/ /etc/periodic/
 
-# Adds coreutils to allow date formatting of 'yesterday'
-RUN apk add --no-cache coreutils
+# All content including binaries and logs write under WORKDIR
+ARG USER=zipkin-dependencies
+WORKDIR /${USER}
+
+# Ensure the process doesn't run as root
+RUN adduser -g '' -h ${PWD} -D ${USER}
+USER ${USER}
+
+# Copy binaries and config we installed earlier
+COPY --from=built --chown=${USER} /code/main/target/zipkin-dependencies-*.jar ./zipkin-dependencies.jar
+
+ENV STORAGE_TYPE=""
+# Use to set heap, trust store or other system properties.
+ENV JAVA_OPTS="-Xms512m -Xmx512m -XX:+ExitOnOutOfMemoryError"
 
 # Default entrypoint is to run the dependencies job on-demand, processing today's spans.
-CMD java ${JAVA_OPTS} -jar zipkin-dependencies.jar
+CMD java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -jar zipkin-dependencies.jar
