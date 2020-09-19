@@ -32,9 +32,14 @@ In docker, the following can also be set:
 
 ## Building
 
-To build a zipkin-dependencies Docker image, in the top level of the repository, run something
-like
+To build a zipkin-dependencies Docker image from source, in the top level of the repository, run:
 
 ```bash
 $ docker build -t openzipkin/zipkin-dependencies:test -f docker/Dockerfile .
+```
+
+To build from a published version, run this instead:
+
+```bash
+$ docker build --build-arg RELEASE_VERSION=2.4.3 -t openzipkin/zipkin-dependencies:test -f docker/Dockerfile .
 ```
