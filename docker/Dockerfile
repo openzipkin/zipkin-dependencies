@@ -23,14 +23,17 @@ COPY . /code/
 # zipkin-builder - An image that caches build repositories (.m2, .npm) to speed up subsequent builds.
 #####
 
-FROM openzipkin/zipkin-builder as built
+FROM openzipkin/zipkin-builder as install
 
+WORKDIR /install
+
+# Conditions aren't supported in Dockerfile instructions, so we copy source even if it isn't used.
 COPY --from=scratch /code /code
 
-WORKDIR /code
-
-# Same command as we suggest in README.md: disables JDK enforcement only needed in tests
-RUN ./mvnw -q --batch-mode -DskipTests -Denforcer.fail=false --also-make -pl main package
+# This will either be "master" or a real version ex. "2.4.5"
+ARG RELEASE_VERSION=master
+COPY docker/install.sh /tmp/
+RUN /tmp/install.sh && rm /tmp/install.sh
 
 # Until we can upgrade to Spark 3, we are pinned to JRE 1.8
 FROM openzipkin/jre-full:1.8.0_252-b09
@@ -52,7 +55,7 @@ RUN adduser -g '' -h ${PWD} -D ${USER}
 USER ${USER}
 
 # Copy binaries and config we installed earlier
-COPY --from=built --chown=${USER} /code/main/target/zipkin-dependencies-*.jar ./zipkin-dependencies.jar
+COPY --from=install --chown=${USER} /install .
 
 ENV STORAGE_TYPE=""
 # Use to set heap, trust store or other system properties.
