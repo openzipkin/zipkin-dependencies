@@ -12,7 +12,6 @@
 # the License.
 #
 
-
 # We copy files from the context into a scratch container first to avoid a problem where docker and
 # docker-compose don't share layer hashes https://github.com/docker/compose/issues/883 normally.
 # COPY --from= works around the issue.
