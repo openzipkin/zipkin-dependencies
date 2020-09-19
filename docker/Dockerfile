@@ -35,6 +35,7 @@ ARG RELEASE_VERSION=master
 COPY docker/install.sh /tmp/
 RUN /tmp/install.sh && rm /tmp/install.sh
 
+# Until we can upgrade to Spark 3, we are pinned to JRE 1.8
 FROM openzipkin/jre-full:1.8.0_252-b09
 MAINTAINER OpenZipkin "https://zipkin.io/"
 
