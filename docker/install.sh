@@ -20,7 +20,7 @@ if [ "$RELEASE_VERSION" = "master" ]
 then
   echo "*** Building from source..."
   # Uses the same command as we suggest in README.md: disables JDK enforcement only needed in tests
-  (cd /code; ./mvnw -q --batch-mode -DskipTests -Denforcer.fail=false --also-make -pl main package)
+  (cd /code; ./mvnw -T1C -q --batch-mode -DskipTests -Denforcer.fail=false --also-make -pl main package)
   cp /code/main/target/zipkin-dependencies*.jar zipkin-dependencies.jar
 else
   artifact=io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright 2016-2020 The OpenZipkin Authors
 #
@@ -13,14 +13,15 @@
 # the License.
 #
 
-
-set -v
+# This script relies on variables defined by Docker Hub Autobuild
+# https://docs.docker.com/docker-hub/builds/advanced/#environment-variables-for-building-and-testing
+set -eux
 
 # This hook is called with the current directory set to the same as the Dockerfile, so we go back
 # to top level.
 cd ..
 
-echo "Building images for $SOURCE_BRANCH"
+echo "Building images for ${SOURCE_BRANCH}"
 
 # $SOURCE_BRANCH is something like
 #
@@ -31,9 +32,8 @@ echo "Building images for $SOURCE_BRANCH"
 #                  '1.0.1' and Dockerfiles will use it to fetch the correct version of Zipkin.
 RELEASE_VERSION="$(echo "${SOURCE_BRANCH}" | cut -d '-' -f 2)"
 
-docker build --build-arg RELEASE_VERSION="$RELEASE_VERSION" -f "$DOCKERFILE_PATH" -t "$IMAGE_NAME" .
+docker build --build-arg RELEASE_VERSION="${RELEASE_VERSION}" -f "${DOCKERFILE_PATH}" -t "${IMAGE_NAME}" .
 
-IFS=',' read -ra TAGS <<< "$DOCKER_TAG"
-for tag in ${TAGS[@]}; do
+for tag in ${DOCKER_TAG//,/ }; do
   docker tag "$IMAGE_NAME" "${DOCKER_REPO}:${tag}"
 done
