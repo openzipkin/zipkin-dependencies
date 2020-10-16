@@ -34,9 +34,10 @@ WORKDIR /install
 COPY --from=scratch /code /code
 
 # This will either be "master" or a real version ex. "2.4.5"
-ARG release_version=master
+ARG release_version
+ENV RELEASE_VERSION=${release_version}
 COPY docker/bin/install.sh /tmp/
-RUN RELEASE_VERSION=${release_version} /tmp/install.sh && rm /tmp/install.sh
+RUN /tmp/install.sh && rm /tmp/install.sh
 
 FROM openzipkin/java:${java_version}-jre as zipkin-dependencies
 
