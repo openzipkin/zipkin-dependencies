@@ -35,7 +35,7 @@ echo "Building images for ${SOURCE_BRANCH}"
 #                  '1.0.1' and Dockerfiles will use it to fetch the correct version of Zipkin.
 RELEASE_VERSION="$(echo "${SOURCE_BRANCH}" | cut -d '-' -f 2)"
 
-docker build --build-arg RELEASE_VERSION="${RELEASE_VERSION}" -f "${DOCKERFILE_PATH}" -t "${IMAGE_NAME}" .
+docker build --build-arg release_version="${RELEASE_VERSION}" -f "${DOCKERFILE_PATH}" -t "${IMAGE_NAME}" .
 
 for tag in ${DOCKER_TAG//,/ }; do
   docker tag "$IMAGE_NAME" "${DOCKER_REPO}:${tag}"
