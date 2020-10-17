@@ -13,7 +13,8 @@
 # the License.
 #
 
-# ENTRYPOINT script that runs the dependencies job on-demand, processing today's spans.
+# ENTRYPOINT script that runs the dependencies job on-demand, processing today's spans unless CLI
+# args override it (Ex. 2020-10-31)
 set -eu
 
 JAVA_OPTS="-Xms512m -Xmx512m -XX:+ExitOnOutOfMemoryError"
