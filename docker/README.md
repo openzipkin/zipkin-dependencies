@@ -20,7 +20,7 @@ $ docker run --env STORAGE_TYPE=cassandra --env CASSANDRA_CONTACT_POINTS=host1,h
 To process spans since midnight every hour, and all spans each day, change the entrypoint to cron.
 
 ```bash
-$ docker run ... openzipkin/zipkin-dependencies sh -c 'crond -f'
+$ docker run ... --entrypoint /usr/sbin/crond openzipkin/zipkin-dependencies -f
 ```
 
 ## Configuration

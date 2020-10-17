@@ -48,6 +48,11 @@ RUN apk add --no-cache coreutils
 # * Cron invokes this job hourly to process today's spans and daily to process yesterday's
 COPY docker/periodic/ /etc/periodic/
 
+# Adds ENTRYPOINT script into the default search path
+COPY --from=install /code/docker/bin/ /tmp/docker-bin/
+RUN mv /tmp/docker-bin/start-zipkin-dependencies /usr/local/bin/ && \
+    rm -rf /tmp/docker-bin
+
 # All content including binaries and logs write under WORKDIR
 ARG USER=zipkin-dependencies
 WORKDIR /${USER}
@@ -59,9 +64,5 @@ USER ${USER}
 # Copy binaries and config we installed earlier
 COPY --from=install --chown=${USER} /install .
 
-ENV STORAGE_TYPE=""
-# Use to set heap, trust store or other system properties.
-ENV JAVA_OPTS="-Xms512m -Xmx512m -XX:+ExitOnOutOfMemoryError"
-
 # Default entrypoint is to run the dependencies job on-demand, processing today's spans.
-CMD java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -jar zipkin-dependencies.jar
+ENTRYPOINT ["start-zipkin-dependencies"]
