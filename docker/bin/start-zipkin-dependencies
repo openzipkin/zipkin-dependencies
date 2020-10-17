@@ -17,6 +17,4 @@
 # args override it (Ex. 2020-10-31)
 set -eu
 
-JAVA_OPTS="-Xms512m -Xmx512m -XX:+ExitOnOutOfMemoryError"
-
 exec java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -jar zipkin-dependencies.jar $@

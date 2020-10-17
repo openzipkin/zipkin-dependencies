@@ -64,5 +64,9 @@ USER ${USER}
 # Copy binaries and config we installed earlier
 COPY --from=install --chown=${USER} /install .
 
+ENV STORAGE_TYPE=""
+# Use to set heap, trust store or other system properties.
+ENV JAVA_OPTS="-Xms512m -Xmx512m -XX:+ExitOnOutOfMemoryError"
+
 # Default entrypoint is to run the dependencies job on-demand, processing today's spans.
 ENTRYPOINT ["start-zipkin-dependencies"]
