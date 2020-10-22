@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,27 +23,23 @@ import zipkin2.DependencyLink;
 import zipkin2.Span;
 
 final class CassandraRowsToDependencyLinks
-    implements Serializable, Function<Iterable<CassandraRow>, Iterable<DependencyLink>> {
+  implements Serializable, Function<Iterable<CassandraRow>, Iterable<DependencyLink>> {
   private static final long serialVersionUID = 0L;
 
   @Nullable final Runnable logInitializer;
-  final CassandraRowToSpan cassandraRowToSpan;
   final SpansToDependencyLinks spansToDependencyLinks;
 
-  CassandraRowsToDependencyLinks(Runnable logInitializer, long startTs, long endTs,
-      boolean inTest) {
+  CassandraRowsToDependencyLinks(@Nullable Runnable logInitializer, long startTs, long endTs) {
     this.logInitializer = logInitializer;
-    this.cassandraRowToSpan = new CassandraRowToSpan(inTest);
     this.spansToDependencyLinks = new SpansToDependencyLinks(logInitializer, startTs, endTs);
   }
 
-  @Override
-  public Iterable<DependencyLink> call(Iterable<CassandraRow> rows) {
+  @Override public Iterable<DependencyLink> call(Iterable<CassandraRow> rows) {
     if (logInitializer != null) logInitializer.run();
     // use a hash set to dedupe any redundantly accepted spans
     Set<Span> sameTraceId = new LinkedHashSet<>();
     for (CassandraRow row : rows) {
-      Span span = cassandraRowToSpan.call(row);
+      Span span = CassandraRowToSpan.INSTANCE.call(row);
       sameTraceId.add(span);
     }
 

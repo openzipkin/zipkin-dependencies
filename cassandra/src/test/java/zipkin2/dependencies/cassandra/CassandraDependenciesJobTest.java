@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -20,39 +20,34 @@ import static zipkin2.dependencies.cassandra.CassandraDependenciesJob.parseHosts
 import static zipkin2.dependencies.cassandra.CassandraDependenciesJob.parsePort;
 
 public class CassandraDependenciesJobTest {
-  @Test
-  public void parseHosts_ignoresPortSection() {
+  @Test public void parseHosts_ignoresPortSection() {
     assertThat(parseHosts("1.1.1.1:9142"))
-        .isEqualTo("1.1.1.1");
+      .isEqualTo("1.1.1.1");
   }
 
-  @Test
-  public void parseHosts_commaDelimits() {
+  @Test public void parseHosts_commaDelimits() {
     assertThat(parseHosts("1.1.1.1:9143,2.2.2.2:9143"))
-        .isEqualTo("1.1.1.1,2.2.2.2");
+      .isEqualTo("1.1.1.1,2.2.2.2");
   }
 
-  @Test
-  public void parsePort_ignoresHostSection() {
+  @Test public void parsePort_ignoresHostSection() {
     assertThat(parsePort("1.1.1.1:9142"))
-        .isEqualTo("9142");
+      .isEqualTo("9142");
   }
 
   @Test
   public void parsePort_multiple_consistent() {
     assertThat(parsePort("1.1.1.1:9143,2.2.2.2:9143"))
-        .isEqualTo("9143");
+      .isEqualTo("9143");
   }
 
-  @Test
-  public void parsePort_defaultsTo9042() {
+  @Test public void parsePort_defaultsTo9042() {
     assertThat(parsePort("1.1.1.1"))
-        .isEqualTo("9042");
+      .isEqualTo("9042");
   }
 
-  @Test
-  public void parsePort_defaultsTo9042_multi() {
+  @Test public void parsePort_defaultsTo9042_multi() {
     assertThat(parsePort("1.1.1.1:9143,2.2.2.2"))
-        .isEqualTo("9042");
+      .isEqualTo("9042");
   }
 }

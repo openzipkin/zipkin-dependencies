@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,39 +13,57 @@
  */
 package zipkin2.storage.mysql.v1;
 
+import com.github.dockerjava.api.command.InspectContainerResponse;
+import java.sql.Connection;
 import java.sql.SQLException;
 import org.mariadb.jdbc.MariaDbDataSource;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.jdbc.ContainerLessJdbcDelegate;
 
-final class ZipkinMySQLContainer extends MySQLContainer {
+import static org.testcontainers.ext.ScriptUtils.runInitScript;
+
+final class ZipkinMySQLContainer extends GenericContainer<ZipkinMySQLContainer> {
+
+  MariaDbDataSource dataSource;
+
   ZipkinMySQLContainer(String image) {
     super(image);
+    withExposedPorts(3306);
   }
 
-  @Override public String getDatabaseName() {
-    return "zipkin";
-  }
-
-  @Override public String getUsername() {
-    return "zipkin";
-  }
-
-  @Override public String getPassword() {
-    return "zipkin";
-  }
-
-  @Override public String getDriverClassName() {
-    return "org.mariadb.jdbc.Driver";
-  }
-
-  MariaDbDataSource getDataSource() throws SQLException {
-    MariaDbDataSource dataSource = new MariaDbDataSource(
-      getContainerIpAddress(),
-      getMappedPort(MYSQL_PORT),
-      getDatabaseName()
-    );
-    dataSource.setUser(getUsername());
-    dataSource.setPassword(getPassword());
+  MariaDbDataSource getDataSource() {
     return dataSource;
+  }
+
+  @Override protected void containerIsStarting(InspectContainerResponse containerInfo) {
+    try {
+      dataSource = new MariaDbDataSource(
+        getContainerIpAddress(),
+        getMappedPort(getExposedPorts().get(0)),
+        "zipkin"
+      );
+      dataSource.setUser("zipkin");
+      dataSource.setPassword("zipkin");
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override protected void containerIsStarted(InspectContainerResponse containerInfo) {
+    String[] scripts = {
+      // Drop all previously created tables in zipkin.*
+      "drop_zipkin_tables.sql",
+
+      // Populate the schema
+      "mysql.sql"
+    };
+
+    try (Connection connection = dataSource.getConnection()) {
+      for (String scriptPath : scripts) {
+        runInitScript(new ContainerLessJdbcDelegate(connection), scriptPath);
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

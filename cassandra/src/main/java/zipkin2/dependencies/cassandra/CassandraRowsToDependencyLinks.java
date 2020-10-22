@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -30,8 +30,10 @@ import zipkin2.internal.V1ThriftSpanReader;
 import zipkin2.v1.V1Span;
 import zipkin2.v1.V1SpanConverter;
 
+import static java.lang.String.format;
+
 final class CassandraRowsToDependencyLinks
-    implements Serializable, Function<Iterable<CassandraRow>, Iterable<DependencyLink>> {
+  implements Serializable, Function<Iterable<CassandraRow>, Iterable<DependencyLink>> {
   private static final long serialVersionUID = 0L;
   private static final Logger log = LoggerFactory.getLogger(CassandraRowsToDependencyLinks.class);
 
@@ -45,31 +47,28 @@ final class CassandraRowsToDependencyLinks
     this.endTs = endTs;
   }
 
-  @Override
-  public Iterable<DependencyLink> call(Iterable<CassandraRow> rows) {
+  @Override public Iterable<DependencyLink> call(Iterable<CassandraRow> rows) {
     if (logInitializer != null) logInitializer.run();
     V1ThriftSpanReader reader = V1ThriftSpanReader.create();
     V1SpanConverter converter = V1SpanConverter.create();
     List<Span> sameTraceId = new ArrayList<>();
     for (CassandraRow row : rows) {
+      V1Span v1Span;
       try {
-        V1Span v1Span = reader.read(ReadBuffer.wrapUnsafe(row.getBytes("span")));
-        for (Span span : converter.convert(v1Span)) {
-          // check to see if the trace is within the interval
-          if (span.parentId() == null) {
-            long timestamp = span.timestampAsLong();
-            if (timestamp == 0 || timestamp < startTs || timestamp > endTs) {
-              return Collections.emptyList();
-            }
-          }
-          sameTraceId.add(span);
-        }
+        v1Span = reader.read(ReadBuffer.wrapUnsafe(row.getBytes(1)));
       } catch (RuntimeException e) {
-        log.warn(
-            String.format(
-                "Unable to decode span from traces where trace_id=%s and ts=%s and span_name='%s'",
-                row.getLong("trace_id"), row.getDate("ts").getTime(), row.getString("span_name")),
-            e);
+        log.warn(format("Unable to decode span with trace_id=%s", row.getLong(0)), e);
+        continue;
+      }
+      for (Span span : converter.convert(v1Span)) {
+        // check to see if the trace is within the interval
+        if (span.parentId() == null) {
+          long timestamp = span.timestampAsLong();
+          if (timestamp == 0 || timestamp < startTs || timestamp > endTs) {
+            return Collections.emptyList();
+          }
+        }
+        sameTraceId.add(span);
       }
     }
     return new DependencyLinker().putTrace(sameTraceId).link();

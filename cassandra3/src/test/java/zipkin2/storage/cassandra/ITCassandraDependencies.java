@@ -13,51 +13,64 @@
  */
 package zipkin2.storage.cassandra;
 
-import com.datastax.driver.core.Host;
-import com.datastax.driver.core.Session;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import zipkin2.Span;
 import zipkin2.dependencies.cassandra3.CassandraDependenciesJob;
-import zipkin2.storage.ITDependencies;
-import zipkin2.storage.StorageComponent;
+
+import static zipkin2.storage.ITDependencies.aggregateLinks;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
+class ITCassandraDependencies {
   @RegisterExtension CassandraStorageExtension backend = new CassandraStorageExtension(
-    "openzipkin/zipkin-cassandra:2.21.7");
+    "openzipkin/zipkin-cassandra:2.22.0");
 
-  String keyspace;
+  @Nested
+  class ITDependencies extends zipkin2.storage.ITDependencies<CassandraStorage> {
 
-  @Override protected boolean initializeStoragePerTest() {
-    return true;
+    @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {
+      return backend.newStorageBuilder();
+    }
+
+    @Override public void clear() {
+      backend.clear(storage);
+    }
+
+    @Override protected void processDependencies(List<Span> spans) throws Exception {
+      ITCassandraDependencies.this.processDependencies(storage, spans);
+    }
   }
 
-  @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
-    keyspace = testInfo.getTestMethod().get().getName().toLowerCase();
-    if (keyspace.length() > 48) keyspace = keyspace.substring(keyspace.length() - 48);
-    return backend.computeStorageBuilder().keyspace(keyspace);
-  }
+  @Nested
+  class ITDependenciesHeavy extends zipkin2.storage.ITDependenciesHeavy<CassandraStorage> {
 
-  @Override public void clear() {
-    // Just let the data pile up to prevent warnings and slowness.
+    @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {
+      return backend.newStorageBuilder();
+    }
+
+    @Override public void clear() {
+      backend.clear(storage);
+    }
+
+    @Override protected void processDependencies(List<Span> spans) throws Exception {
+      ITCassandraDependencies.this.processDependencies(storage, spans);
+    }
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override protected void processDependencies(List<Span> spans) throws Exception {
+  void processDependencies(CassandraStorage storage, List<Span> spans) throws Exception {
     // TODO: this avoids overrunning the cluster with BusyPoolException
     for (List<Span> nextChunk : Lists.partition(spans, 100)) {
       storage.spanConsumer().accept(nextChunk).execute();
       // Now, block until writes complete, notably so we can read them.
-      blockWhileInFlight(storage);
+      CassandraStorageExtension.blockWhileInFlight(storage);
     }
 
     // aggregate links in memory to determine which days they are in
@@ -66,31 +79,15 @@ class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
     // process the job for each day of links.
     for (long day : days) {
       CassandraDependenciesJob.builder()
-        .keyspace(keyspace)
-        .localDc(storage.localDc())
-        .contactPoints(storage.contactPoints())
-        // probably a bad test name.. strictTraceId actually tests strictTraceId = false
-        .strictTraceId(!"getdependencies_stricttraceid".equals(keyspace))
-        .internalInTest(true)
+        .keyspace(storage.keyspace)
+        .localDc(storage.localDc)
+        .contactPoints(storage.contactPoints)
+        .strictTraceId(false)
         .day(day)
         .build()
         .run();
     }
-  }
 
-  static void blockWhileInFlight(CassandraStorage storage) {
-    // Now, block until writes complete, notably so we can read them.
-    Session.State state = storage.session().getState();
-    refresh:
-    while (true) {
-      for (Host host : state.getConnectedHosts()) {
-        if (state.getInFlightQueries(host) > 0) {
-          Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-          state = storage.session().getState();
-          continue refresh;
-        }
-      }
-      break;
-    }
+    CassandraStorageExtension.blockWhileInFlight(storage);
   }
 }

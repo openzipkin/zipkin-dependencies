@@ -46,10 +46,9 @@ class ElasticsearchStorageExtension implements BeforeAllCallback, AfterAllCallba
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         LOGGER.info("Starting docker image " + image);
-        container =
-          new GenericContainer(image)
-            .withExposedPorts(ELASTICSEARCH_PORT)
-            .waitingFor(new HttpWaitStrategy().forPath("/"));
+        container = new GenericContainer(image)
+          .withExposedPorts(ELASTICSEARCH_PORT)
+          .waitingFor(new HttpWaitStrategy().forPath("/"));
         container.start();
         if (Boolean.parseBoolean(System.getenv("ES_DEBUG"))) {
           container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(image)));
@@ -62,15 +61,9 @@ class ElasticsearchStorageExtension implements BeforeAllCallback, AfterAllCallba
       LOGGER.info("Skipping startup of docker " + image);
     }
 
-    try {
-      tryToInitializeSession();
-    } catch (RuntimeException | Error e) {
-      if (container == null) throw e;
-      LOGGER.warn("Couldn't connect to docker image " + image + ": " + e.getMessage(), e);
-      container.stop();
-      container = null; // try with local connection instead
-      tryToInitializeSession();
-    }
+    assumeTrue(container != null, "Docker not available");
+
+    tryToInitializeSession();
   }
 
   @Override public void afterAll(ExtensionContext context) {
@@ -106,11 +99,6 @@ class ElasticsearchStorageExtension implements BeforeAllCallback, AfterAllCallba
   }
 
   String hostPort() {
-    if (container != null && container.isRunning()) {
-      return container.getContainerIpAddress() + ":" + container.getMappedPort(ELASTICSEARCH_PORT);
-    } else {
-      // Use localhost if we failed to start a container (i.e. Docker is not available)
-      return "localhost:" + ELASTICSEARCH_PORT;
-    }
+    return container.getContainerIpAddress() + ":" + container.getMappedPort(ELASTICSEARCH_PORT);
   }
 }

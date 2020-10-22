@@ -31,15 +31,9 @@
   </properties>
 
   <dependencies>
-    <!-- Force the newer Netty 4.1 in spark to vs Cassandra's version -->
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.binary.version}</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>com.datastax.spark</groupId>
-      <artifactId>spark-cassandra-connector-unshaded_${scala.binary.version}</artifactId>
+      <artifactId>spark-cassandra-connector_${scala.binary.version}</artifactId>
       <version>${spark-cassandra-connector.version}</version>
     </dependency>
 
