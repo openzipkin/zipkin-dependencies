@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,11 +13,9 @@
  */
 package zipkin2.dependencies.cassandra3;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.LocalDate;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.rdd.CassandraTableScanJavaRDD;
@@ -25,6 +23,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -61,7 +62,7 @@ public final class CassandraDependenciesJob {
     final Map<String, String> sparkProperties = new LinkedHashMap<>();
     String keyspace = getEnv("CASSANDRA_KEYSPACE", "zipkin2");
     String contactPoints = getEnv("CASSANDRA_CONTACT_POINTS", "localhost");
-    String localDc = getEnv("CASSANDRA_LOCAL_DC", null);
+    String localDc = getEnv("CASSANDRA_LOCAL_DC", "datacenter1");
     // local[*] master lets us run & test the job locally without setting a Spark cluster
     String sparkMaster = getEnv("SPARK_MASTER", "local[*]");
     // needed when not in local mode
@@ -70,20 +71,24 @@ public final class CassandraDependenciesJob {
     // By default the job only works on traces whose first timestamp is today
     long day = midnightUTC(System.currentTimeMillis());
     boolean strictTraceId = Boolean.parseBoolean(getEnv("STRICT_TRACE_ID", "true"));
-    boolean inTest = false;
 
     Builder() {
       sparkProperties.put("spark.ui.enabled", "false");
+
       sparkProperties.put(
-          "spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"));
+        "spark.cassandra.connection.ssl.enabled", getEnv("CASSANDRA_USE_SSL", "false"));
       sparkProperties.put(
-          "spark.cassandra.connection.ssl.trustStore.password",
-          System.getProperty("javax.net.ssl.trustStorePassword", ""));
+        "spark.cassandra.connection.ssl.trustStore.password",
+        System.getProperty("javax.net.ssl.trustStorePassword", ""));
       sparkProperties.put(
-          "spark.cassandra.connection.ssl.trustStore.path",
-          System.getProperty("javax.net.ssl.trustStore", ""));
-      sparkProperties.put("spark.cassandra.auth.username", getEnv("CASSANDRA_USERNAME", ""));
-      sparkProperties.put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""));
+        "spark.cassandra.connection.ssl.trustStore.path",
+        System.getProperty("javax.net.ssl.trustStore", ""));
+
+      String username = getEnv("CASSANDRA_USERNAME", null);
+      if (username != null && !"".equals(username)) {
+        sparkProperties.put("spark.cassandra.auth.username", username);
+        sparkProperties.put("spark.cassandra.auth.password", getEnv("CASSANDRA_PASSWORD", ""));
+      }
     }
 
     /** When set, this indicates which jars to distribute to the cluster. */
@@ -133,12 +138,6 @@ public final class CassandraDependenciesJob {
       return this;
     }
 
-    /** workaround for a state bug */
-    public Builder internalInTest(boolean inTest) {
-      this.inTest = inTest;
-      return this;
-    }
-
     public CassandraDependenciesJob build() {
       return new CassandraDependenciesJob(this);
     }
@@ -146,7 +145,7 @@ public final class CassandraDependenciesJob {
 
   final String keyspace;
   final long day;
-  final boolean strictTraceId, inTest;
+  final boolean strictTraceId;
   final String dateStamp;
   final SparkConf conf;
   @Nullable final Runnable logInitializer;
@@ -155,14 +154,13 @@ public final class CassandraDependenciesJob {
     this.keyspace = builder.keyspace;
     this.day = builder.day;
     this.strictTraceId = builder.strictTraceId;
-    this.inTest = builder.inTest;
     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true).setMaster(builder.sparkMaster).setAppName(getClass().getName());
     conf.set("spark.cassandra.connection.host", parseHosts(builder.contactPoints));
     conf.set("spark.cassandra.connection.port", parsePort(builder.contactPoints));
-    if (builder.localDc != null) conf.set("connection.local_dc", builder.localDc);
+    conf.set("spark.cassandra.connection.localDC", builder.localDc);
     if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
@@ -175,17 +173,13 @@ public final class CassandraDependenciesJob {
     long microsLower = day * 1000;
     long microsUpper = (day * 1000) + TimeUnit.DAYS.toMicros(1) - 1;
 
-    log.info(
-        "Running Dependencies job for {}: {} ≤ Span.timestamp {}",
-        dateStamp,
-        microsLower,
-        microsUpper);
+    log.info("Running Dependencies job for {}: {} ≤ Span.timestamp {}", dateStamp, microsLower,
+      microsUpper);
 
     SparkContext sc = new SparkContext(conf);
     try {
       JavaRDD<DependencyLink> links = flatMapToLinksByTraceId(
-        javaFunctions(sc).cassandraTable(keyspace, "span"), microsUpper, microsLower, inTest
-      ).values()
+        javaFunctions(sc).cassandraTable(keyspace, "span"), microsUpper, microsLower).values()
         .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
         .reduceByKey((l, r) -> DependencyLink.newBuilder()
           .parent(l.parent())
@@ -198,50 +192,42 @@ public final class CassandraDependenciesJob {
         log.info("No dependency links could be processed from spans in table {}/span", keyspace);
         return;
       }
-      log.info("Saving dependency links for {} to {}.dependency", dateStamp, keyspace);
-      CassandraConnector.apply(conf)
-          .withSessionDo(new AbstractFunction1<Session, Void>() {
-            @Override
-            public Void apply(Session session) {
-              PreparedStatement prepared =
-                  session.prepare(QueryBuilder.insertInto(keyspace, "dependency")
-                      .value("day", QueryBuilder.bindMarker("day"))
-                      .value("parent", QueryBuilder.bindMarker("parent"))
-                      .value("child", QueryBuilder.bindMarker("child"))
-                      .value("calls", QueryBuilder.bindMarker("calls"))
-                      .value("errors", QueryBuilder.bindMarker("errors")));
 
-              for (DependencyLink link : links.collect()) {
-                BoundStatement bound = prepared.bind()
-                    .setDate("day", LocalDate.fromMillisSinceEpoch(day))
-                    .setString("parent", link.parent())
-                    .setString("child", link.child())
-                    .setLong("calls", link.callCount());
-                if (link.errorCount() > 0L) {
-                  bound.setLong("errors", link.errorCount());
-                }
-                session.execute(bound);
-              }
-              return null;
-            }
-          });
+      LocalDate localDate = Instant.ofEpochMilli(day).atZone(ZoneOffset.UTC).toLocalDate();
+      log.info("Saving dependency links for {} to {}.dependency", dateStamp, keyspace);
+      CassandraConnector.apply(conf).withSessionDo(new AbstractFunction1<CqlSession, Void>() {
+        @Override public Void apply(CqlSession session) {
+          PreparedStatement prepared = session.prepare("INSERT INTO " + keyspace + ".dependency"
+            + " (day,parent,child,calls,errors)"
+            + " VALUES (?,?,?,?,?)");
+          for (DependencyLink link : links.collect()) {
+            int i = 0;
+            BoundStatementBuilder bound = prepared.boundStatementBuilder()
+              .setLocalDate(i++, localDate)
+              .setString(i++, link.parent())
+              .setString(i++, link.child())
+              .setLong(i++, link.callCount());
+            if (link.errorCount() > 0L) bound = bound.setLong(i, link.errorCount());
+            session.execute(bound.build());
+          }
+          return null;
+        }
+      });
     } finally {
       sc.stop();
     }
   }
 
   JavaPairRDD<String, DependencyLink> flatMapToLinksByTraceId(
-      CassandraTableScanJavaRDD<CassandraRow> spans,
-      long microsUpper, long microsLower, boolean inTest
-  ) {
+    CassandraTableScanJavaRDD<CassandraRow> spans, long microsUpper, long microsLower) {
     if (strictTraceId) {
       return spans.spanBy(r -> r.getString("trace_id"), String.class)
-          .flatMapValues(
-              new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper, inTest));
+        .flatMapValues(
+          new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper));
     }
-    return spans.map(new CassandraRowToSpan(inTest))
-        .groupBy(Span::traceId) // groupBy instead of spanBy because trace_id is mixed length
-        .flatMapValues(new SpansToDependencyLinks(logInitializer, microsLower, microsUpper));
+    return spans.map(CassandraRowToSpan.INSTANCE)
+      .groupBy(Span::traceId) // groupBy instead of spanBy because trace_id is mixed length
+      .flatMapValues(new SpansToDependencyLinks(logInitializer, microsLower, microsUpper));
   }
 
   static String getEnv(String key, String defaultValue) {
@@ -266,11 +252,5 @@ public final class CassandraDependenciesJob {
       ports.add(parsed.getPortOrDefault(9042));
     }
     return ports.size() == 1 ? String.valueOf(ports.iterator().next()) : "9042";
-  }
-
-  static String traceId(CassandraRow r) {
-    String traceId = r.getString("trace_id");
-    if (traceId.length() > 16) traceId = traceId.substring(traceId.length() - 16);
-    return traceId;
   }
 }

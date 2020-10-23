@@ -45,31 +45,26 @@
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.4.7</spark.version>
 
-    <zipkin.version>2.21.7</zipkin.version>
-    <armeria.version>0.99.9</armeria.version>
-    <jackson.version>2.11.2</jackson.version>
+    <zipkin.version>2.22.0</zipkin.version>
+    <armeria.version>1.2.0</armeria.version>
+    <jackson.version>2.11.3</jackson.version>
 
-    <!-- Can't upgrade to connector 2.5 until Zipkin upgrades to DataStax driver v4 -->
-    <spark-cassandra-connector.version>2.4.3</spark-cassandra-connector.version>
-    <!-- connector uses an old version of the driver -->
-    <cassandra-driver-core.version>3.10.2</cassandra-driver-core.version>
+    <spark-cassandra-connector.version>2.5.1</spark-cassandra-connector.version>
+    <java-driver.version>4.9.0</java-driver.version>
 
-    <junit.version>4.13</junit.version>
+    <junit.version>4.13.1</junit.version>
     <junit-jupiter.version>5.7.0</junit-jupiter.version>
     <assertj.version>3.17.2</assertj.version>
-    <testcontainers.version>1.14.3</testcontainers.version>
+    <testcontainers.version>1.15.0-rc2</testcontainers.version>
 
     <animal-sniffer-maven-plugin.version>1.19</animal-sniffer-maven-plugin.version>
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
-    <maven-bundle-plugin.version>5.1.1</maven-bundle-plugin.version>
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
     <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M3</maven-enforcer-plugin.version>
-    <!-- 3.0.0-M5 breaks the build: https://github.com/openzipkin/zipkin/issues/3159 -->
-    <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
+    <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
     <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
-    <maven-invoker-plugin.version>3.2.1</maven-invoker-plugin.version>
     <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
     <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
     <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
@@ -148,18 +143,6 @@
       </dependency>
 
       <dependency>
-        <groupId>com.datastax.cassandra</groupId>
-        <artifactId>cassandra-driver-core</artifactId>
-        <version>${cassandra-driver-core.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.datastax.cassandra</groupId>
-        <artifactId>cassandra-driver-mapping</artifactId>
-        <version>${cassandra-driver-core.version}</version>
-      </dependency>
-
-      <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>zipkin-dependencies-mysql</artifactId>
         <version>${project.version}</version>
@@ -187,6 +170,14 @@
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-bom</artifactId>
+        <version>${java-driver.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -296,21 +287,29 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven-failsafe-plugin.version}</version>
+        <configuration>
+          <!-- Ensure scope leak cause ends up in the console -->
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
       </plugin>
 
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
         <version>${maven-failsafe-plugin.version}</version>
+        <configuration>
+          <!-- Try to prevent flakes in CI -->
+          <reuseForks>false</reuseForks>
+          <!-- workaround to SUREFIRE-1831 -->
+          <useModulePath>false</useModulePath>
+          <!-- Ensure scope leak cause ends up in the console -->
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
         <executions>
           <execution>
             <id>integration-test</id>
+            <phase>verify</phase>
             <goals>
               <goal>integration-test</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>verify</id>
-            <goals>
               <goal>verify</goal>
             </goals>
           </execution>

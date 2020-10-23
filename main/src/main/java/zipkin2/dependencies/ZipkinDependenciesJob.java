@@ -21,7 +21,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.TimeZone;
-
 import zipkin2.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;

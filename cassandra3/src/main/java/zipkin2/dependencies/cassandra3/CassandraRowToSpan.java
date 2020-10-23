@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,8 +16,8 @@ package zipkin2.dependencies.cassandra3;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.UDTValue;
 import com.datastax.spark.connector.types.TypeConverter;
-import java.lang.reflect.Field;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,26 +25,26 @@ import scala.Serializable;
 import zipkin2.Endpoint;
 import zipkin2.Span;
 
-final class CassandraRowToSpan implements Serializable, Function<CassandraRow, Span> {
-  static final Logger log = LoggerFactory.getLogger(CassandraRowToSpan.class);
+import static zipkin2.Span.normalizeTraceId;
 
-  final boolean inTest;
-
-  CassandraRowToSpan(boolean inTest) {
-    this.inTest = inTest;
-  }
+enum CassandraRowToSpan implements Serializable, Function<CassandraRow, Span> {
+  INSTANCE;
+  final Logger log = LoggerFactory.getLogger(CassandraRowToSpan.class);
 
   @Override public Span call(CassandraRow row) {
-    String traceId = CassandraDependenciesJob.traceId(row), spanId = row.getString("id");
+    String traceId = normalizeTraceId(row.getString("trace_id"));
+    if (traceId.length() == 32) traceId = traceId.substring(16);
+    String spanId = row.getString("id");
+
     Span.Builder builder = Span.newBuilder()
-        .traceId(traceId)
-        .parentId(row.getString("parent_id"))
-        .id(spanId)
-        .timestamp(row.getLong("ts"))
-        .shared(row.getBoolean("shared"));
+      .traceId(traceId)
+      .parentId(row.getString("parent_id"))
+      .id(spanId)
+      .timestamp(row.getLong("ts"))
+      .shared(row.getBoolean("shared"));
 
     Map<String, String> tags = row.getMap(
-        "tags", TypeConverter.StringConverter$.MODULE$, TypeConverter.StringConverter$.MODULE$);
+      "tags", TypeConverter.StringConverter$.MODULE$, TypeConverter.StringConverter$.MODULE$);
     String error = tags.get("error");
     if (error != null) builder.putTag("error", error);
     String kind = row.getString("kind");
@@ -55,45 +55,16 @@ final class CassandraRowToSpan implements Serializable, Function<CassandraRow, S
         log.debug("couldn't parse kind {} in span {}/{}", kind, traceId, spanId);
       }
     }
-    Endpoint localEndpoint = readEndpoint(row, "l_ep");
-    if (localEndpoint != null) {
-      builder.localEndpoint(localEndpoint);
-    }
-    Endpoint remoteEndpoint = readEndpoint(row, "r_ep");
-    if (remoteEndpoint != null) {
-      builder.remoteEndpoint(remoteEndpoint);
-    }
+    Endpoint localEndpoint = readEndpoint(row.getUDTValue("l_ep"));
+    if (localEndpoint != null) builder.localEndpoint(localEndpoint);
+    Endpoint remoteEndpoint = readEndpoint(row.getUDTValue("r_ep"));
+    if (remoteEndpoint != null) builder.remoteEndpoint(remoteEndpoint);
     return builder.build();
   }
 
-  private Endpoint readEndpoint(CassandraRow row, String name) {
-    if (!inTest) {
-      return readEndpoint(row.getUDTValue(name));
-    }
-    // UDT type doesn't work in tests
-    // Caused by: com.datastax.spark.connector.types.TypeConversionException: Cannot convert object zipkin2.storage.cassandra.Schema$EndpointUDT@67a3fdf8 of type class zipkin2.storage.cassandra.Schema$EndpointUDT to com.datastax.spark.connector.japi.UDTValue.
-    return readEndpoint(row.getObject(name));
-  }
-
-  private static Endpoint readEndpoint(UDTValue endpoint) {
+  @Nullable static Endpoint readEndpoint(UDTValue endpoint) {
     if (endpoint == null) return null;
     String serviceName = endpoint.getString("service");
-    if (serviceName != null && !"".equals(serviceName)) { // not possible if written via zipkin
-      return Endpoint.newBuilder().serviceName(serviceName).build();
-    }
-    return null;
-  }
-
-  private static Endpoint readEndpoint(Object endpoint) {
-    if (endpoint == null) return null;
-    String serviceName = null;
-    try {
-      Field field = endpoint.getClass().getDeclaredField("service");
-      field.setAccessible(true);
-      serviceName = field.get(endpoint).toString();
-    } catch (Exception e) {
-      log.debug("couldn't lookup service field of {}", endpoint.getClass(), e);
-    }
     if (serviceName != null && !"".equals(serviceName)) { // not possible if written via zipkin
       return Endpoint.newBuilder().serviceName(serviceName).build();
     }

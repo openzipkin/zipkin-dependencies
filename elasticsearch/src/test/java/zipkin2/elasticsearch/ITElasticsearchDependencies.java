@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -16,31 +16,60 @@ package zipkin2.elasticsearch;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestInfo;
 import zipkin2.Span;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
-import zipkin2.storage.ITDependencies;
-import zipkin2.storage.StorageComponent;
 
-abstract class ITElasticsearchDependencies extends ITDependencies<ElasticsearchStorage> {
+import static zipkin2.storage.ITDependencies.aggregateLinks;
+
+abstract class ITElasticsearchDependencies {
+  abstract ElasticsearchStorageExtension backend();
+
   String index;
 
-  @Override protected StorageComponent.Builder newStorageBuilder(TestInfo testInfo) {
+  ElasticsearchStorage.Builder newStorageBuilder(TestInfo testInfo) {
     index = testInfo.getTestClass().get().getName().toLowerCase();
     if (index.length() > 48) index = index.substring(index.length() - 48);
     return backend().computeStorageBuilder().index(index);
   }
 
-  abstract ElasticsearchStorageExtension backend();
+  @Nested
+  class ITDependencies extends zipkin2.storage.ITDependencies<ElasticsearchStorage> {
 
-  @Override public void clear() throws IOException {
-    storage.clear();
+    @Override protected ElasticsearchStorage.Builder newStorageBuilder(TestInfo testInfo) {
+      return ITElasticsearchDependencies.this.newStorageBuilder(testInfo);
+    }
+
+    @Override public void clear() throws IOException {
+      storage.clear();
+    }
+
+    @Override protected void processDependencies(List<Span> spans) throws Exception {
+      ITElasticsearchDependencies.this.processDependencies(storage, spans);
+    }
+  }
+
+  @Nested
+  class ITDependenciesHeavy extends zipkin2.storage.ITDependenciesHeavy<ElasticsearchStorage> {
+
+    @Override protected ElasticsearchStorage.Builder newStorageBuilder(TestInfo testInfo) {
+      return ITElasticsearchDependencies.this.newStorageBuilder(testInfo);
+    }
+
+    @Override public void clear() throws IOException {
+      storage.clear();
+    }
+
+    @Override protected void processDependencies(List<Span> spans) throws Exception {
+      ITElasticsearchDependencies.this.processDependencies(storage, spans);
+    }
   }
 
   /**
    * This processes the job as if it were a batch. For each day we had traces, run the job again.
    */
-  @Override public void processDependencies(List<Span> spans) throws IOException {
+  void processDependencies(ElasticsearchStorage storage, List<Span> spans) throws IOException {
     storage.spanConsumer().accept(spans).execute();
 
     // aggregate links in memory to determine which days they are in

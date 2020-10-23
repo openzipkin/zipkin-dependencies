@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -24,7 +24,7 @@ import zipkin2.Span;
 import zipkin2.internal.DependencyLinker;
 
 final class SpansToDependencyLinks
-    implements Serializable, Function<Iterable<Span>, Iterable<DependencyLink>> {
+  implements Serializable, Function<Iterable<Span>, Iterable<DependencyLink>> {
   private static final long serialVersionUID = 0L;
 
   @Nullable final Runnable logInitializer;
@@ -37,8 +37,7 @@ final class SpansToDependencyLinks
     this.endTs = endTs;
   }
 
-  @Override
-  public Iterable<DependencyLink> call(Iterable<Span> spans) {
+  @Override public Iterable<DependencyLink> call(Iterable<Span> spans) {
     if (logInitializer != null) logInitializer.run();
     List<Span> sameTraceId = new ArrayList<>();
     for (Span span : spans) {

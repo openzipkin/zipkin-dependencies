@@ -149,25 +149,6 @@
                   </excludes>
                 </filter>
               </filters>
-              <!--
-                com.datastax.driver.core.Cluster fails to initialize (because of its check for 16.01)
-                See https://stackoverflow.com/questions/36877897/detected-guava-issue-1635-which-indicates-that-a-version-of-guava-less-than-16
-                TODO: When cassandra-driver-core 4.x is out, revisit this as it no longer uses guava
-              -->
-              <relocations>
-                <relocation>
-                  <pattern>com.google.common</pattern>
-                  <shadedPattern>shaded.com.google.common</shadedPattern>
-                  <includes>
-                    <include>com.google.common.**</include>
-                  </includes>
-                  <excludes>
-                    <exclude>com.google.common.base.Optional</exclude>
-                    <exclude>com.google.common.base.Absent</exclude>
-                    <exclude>com.google.common.base.Present</exclude>
-                  </excludes>
-                </relocation>
-              </relocations>
               <createDependencyReducedPom>false</createDependencyReducedPom>
             </configuration>
           </execution>

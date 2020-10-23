@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2020 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import zipkin2.CheckResult;
 
-import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class MySQLStorageExtension implements BeforeAllCallback, AfterAllCallback {
@@ -37,17 +36,24 @@ class MySQLStorageExtension implements BeforeAllCallback, AfterAllCallback {
   }
 
   @Override public void beforeAll(ExtensionContext context) {
+    if (context.getRequiredTestClass().getEnclosingClass() != null) {
+      // Only run once in outermost scope.
+      return;
+    }
+
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         container = new ZipkinMySQLContainer(image);
         container.start();
-        LOGGER.info("Starting docker image " + container.getDockerImageName());
-      } catch (Exception e) {
-        LOGGER.warn("Couldn't start docker image " + container.getDockerImageName(), e);
+        LOGGER.info("Starting docker image " + image);
+      } catch (RuntimeException e) {
+        LOGGER.warn("Couldn't start docker image " + image + ": " + e.getMessage(), e);
       }
     } else {
-      LOGGER.info("Skipping startup of docker");
+      LOGGER.info("Skipping startup of docker " + image);
     }
+
+    assumeTrue(container != null, "Docker not available");
 
     try (MySQLStorage result = computeStorageBuilder().build()) {
       CheckResult check = result.check();
@@ -57,38 +63,26 @@ class MySQLStorageExtension implements BeforeAllCallback, AfterAllCallback {
   }
 
   @Override public void afterAll(ExtensionContext context) {
+    if (context.getRequiredTestClass().getEnclosingClass() != null) {
+      // Only run once in outermost scope.
+      return;
+    }
     if (container != null) container.stop();
   }
 
   MySQLStorage.Builder computeStorageBuilder() {
-    MariaDbDataSource dataSource;
-    try {
-      if (container != null) {
-        dataSource = container.getDataSource();
-      } else {
-        dataSource = new MariaDbDataSource();
-        dataSource.setUser(System.getenv("MYSQL_USER"));
-        assumeTrue("Minimally, the environment variable MYSQL_USER must be set",
-          dataSource.getUser() != null);
+    final MariaDbDataSource dataSource;
 
-        dataSource.setServerName(envOr("MYSQL_HOST", "localhost"));
-        dataSource.setPort(envOr("MYSQL_TCP_PORT", 3306));
-        dataSource.setDatabaseName(envOr("MYSQL_DB", "zipkin"));
-        dataSource.setPassword(envOr("MYSQL_PASS", ""));
-      }
+    try {
+      assumeTrue(container != null, "Docker not available");
+      dataSource = container.getDataSource();
       dataSource.setProperties("autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8");
     } catch (SQLException e) {
       throw new AssertionError(e);
     }
 
-    return new MySQLStorage.Builder().datasource(dataSource).executor(Runnable::run);
-  }
-
-  static int envOr(String key, int fallback) {
-    return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : fallback;
-  }
-
-  static String envOr(String key, String fallback) {
-    return System.getenv(key) != null ? System.getenv(key) : fallback;
+    return new MySQLStorage.Builder()
+      .datasource(dataSource)
+      .executor(Runnable::run);
   }
 }
