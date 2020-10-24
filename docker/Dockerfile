@@ -13,7 +13,7 @@
 #
 
 # Until we can upgrade to Spark 3, we are pinned to JRE 1.8
-ARG java_version=1.8.0_252-b09
+ARG java_version=8u272-8.50.0.21-jre-headless
 
 # We copy files from the context into a scratch container first to avoid a problem where docker and
 # docker-compose don't share layer hashes https://github.com/docker/compose/issues/883 normally.
@@ -39,7 +39,7 @@ ENV RELEASE_VERSION=${release_version}
 COPY docker/bin/install.sh /tmp/
 RUN /tmp/install.sh && rm /tmp/install.sh
 
-FROM openzipkin/java:${java_version}-jre as zipkin-dependencies
+FROM openzipkin/java:${java_version} as zipkin-dependencies
 
 # Adds coreutils to allow date formatting of 'yesterday'
 RUN apk add --no-cache coreutils
