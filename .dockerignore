@@ -1,18 +1,27 @@
+# https://docs.docker.com/engine/reference/builder/#dockerignore-file
 **/.*
 !.dockerignore
-!.git
 !.mvn
+# Builds don't run license check, but need git-commit-id in the server console
+#  * When releasing docker/builder, use a shallow clone to avoid >70MB!
+!.git
 !docker/zipkin/**
-!**/.eslintrc
+!**/.eslintrc*
+!**/.prettierrc*
 
 **/*.test.yml
 
 **/target
+**/build
 **/node_modules
 **/*.iml
 
+**/.idea
 **/*.md
 
 **/Dockerfile
-docker/hooks/**
 travis/**
+.travis.yml
+
+# Allow re-use of built artifacts when building docker from master or a release tag
+!/main/target/zipkin-dependencies-*.jar

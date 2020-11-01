@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2016-2019 The OpenZipkin Authors
+# Copyright 2015-2020 The OpenZipkin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -13,8 +13,7 @@
 # the License.
 #
 
-set -euo pipefail
-set -x
+set -euxo pipefail
 
 build_started_by_tag() {
   if [ "${TRAVIS_TAG}" == "" ]; then
@@ -73,10 +72,12 @@ check_release_tag() {
 }
 
 print_project_version() {
-  ./mvnw help:evaluate -N -Dexpression=project.version|sed -n '/^[0-9]/p'
+  # Cache as help:evaluate is not quick
+  export POM_VERSION=${POM_VERSION:-$(mvn help:evaluate -N -Dexpression=project.version -q -DforceStdout)}
+  echo "${POM_VERSION}"
 }
 
-is_release_commit() {
+is_release_version() {
   project_version="$(print_project_version)"
   if [[ "$project_version" =~ ^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]]; then
     echo "Build started by release commit $project_version. Will synchronize to maven central."
@@ -87,7 +88,7 @@ is_release_commit() {
 }
 
 release_version() {
-    echo "${TRAVIS_TAG}" | sed 's/^release-//'
+  echo "${TRAVIS_TAG}" | sed 's/^release-//'
 }
 
 safe_checkout_master() {
@@ -104,10 +105,47 @@ safe_checkout_master() {
   fi
 }
 
-run_docker_hub_build() {
-  project_version="$(print_project_version)"
-  echo "Starting Docker Hub build for ${project_version}"
-  curl -X POST -H "Content-Type: application/json" -d "{\"build\": \"true\", \"source_type\": \"Tag\", \"source_name\": \"${project_version}\"}" "https://cloud.docker.com/api/build/v1/source/${DOCKER_HUB_SERVICE_UUID}/trigger/${DOCKER_HUB_TRIGGER_UUID}/call/"
+javadoc_to_gh_pages() {
+  version="$(print_project_version)"
+  rm -rf javadoc-builddir
+  builddir="javadoc-builddir/$version"
+
+  # Collect javadoc for all modules
+  for jar in $(find . -name "*${version}-javadoc.jar"); do
+    module="$(echo "$jar" | sed "s~.*/\(.*\)-${version}-javadoc.jar~\1~")"
+    this_builddir="$builddir/$module"
+    if [ -d "$this_builddir" ]; then
+        # Skip modules we've already processed.
+        # We may find multiple instances of the same javadoc jar because of, for instance,
+        # integration tests copying jars around.
+        continue
+    fi
+    mkdir -p "$this_builddir"
+    unzip "$jar" -d "$this_builddir"
+    # Build a simple module-level index
+    echo "<li><a href=\"${module}/index.html\">${module}</a></li>" >> "${builddir}/index.html"
+  done
+
+  # Update gh-pages
+  git fetch origin gh-pages:gh-pages
+  git checkout gh-pages
+  rm -rf "$version"
+  mv "javadoc-builddir/$version" ./
+  rm -rf "javadoc-builddir"
+
+  # Update simple version-level index
+  if ! grep "$version" index.html 2>/dev/null; then
+    echo "<li><a href=\"${version}/index.html\">${version}</a></li>" >> index.html
+  fi
+
+  # Ensure links are ordered by versions, latest on top
+  sort -rV index.html > index.html.sorted
+  mv index.html.sorted index.html
+
+  git add "$version"
+  git add index.html
+  git commit -m "Automatically updated javadocs for $version"
+  git push origin gh-pages
 }
 
 #----------------------
@@ -120,11 +158,13 @@ if ! is_pull_request && build_started_by_tag; then
 fi
 
 # During a release upload, don't run tests as they can flake or overrun the max time allowed by Travis.
-# skip license on travis due to #1512
-if is_release_commit; then
+if is_release_version; then
   true
 else
-  ./mvnw verify -nsu -Dlicense.skip=true
+  # verify runs both tests and integration tests (Docker tests included)
+  # -Dlicense.skip=true skips license on Travis due to #1512
+  # -DskipActuator ensures no tests rely on the actuator library
+  ./mvnw verify -nsu -Dlicense.skip=true -DskipActuator -DskipITs
 fi
 
 # If we are on a pull request, our only job is to run tests, which happened above via ./mvnw install
@@ -132,19 +172,24 @@ if is_pull_request; then
   true
 
 # If we are on master, we will deploy the latest snapshot or release version
-#   - If a release commit fails to deploy for a transient reason, delete the broken version from bintray and click rebuild
+#  * If a release commit fails to deploy for a transient reason, drop to staging repository in
+#    Sonatype and try again: https://oss.sonatype.org/#stagingRepositories
 elif is_travis_branch_master; then
-  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests -Dlicense.skip=true deploy
+  # -Prelease ensures the core jar ends up JRE 1.6 compatible
+  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests deploy
 
-  # If the deployment succeeded, sync it to Maven Central. Note: this needs to be done once per project, not module, hence -N
-  if is_release_commit; then
-    run_docker_hub_build
-    ./mvnw --batch-mode -s ./.settings.xml -nsu -N io.zipkin.centralsync-maven-plugin:centralsync-maven-plugin:sync
+  # Regardless of if this is a release build or not, push to corresponding Docker Registries
+  RELEASE_FROM_MAVEN_BUILD=true docker/bin/push_all $(print_project_version)
+
+  if is_release_version; then
+    # cleanup the release trigger, but don't fail if it was already there
+    git push origin :"release-$(print_project_version)" || true
+    javadoc_to_gh_pages
   fi
 
 # If we are on a release tag, the following will update any version references and push a version tag for deployment.
 elif build_started_by_tag; then
   safe_checkout_master
-  # skip license on travis due to #1512
-  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DreleaseVersion="$(release_version)" -Darguments="-DskipTests -Dlicense.skip=true" release:prepare
+  ./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DreleaseVersion="$(release_version)" -Darguments="-DskipTests" release:prepare
 fi
+

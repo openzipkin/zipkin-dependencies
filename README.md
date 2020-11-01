@@ -132,7 +132,7 @@ To build the job from source and run against a local cassandra, in Spark's stand
 
 ```bash
 # Build the spark jobs
-$ ./mvnw -q --batch-mode -DskipTests -Denforcer.fail=false --also-make -pl main package
+$ ./mvnw -T1C -q --batch-mode -DskipTests -Dlicense.skip=true -Denforcer.fail=false --also-make -pl main package
 $ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
@@ -175,6 +175,14 @@ All artifacts publish to the group ID "io.zipkin.dependencies". We use a common
 release version for all components.
 
 ### Library Releases
-Releases are uploaded to [Bintray](https://bintray.com/openzipkin/maven/zipkin) and synchronized to [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.dependencies%22)
+Releases are at [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.dependencies%22)
+
 ### Library Snapshots
-Snapshots are uploaded to [JFrog](https://oss.jfrog.org/artifactory/oss-snapshot-local) after commits to master.
+Snapshots are uploaded to [Sonatype](https://oss.sonatype.org/content/repositories/snapshots) after
+commits to master.
+
+### Docker Images
+Released versions of zipkin-server are published to Docker Hub as `openzipkin/zipkin-dependencies`
+and GitHub Container Registry as `ghcr.io/openzipkin/zipkin-dependencies`.
+
+See [docker](./docker) for details.

@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import org.mariadb.jdbc.MariaDbDataSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.jdbc.ContainerLessJdbcDelegate;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.testcontainers.ext.ScriptUtils.runInitScript;
 
@@ -26,7 +27,7 @@ final class ZipkinMySQLContainer extends GenericContainer<ZipkinMySQLContainer> 
 
   MariaDbDataSource dataSource;
 
-  ZipkinMySQLContainer(String image) {
+  ZipkinMySQLContainer(DockerImageName image) {
     super(image);
     withExposedPorts(3306);
   }
