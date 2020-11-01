@@ -21,7 +21,6 @@ if [ "$RELEASE_FROM_MAVEN_BUILD" = "true" ]; then
   echo "*** Reusing zipkin-dependencies jar in the Docker context..."
   cp "/code/main/target/zipkin-dependencies-${RELEASE_VERSION}.jar" zipkin-dependencies.jar
 else
-  io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
   case ${RELEASE_VERSION} in
     *-SNAPSHOT )
       echo "Building from source within Docker is not supported. \
@@ -30,7 +29,6 @@ else
       ;;
     * )
       echo "*** Downloading from Maven..."
-      io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
       mvn -q --batch-mode --batch-mode org.apache.maven.plugins:maven-dependency-plugin:3.1.2:get \
           -Dtransitive=false -Dartifact=io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
       find ~/.m2/repository -name zipkin-dependencies-${RELEASE_VERSION}.jar -exec cp {} zipkin-dependencies.jar \;

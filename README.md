@@ -182,7 +182,7 @@ Snapshots are uploaded to [Sonatype](https://oss.sonatype.org/content/repositori
 commits to master.
 
 ### Docker Images
-Released versions of zipkin-server are published to Docker Hub as `openzipkin/zipkin-dependencies`
+Released versions of zipkin-dependencies are published to Docker Hub as `openzipkin/zipkin-dependencies`
 and GitHub Container Registry as `ghcr.io/openzipkin/zipkin-dependencies`.
 
 See [docker](./docker) for details.

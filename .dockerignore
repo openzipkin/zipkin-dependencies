@@ -1,26 +1,7 @@
 # https://docs.docker.com/engine/reference/builder/#dockerignore-file
-**/.*
-!.dockerignore
-!.mvn
-# Builds don't run license check, but need git-commit-id in the server console
-!.git
-!docker/zipkin/**
-!**/.eslintrc*
-!**/.prettierrc*
-
-**/*.test.yml
-
-**/target
-**/build
-**/node_modules
-**/*.iml
-
-**/.idea
-**/*.md
-
-**/Dockerfile
-travis/**
-.travis.yml
+**
+!docker/bin/**
+!docker/periodic/**
 
 # Allow re-use of built artifacts when building docker from master or a release tag
 !/main/target/zipkin-dependencies-*.jar
