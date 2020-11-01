@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.DockerImageName;
 import zipkin2.storage.cassandra.CassandraStorage.SessionFactory;
 
 import static java.util.Arrays.asList;
@@ -56,11 +57,11 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
   );
   static final Logger LOGGER = LoggerFactory.getLogger(CassandraStorageExtension.class);
   static final int CASSANDRA_PORT = 9042;
-  final String image;
+  final DockerImageName image;
   CassandraContainer container;
   CqlSession globalSession;
 
-  CassandraStorageExtension(String image) {
+  CassandraStorageExtension(DockerImageName image) {
     this.image = image;
   }
 
@@ -73,7 +74,8 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         LOGGER.info("Starting docker image " + image);
-        container = new CassandraContainer(image).withExposedPorts(CASSANDRA_PORT);
+        container =
+          new CassandraContainer(image.asCanonicalNameString()).withExposedPorts(CASSANDRA_PORT);
         container.start();
       } catch (RuntimeException e) {
         LOGGER.warn("Couldn't start docker image " + image + ": " + e.getMessage(), e);

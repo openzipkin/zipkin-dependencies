@@ -18,7 +18,6 @@ import com.linecorp.armeria.client.WebClient;
 import com.linecorp.armeria.client.WebClientBuilder;
 import com.linecorp.armeria.client.logging.LoggingClient;
 import com.linecorp.armeria.common.logging.LogLevel;
-import java.io.IOException;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -27,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
+import org.testcontainers.utility.DockerImageName;
 import zipkin2.CheckResult;
 import zipkin2.elasticsearch.ElasticsearchStorage.Builder;
 
@@ -35,14 +35,14 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class ElasticsearchStorageExtension implements BeforeAllCallback, AfterAllCallback {
   static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchStorageExtension.class);
   static final int ELASTICSEARCH_PORT = 9200;
-  final String image;
+  final DockerImageName image;
   GenericContainer container;
 
-  ElasticsearchStorageExtension(String image) {
+  ElasticsearchStorageExtension(DockerImageName image) {
     this.image = image;
   }
 
-  @Override public void beforeAll(ExtensionContext context) throws IOException {
+  @Override public void beforeAll(ExtensionContext context) {
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         LOGGER.info("Starting docker image " + image);
@@ -51,7 +51,7 @@ class ElasticsearchStorageExtension implements BeforeAllCallback, AfterAllCallba
           .waitingFor(new HttpWaitStrategy().forPath("/"));
         container.start();
         if (Boolean.parseBoolean(System.getenv("ES_DEBUG"))) {
-          container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(image)));
+          container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(image.toString())));
         }
         LOGGER.info("Starting docker image " + image);
       } catch (RuntimeException e) {

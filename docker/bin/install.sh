@@ -15,21 +15,27 @@
 
 set -eux
 
-# This script decides based on $RELEASE_VERSION whether to build or download the binary we need.
-if [ "$RELEASE_VERSION" = "master" ]
-then
-  echo "*** Building from source..."
-  # Uses the same command as we suggest in README.md: disables JDK enforcement only needed in tests
-  (cd /code; ./mvnw -T1C -q --batch-mode -DskipTests -Denforcer.fail=false --also-make -pl main package)
-  cp /code/main/target/zipkin-dependencies*.jar zipkin-dependencies.jar
+# This script decides based on $RELEASE_FROM_MAVEN_BUILD and $RELEASE_VERSION whether to reuse or
+# download the binaries we need.
+if [ "$RELEASE_FROM_MAVEN_BUILD" = "true" ]; then
+  echo "*** Reusing zipkin-dependencies jar in the Docker context..."
+  cp "/code/main/target/zipkin-dependencies-${RELEASE_VERSION}.jar" zipkin-dependencies.jar
 else
-  artifact=io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
-  echo "*** Downloading ${artifact} using Maven...."
-  # This prefers Maven central, but uses our release repository if it isn't yet synced.
-  mvn --batch-mode org.apache.maven.plugins:maven-dependency-plugin:get \
-      -DremoteRepositories=bintray::::https://dl.bintray.com/openzipkin/maven -Dtransitive=false \
-      -Dartifact=${artifact}
-    find ~/.m2/repository -name zipkin-dependencies-${RELEASE_VERSION}.jar -exec cp {} zipkin-dependencies.jar \;
+  io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
+  case ${RELEASE_VERSION} in
+    *-SNAPSHOT )
+      echo "Building from source within Docker is not supported. \
+            Build via instructions at the bottom of README.md and set RELEASE_FROM_MAVEN_BUILD=true"
+      exit 1
+      ;;
+    * )
+      echo "*** Downloading from Maven..."
+      io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
+      mvn -q --batch-mode --batch-mode org.apache.maven.plugins:maven-dependency-plugin:3.1.2:get \
+          -Dtransitive=false -Dartifact=io.zipkin.dependencies:zipkin-dependencies:${RELEASE_VERSION}:jar
+      find ~/.m2/repository -name zipkin-dependencies-${RELEASE_VERSION}.jar -exec cp {} zipkin-dependencies.jar \;
+      ;;
+    esac
 fi
 
 # sanity check!

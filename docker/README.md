@@ -13,13 +13,16 @@ Automatically built images are available on Docker Hub as [openzipkin/zipkin-dep
 To process all spans since midnight UTC, run the default entrypoint of this image pointed at your storage backend.
 
 ```bash
-$ docker run --env STORAGE_TYPE=cassandra --env CASSANDRA_CONTACT_POINTS=host1,host2 openzipkin/zipkin-dependencies
+# Note: this is mirrored as ghcr.io/openzipkin/zipkin-slim
+docker run --env STORAGE_TYPE=cassandra --env CASSANDRA_CONTACT_POINTS=host1,host2 openzipkin/zipkin-dependencies
 ```
 
 ### Cron
 To process spans since midnight every hour, and all spans each day, change the entrypoint to cron.
 
+
 ```bash
+# Note: this is mirrored as ghcr.io/openzipkin/zipkin-slim
 $ docker run ... --entrypoint /usr/sbin/crond openzipkin/zipkin-dependencies -f
 ```
 
@@ -35,11 +38,11 @@ In docker, the following can also be set:
 To build a zipkin-dependencies Docker image from source, in the top level of the repository, run:
 
 ```bash
-$ docker build -t openzipkin/zipkin-dependencies:test -f docker/Dockerfile .
+$ docker/build_image openzipkin/zipkin-dependencies:test
 ```
 
 To build from a published version, run this instead:
 
 ```bash
-$ docker build --build-arg RELEASE_VERSION=2.4.3 -t openzipkin/zipkin-dependencies:test -f docker/Dockerfile .
+$ docker/build_image openzipkin/zipkin-dependencies:test 2.5.1
 ```
