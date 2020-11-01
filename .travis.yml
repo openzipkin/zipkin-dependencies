@@ -8,7 +8,6 @@ dist: focal           # newest available distribution
 
 language: java
 
-# Spark doesn't support Java 9+ until v3.0 https://issues.apache.org/jira/browse/SPARK-24421
 jdk:
   - oraclejdk8
 
@@ -20,6 +19,12 @@ cache:
   - $HOME/.m2
 
 before_install:
+  - |
+    # Can't use Java 9+ until we can use Spark v3 https://github.com/openzipkin/zipkin-dependencies/issues/119
+    OPENJDK_VERSION=8
+    sudo apt-get -y install openjdk-${OPENJDK_VERSION}-jdk
+    export JAVA_HOME=/usr/lib/jvm/java-${OPENJDK_VERSION}-openjdk-${TRAVIS_CPU_ARCH}/
+    ./mvnw -version
   - |
     # Cache as help:evaluate is not quick
     export POM_VERSION=$(./mvnw help:evaluate -N -Dexpression=project.version -q -DforceStdout)
