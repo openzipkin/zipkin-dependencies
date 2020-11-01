@@ -8,9 +8,6 @@ dist: focal           # newest available distribution
 
 language: java
 
-jdk:
-  - oraclejdk8
-
 services:
   - docker
 
