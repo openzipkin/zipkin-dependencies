@@ -14,6 +14,3 @@ _site/
 *.iml
 *.swp
 .DS_Store
-
-# Maven Wrapper
-.mvn/wrapper/maven-wrapper.jar

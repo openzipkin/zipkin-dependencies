@@ -18,7 +18,7 @@ This repo uses semantic versions. Please keep this in mind when choosing version
      * Creates commits, N.N.N tag, and increments the version (maven-release-plugin)
      * Publishes jars to https://oss.sonatype.org/service/local/staging/deploy/maven2 (maven-deploy-plugin)
        * Upon close, this synchronizes jars to Maven Central
-     * Invokes [DockerHub](docker/RELEASE.md] build (docker/bin/push_all)
+     * Invokes [DockerHub](docker/RELEASE.md] build (docker/bin/push_all_images)
 
    Notes:
      * https://search.maven.org/ index will take longer than direct links like https://repo1.maven.org/maven2/io/zipkin
