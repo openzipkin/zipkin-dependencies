@@ -14,7 +14,6 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 ## Versions
 
 * `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 3.11
-* `STORAGE_TYPE=cassandra` : requires Cassandra 2.2+; tested against the latest patch of 3.11
 * `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 5.6
 * `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 5+; tested against last minor release of 6.x and 7.x
 
@@ -132,7 +131,7 @@ To build the job from source and run against a local cassandra, in Spark's stand
 
 ```bash
 # Build the spark jobs
-$ ./mvnw -T1C -q --batch-mode -DskipTests -Dlicense.skip=true -Denforcer.fail=false --also-make -pl main package
+$ ./mvnw -T1C -q --batch-mode -DskipTests -Denforcer.fail=false package
 $ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
 ```
 

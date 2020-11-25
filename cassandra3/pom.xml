@@ -24,7 +24,7 @@
   </parent>
 
   <artifactId>zipkin-dependencies-cassandra3</artifactId>
-  <name>Zipkin Dependencies: Cassandra (Zipkin V2)</name>
+  <name>Zipkin Dependencies: Cassandra</name>
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
@@ -40,11 +40,6 @@
     <!-- integration tests -->
     <dependency>
       <groupId>io.zipkin.zipkin2</groupId>
-      <artifactId>zipkin-tests</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
       <artifactId>zipkin-storage-cassandra</artifactId>
       <version>${zipkin.version}</version>
       <scope>test</scope>
@@ -53,6 +48,7 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

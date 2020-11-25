@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import zipkin2.CheckResult;
 import zipkin2.elasticsearch.ElasticsearchStorage.Builder;
@@ -46,9 +46,9 @@ class ElasticsearchStorageExtension implements BeforeAllCallback, AfterAllCallba
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         LOGGER.info("Starting docker image " + image);
-        container = new GenericContainer(image)
+        container = new GenericContainer<>(image)
           .withExposedPorts(ELASTICSEARCH_PORT)
-          .waitingFor(new HttpWaitStrategy().forPath("/"));
+          .waitingFor(Wait.forHealthcheck());
         container.start();
         if (Boolean.parseBoolean(System.getenv("ES_DEBUG"))) {
           container.followOutput(new Slf4jLogConsumer(LoggerFactory.getLogger(image.toString())));

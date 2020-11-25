@@ -23,7 +23,6 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>cassandra</module>
     <module>cassandra3</module>
     <module>mysql</module>
     <module>elasticsearch</module>
@@ -33,8 +32,12 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+    <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <main.basedir>${project.basedir}</main.basedir>
+    <main.java.version>1.8</main.java.version>
+    <main.signature.artifact>java18</main.signature.artifact>
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
@@ -45,7 +48,8 @@
     <scala.binary.version>2.11</scala.binary.version>
     <spark.version>2.4.7</spark.version>
 
-    <zipkin.version>2.22.1</zipkin.version>
+    <!-- When updating, also update IT*.java -->
+    <zipkin.version>2.23.0</zipkin.version>
     <armeria.version>1.2.0</armeria.version>
     <jackson.version>2.11.3</jackson.version>
 
@@ -54,22 +58,27 @@
 
     <junit.version>4.13.1</junit.version>
     <junit-jupiter.version>5.7.0</junit-jupiter.version>
-    <assertj.version>3.17.2</assertj.version>
-    <testcontainers.version>1.15.0-rc2</testcontainers.version>
+    <assertj.version>3.18.1</assertj.version>
+    <testcontainers.version>1.15.0</testcontainers.version>
+
+    <license.skip>${skipTests}</license.skip>
 
     <animal-sniffer-maven-plugin.version>1.19</animal-sniffer-maven-plugin.version>
+    <go-offline-maven-plugin.version>1.2.7</go-offline-maven-plugin.version>
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-    <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
-    <maven-enforcer-plugin.version>3.0.0-M3</maven-enforcer-plugin.version>
-    <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
     <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
-    <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
-    <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
+    <!-- Use same version as https://github.com/openzipkin/docker-java -->
+    <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
+    <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
     <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
     <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
     <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
+    <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+    <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
+    <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+    <maven-enforcer-plugin.version>3.0.0-M3</maven-enforcer-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
   </properties>
 
@@ -126,45 +135,9 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>io.zipkin.zipkin2</groupId>
-        <artifactId>zipkin-tests</artifactId>
-        <version>${zipkin.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-dependencies-cassandra</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-dependencies-cassandra3</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-dependencies-mysql</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>zipkin-dependencies-elasticsearch</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-
-      <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_${scala.binary.version}</artifactId>
         <version>${spark.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>${testcontainers.version}</version>
       </dependency>
 
       <dependency>
@@ -204,38 +177,50 @@
     </dependency>
 
     <dependency>
+      <groupId>io.zipkin.zipkin2</groupId>
+      <artifactId>zipkin-tests</artifactId>
+      <version>${zipkin.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.junit.vintage</groupId>
       <artifactId>junit-vintage-engine</artifactId>
       <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <!--
-    Current versions of JUnit5 provide the above junit-jupiter artifact for convenience but we may
-    still have transitive dependencies on these older artifacts and have to make sure they're all
-    using the same version.
+      Current versions of JUnit5 provide the above junit-jupiter artifact for convenience but we may
+      still have transitive dependencies on these older artifacts and have to make sure they're all
+      using the same version.
     -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -249,13 +234,6 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- mvn de.qaware.maven:go-offline-maven-plugin:resolve-dependencies -->
-        <plugin>
-          <groupId>de.qaware.maven</groupId>
-          <artifactId>go-offline-maven-plugin</artifactId>
-          <version>1.2.7</version>
-        </plugin>
-
         <!-- mvn -N io.takari:maven:wrapper generates the ./mvnw script -->
         <plugin>
           <groupId>io.takari</groupId>
@@ -266,27 +244,87 @@
           </configuration>
         </plugin>
 
+        <!-- mvn de.qaware.maven:go-offline-maven-plugin:resolve-dependencies -->
         <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>${maven-compiler-plugin.version}</version>
-          <inherited>true</inherited>
+          <groupId>de.qaware.maven</groupId>
+          <artifactId>go-offline-maven-plugin</artifactId>
+          <version>${go-offline-maven-plugin.version}</version>
           <configuration>
-            <source>1.8</source>
-            <target>1.8</target>
-            <!-- or die! com.sun.tools.javac.api.JavacTool -->
-            <fork>true</fork>
-            <showWarnings>true</showWarnings>
+            <!-- Add dependencies indirectly referenced by build plugins -->
+            <dynamicDependencies>
+              <!-- animal sniffer implicitly uses this -->
+              <DynamicDependency>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${maven-dependency-plugin.version}</version>
+                <repositoryType>PLUGIN</repositoryType>
+              </DynamicDependency>
+              <DynamicDependency>
+                <groupId>org.codehaus.mojo.signature</groupId>
+                <artifactId>${main.signature.artifact}</artifactId>
+                <version>1.0</version>
+                <type>signature</type>
+                <repositoryType>MAIN</repositoryType>
+              </DynamicDependency>
+              <DynamicDependency>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin-git</artifactId>
+                <version>${license-maven-plugin.version}</version>
+                <repositoryType>MAIN</repositoryType>
+              </DynamicDependency>
+              <DynamicDependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_core</artifactId>
+                <version>${errorprone.version}</version>
+                <repositoryType>MAIN</repositoryType>
+              </DynamicDependency>
+              <DynamicDependency>
+                <groupId>org.apache.maven.surefire</groupId>
+                <artifactId>surefire-junit-platform</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <repositoryType>PLUGIN</repositoryType>
+              </DynamicDependency>
+            </dynamicDependencies>
           </configuration>
+        </plugin>
+
+        <!-- maven-dependency-plugin:get should use a recent version. -->
+        <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>${maven-dependency-plugin.version}</version>
+        </plugin>
+
+        <!-- Uploads occur as a last step (which also adds checksums) -->
+        <plugin>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${maven-deploy-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${maven-install-plugin.version}</version>
         </plugin>
 
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>${maven-jar-plugin.version}</version>
+          <configuration>
+            <archive>
+              <!-- prevents huge pom file from also being added to the jar under META-INF/maven -->
+              <addMavenDescriptor>false</addMavenDescriptor>
+            </archive>
+          </configuration>
         </plugin>
 
         <plugin>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>${maven-shade-plugin.version}</version>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>${maven-release-plugin.version}</version>
+          <configuration>
+            <useReleaseProfile>false</useReleaseProfile>
+            <releaseProfiles>release</releaseProfiles>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <tagNameFormat>@{project.version}</tagNameFormat>
+          </configuration>
         </plugin>
 
         <plugin>
@@ -299,25 +337,26 @@
 
     <plugins>
       <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>${maven-failsafe-plugin.version}</version>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler-plugin.version}</version>
+        <inherited>true</inherited>
         <configuration>
-          <!-- Ensure scope leak cause ends up in the console -->
-          <trimStackTrace>false</trimStackTrace>
+          <source>1.8</source>
+          <target>1.8</target>
+          <fork>true</fork>
+          <showWarnings>true</showWarnings>
         </configuration>
+      </plugin>
+
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
       </plugin>
 
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${maven-failsafe-plugin.version}</version>
-        <configuration>
-          <!-- Try to prevent flakes in CI -->
-          <reuseForks>false</reuseForks>
-          <!-- workaround to SUREFIRE-1831 -->
-          <useModulePath>false</useModulePath>
-          <!-- Ensure scope leak cause ends up in the console -->
-          <trimStackTrace>false</trimStackTrace>
-        </configuration>
+        <version>${maven-surefire-plugin.version}</version>
         <executions>
           <execution>
             <id>integration-test</id>
@@ -328,17 +367,61 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <!-- Try to prevent flakes in CI -->
+          <reuseForks>false</reuseForks>
+          <!-- workaround to SUREFIRE-1831 -->
+          <useModulePath>false</useModulePath>
+          <!-- Ensure scope leak cause ends up in the console -->
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
+      </plugin>
+
+      <!-- Ensure no Java 9+ api usage -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+        <version>${animal-sniffer-maven-plugin.version}</version>
+        <configuration>
+          <checkTestClasses>false</checkTestClasses>
+          <skip>${skipTests}</skip>
+          <signature>
+            <groupId>org.codehaus.mojo.signature</groupId>
+            <artifactId>${main.signature.artifact}</artifactId>
+            <version>1.0</version>
+          </signature>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
-        <artifactId>maven-install-plugin</artifactId>
-        <version>${maven-install-plugin.version}</version>
-      </plugin>
-
-      <!-- Uploads occur as a last step (which also adds checksums) -->
-      <plugin>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <version>${maven-deploy-plugin.version}</version>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${maven-enforcer-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>enforce-java</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <!-- Enforcement is only needed when running tests -->
+              <skip>${skipTests}</skip>
+              <rules>
+                <!-- Spark doesn't support Java 9+ until v3.0
+                     https://issues.apache.org/jira/browse/SPARK-24421 -->
+                <requireJavaVersion>
+                  <version>[1.8,9)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
@@ -346,30 +429,53 @@
         <artifactId>license-maven-plugin</artifactId>
         <version>${license-maven-plugin.version}</version>
         <configuration>
-          <!-- session.executionRootDirectory resolves properly even with nested modules -->
+          <skip>${license.skip}</skip>
           <header>${main.basedir}/src/etc/header.txt</header>
           <mapping>
             <!-- Don't use javadoc style as this makes code formatters break it by adding tags! -->
             <java>SLASHSTAR_STYLE</java>
-            <Dockerfile.release>SCRIPT_STYLE</Dockerfile.release>
-            <build>SCRIPT_STYLE</build>
+            <!-- build-bin/docker -->
+            <configure_docker>SCRIPT_STYLE</configure_docker>
+            <configure_docker_push>SCRIPT_STYLE</configure_docker_push>
+            <docker_arch>SCRIPT_STYLE</docker_arch>
+            <docker_args>SCRIPT_STYLE</docker_args>
+            <docker_block_on_health>SCRIPT_STYLE</docker_block_on_health>
+            <docker_build>SCRIPT_STYLE</docker_build>
+            <docker_push>SCRIPT_STYLE</docker_push>
+            <docker_test_image>SCRIPT_STYLE</docker_test_image>
+            <!-- build-bin/git -->
+            <login_git>SCRIPT_STYLE</login_git>
+            <version_from_trigger_tag>SCRIPT_STYLE</version_from_trigger_tag>
+            <!-- build-bin/gpg -->
+            <configure_gpg>SCRIPT_STYLE</configure_gpg>
+            <!-- build-bin/maven -->
+            <maven_build>SCRIPT_STYLE</maven_build>
+            <maven_build_or_unjar>SCRIPT_STYLE</maven_build_or_unjar>
+            <maven_deploy>SCRIPT_STYLE</maven_deploy>
+            <maven_go_offline>SCRIPT_STYLE</maven_go_offline>
+            <maven_release>SCRIPT_STYLE</maven_release>
+            <maven_opts>SCRIPT_STYLE</maven_opts>
+            <maven_unjar>SCRIPT_STYLE</maven_unjar>
+            <!-- docker/periodic/** -->
+            <zipkin-dependencies-today>SCRIPT_STYLE</zipkin-dependencies-today>
+            <zipkin-dependencies-yesterday>SCRIPT_STYLE</zipkin-dependencies-yesterday>
+            <!-- docker/bin -->
+            <start-zipkin-dependencies>SCRIPT_STYLE</start-zipkin-dependencies>
           </mapping>
           <excludes>
-            <exclude>.travis.yml</exclude>
-            <exclude>**/*.dockerignore</exclude>
-            <exclude>.editorconfig</exclude>
-            <exclude>.gitattributes</exclude>
+            <exclude>.docker.env</exclude>
             <exclude>.gitignore</exclude>
+            <exclude>.editorconfig</exclude>
             <exclude>.mvn/**</exclude>
             <exclude>mvnw*</exclude>
             <exclude>etc/header.txt</exclude>
             <exclude>**/.idea/**</exclude>
             <exclude>LICENSE</exclude>
             <exclude>**/*.md</exclude>
-            <exclude>**/nohup.out</exclude>
             <exclude>src/test/resources/**</exclude>
             <exclude>src/main/resources/**</exclude>
-            <exclude>docker/periodic/**</exclude>
+            <exclude>.dockerignore</exclude>
+            <exclude>build-bin/*</exclude>
           </excludes>
           <strictCheck>true</strictCheck>
         </configuration>
@@ -389,40 +495,20 @@
           </execution>
         </executions>
       </plugin>
-
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>${maven-release-plugin.version}</version>
-        <configuration>
-          <useReleaseProfile>false</useReleaseProfile>
-          <releaseProfiles>release</releaseProfiles>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
-          <tagNameFormat>@{project.version}</tagNameFormat>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.0.0-M3</version>
-        <executions>
-          <execution>
-            <id>enforce-java</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <!-- Spark doesn't support Java 9+ until v3.0
-                     https://issues.apache.org/jira/browse/SPARK-24421 -->
-                <requireJavaVersion>
-                  <version>[1.8,9)</version>
-                </requireJavaVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
+
+    <resources>
+      <!-- This adds the LICENSE and NOTICE file to the jar and -sources jar of each module -->
+      <resource>
+        <filtering>false</filtering>
+        <directory>${main.basedir}</directory>
+        <targetPath>META-INF/</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
+    </resources>
   </build>
 
   <profiles>
@@ -467,6 +553,7 @@
         </plugins>
       </build>
     </profile>
+
     <profile>
       <id>release</id>
       <build>
@@ -478,6 +565,9 @@
             <configuration>
               <serverId>ossrh</serverId>
               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <!-- Double the normal timeout even though we haven't had a problem in this project.
+                   The only outcome of timing out client side is trying again. -->
+              <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
               <autoReleaseAfterClose>true</autoReleaseAfterClose>
             </configuration>
           </plugin>
@@ -503,18 +593,6 @@
             </executions>
           </plugin>
 
-          <!-- disable license plugin since it should have already checked things and #1512 -->
-          <plugin>
-            <groupId>com.mycila</groupId>
-            <artifactId>license-maven-plugin</artifactId>
-            <version>${license-maven-plugin.version}</version>
-            <executions>
-              <execution>
-                <phase>none</phase>
-              </execution>
-            </executions>
-          </plugin>
-
           <!-- Creates source jar -->
           <plugin>
             <artifactId>maven-source-plugin</artifactId>
@@ -529,13 +607,21 @@
             </executions>
           </plugin>
 
+          <!-- Creates javadoc jar, skipping internal classes -->
           <plugin>
             <artifactId>maven-javadoc-plugin</artifactId>
             <version>${maven-javadoc-plugin.version}</version>
             <configuration>
+              <sourceFileExcludes>
+                <exclude>**/internal/*.java</exclude>
+                <exclude>**/Internal*.java</exclude>
+              </sourceFileExcludes>
+              <excludePackageNames>*.internal.*</excludePackageNames>
               <failOnError>false</failOnError>
               <!-- hush pedantic warnings: we don't put param and return on everything! -->
               <doclint>none</doclint>
+              <!-- While we publish modules, our source is pre-Java9 so tell javadoc that. -->
+              <source>8</source>
             </configuration>
             <executions>
               <execution>

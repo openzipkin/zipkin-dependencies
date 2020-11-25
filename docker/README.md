@@ -38,11 +38,11 @@ In docker, the following can also be set:
 To build a zipkin-dependencies Docker image from source, in the top level of the repository, run:
 
 ```bash
-$ docker/build_image openzipkin/zipkin-dependencies:test
+$ build-bin/docker/docker_build openzipkin/zipkin-dependencies:test
 ```
 
 To build from a published version, run this instead:
 
 ```bash
-$ docker/build_image openzipkin/zipkin-dependencies:test 2.5.1
+$ build-bin/docker/docker_build openzipkin/zipkin-dependencies:test 2.5.1
 ```

@@ -13,8 +13,12 @@
 # the License.
 #
 
-# ENTRYPOINT script that runs the dependencies job on-demand, processing today's spans unless CLI
-# args override it (Ex. 2020-10-31)
-set -eu
+set -ue
 
-exec java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -cp classes zipkin2.dependencies.ZipkinDependenciesJob $@
+# Allocate commits to CI, not the owner of the deploy key
+git config user.name "zipkinci"
+git config user.email "zipkinci+zipkin-dev@googlegroups.com"
+
+# Setup https authentication credentials, used by ./mvnw release:prepare
+git config credential.helper "store --file=.git/credentials"
+echo "https://$GH_TOKEN:@github.com" > .git/credentials

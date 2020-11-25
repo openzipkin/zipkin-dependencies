@@ -21,7 +21,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.TimeZone;
-import zipkin2.dependencies.cassandra.CassandraDependenciesJob;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;
 
@@ -40,7 +39,6 @@ public final class ZipkinDependenciesJob {
     Runnable logInitializer = LogInitializer.create(zipkinLogLevel);
     logInitializer.run(); // Ensures local log commands emit
 
-
     final LinkedHashMap<String, String> sparkConf = new LinkedHashMap<>();
     String sparkConfRaw = System.getenv("SPARK_CONF");
     if (sparkConfRaw != null && !sparkConfRaw.isEmpty() && sparkConfRaw.indexOf("=") > -1) {
@@ -53,15 +51,6 @@ public final class ZipkinDependenciesJob {
     }
 
     switch (storageType) {
-      case "cassandra":
-        CassandraDependenciesJob.builder()
-          .logInitializer(logInitializer)
-          .jars(jarPath)
-          .day(day)
-          .conf(sparkConf)
-          .build()
-          .run();
-        break;
       case "cassandra3":
         zipkin2.dependencies.cassandra3.CassandraDependenciesJob.builder()
           .logInitializer(logInitializer)
@@ -90,14 +79,15 @@ public final class ZipkinDependenciesJob {
           .run();
         break;
       default:
-        throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType);
+        throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType + "\n"
+          + "Options are: cassandra3, mysql, elasticsearch");
     }
   }
 
   static String[] pathToUberJar() throws UnsupportedEncodingException {
     URL jarFile = ZipkinDependenciesJob.class.getProtectionDomain().getCodeSource().getLocation();
     return new File(jarFile.getPath()).isDirectory() ? null
-        : new String[] {URLDecoder.decode(jarFile.getPath(), "UTF-8")};
+      : new String[] {URLDecoder.decode(jarFile.getPath(), "UTF-8")};
   }
 
   static long parseDay(String formattedDate) {
@@ -107,7 +97,7 @@ public final class ZipkinDependenciesJob {
       return df.parse(formattedDate).getTime();
     } catch (ParseException e) {
       throw new IllegalArgumentException(
-          "First argument must be a yyyy-MM-dd formatted date. Ex. 2016-07-16");
+        "First argument must be a yyyy-MM-dd formatted date. Ex. 2016-07-16");
     }
   }
 }

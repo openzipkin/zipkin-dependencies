@@ -13,8 +13,14 @@
 # the License.
 #
 
-# ENTRYPOINT script that runs the dependencies job on-demand, processing today's spans unless CLI
-# args override it (Ex. 2020-10-31)
-set -eu
+set -ue
 
-exec java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -cp classes zipkin2.dependencies.ZipkinDependenciesJob $@
+docker_tag=${1?full docker_tag is required. Ex openzipkin/zipkin:test}
+version=${2:-}
+docker_args=$($(dirname "$0")/docker_args ${version})
+
+# Avoid buildx on load for two reasons:
+#  * It only supports one platform/arch on load https://github.com/docker/buildx/issues/59
+#  * It would pull Docker Hub for moby/buildkit or multiarch/qemu-user-static images, using up quota
+echo "Building image ${docker_tag}"
+DOCKER_BUILDKIT=0 docker build ${docker_args} --tag ${docker_tag} .

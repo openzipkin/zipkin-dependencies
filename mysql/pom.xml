@@ -33,7 +33,7 @@
 
          MariaDB has a friendlier license, LGPL, which is less scary in audits.
     -->
-    <mariadb-java-client.version>2.7.0</mariadb-java-client.version>
+    <mariadb-java-client.version>2.7.1</mariadb-java-client.version>
   </properties>
 
   <dependencies>
@@ -51,11 +51,6 @@
     </dependency>
 
     <!-- integration tests -->
-    <dependency>
-      <groupId>io.zipkin.zipkin2</groupId>
-      <artifactId>zipkin-tests</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>mysql</artifactId>

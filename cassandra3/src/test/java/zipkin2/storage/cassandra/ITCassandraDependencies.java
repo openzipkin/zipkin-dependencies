@@ -29,7 +29,7 @@ import static zipkin2.storage.ITDependencies.aggregateLinks;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITCassandraDependencies {
   @RegisterExtension CassandraStorageExtension backend = new CassandraStorageExtension(
-    DockerImageName.parse("ghcr.io/openzipkin/zipkin-cassandra:2.22.1"));
+    DockerImageName.parse("ghcr.io/openzipkin/zipkin-cassandra:2.23.0"));
 
   @Nested
   class ITDependencies extends zipkin2.storage.ITDependencies<CassandraStorage> {

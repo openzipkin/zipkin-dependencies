@@ -1,0 +1,82 @@
+# yamllint --format github .github/workflows/test.yml
+---
+name: test
+
+# We don't test documentation-only commits.
+on:
+  # We run tests on non-tagged pushes to master that aren't a commit made by the release plugin
+  push:
+    tags: ''
+    branches: master
+    paths-ignore: '**/*.md'
+  # We also run tests on pull requests targeted at the master branch.
+  pull_request:
+    branches: master
+    paths-ignore: '**/*.md'
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04  # newest available distribution, aka focal
+    if: "!contains(github.event.head_commit.message, 'maven-release-plugin')"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # full git history for license check
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+      - name: Cache Docker
+        uses: actions/cache@v2
+        with:
+          path: ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: ${{ runner.os }}-docker
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Test without Docker
+        run: build-bin/maven/maven_go_offline && build-bin/test -Ddocker.skip=true
+  test_docker:
+    runs-on: ubuntu-20.04  # newest available distribution, aka focal
+    if: "!contains(github.event.head_commit.message, 'maven-release-plugin')"
+    strategy:
+      matrix:
+        include:
+          - name: zipkin-dependencies-cassandra3
+          - name: zipkin-dependencies-elasticsearch
+          - name: zipkin-dependencies-mysql
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1  # -Dlicense.skip=true so we don't need a full clone
+      # Remove apt repos that are known to break from time to time.
+      # See https://github.com/actions/virtual-environments/issues/323
+      - name: Remove broken apt repos
+        run: |
+          for apt_file in `grep -lr microsoft /etc/apt/sources.list.d/`; do sudo rm $apt_file; done
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+      - name: Cache Docker
+        uses: actions/cache@v2
+        with:
+          path: ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: ${{ runner.os }}-docker
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Test with Docker
+        run: |
+          build-bin/configure_test &&
+          build-bin/test -pl :${{ matrix.name }} --am -Dlicense.skip=true

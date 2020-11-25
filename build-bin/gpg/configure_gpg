@@ -13,8 +13,13 @@
 # the License.
 #
 
-# ENTRYPOINT script that runs the dependencies job on-demand, processing today's spans unless CLI
-# args override it (Ex. 2020-10-31)
-set -eu
+set -ue
 
-exec java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -cp classes zipkin2.dependencies.ZipkinDependenciesJob $@
+# This script prepares for Sonatype deployment via `maven_deploy`
+#
+# This should be used instead of `configure_testcontainers` when a deployment will occur.
+
+# ensure GPG commands work non-interactively
+export GPG_TTY=$(tty)
+# import signing key used for jar files
+echo ${GPG_SIGNING_KEY} | base64 --decode | gpg --batch --passphrase ${GPG_PASSPHRASE} --import
