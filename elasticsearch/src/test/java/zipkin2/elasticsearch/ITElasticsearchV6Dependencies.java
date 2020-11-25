@@ -15,12 +15,13 @@ package zipkin2.elasticsearch;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.utility.DockerImageName;
+
+import static org.testcontainers.utility.DockerImageName.parse;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITElasticsearchV6Dependencies extends ITElasticsearchDependencies {
   @RegisterExtension ElasticsearchStorageExtension backend = new ElasticsearchStorageExtension(
-    DockerImageName.parse("ghcr.io/openzipkin/zipkin-elasticsearch6:2.22.1"));
+    parse("ghcr.io/openzipkin/zipkin-elasticsearch6:2.23.0"));
 
   @Override ElasticsearchStorageExtension backend() {
     return backend;

@@ -1,7 +1,22 @@
 # https://docs.docker.com/engine/reference/builder/#dockerignore-file
 **
-!docker/bin/**
-!docker/periodic/**
 
-# Allow re-use of built artifacts when building docker from master or a release tag
+# Install script runs within Docker
+!build-bin/maven/maven_build
+!build-bin/maven/maven_build_or_unjar
+!build-bin/maven/maven_opts
+!build-bin/maven/maven_unjar
+
+# Allow on-demand "mvn package"
+!cassandra3/src/main/**
+!elasticsearch/src/main/**
+!main/src/main/**
+!mysql/src/main/**
+!**/pom.xml
+
+# Allow re-use of built artifacts when using "mvn package"
 !/main/target/zipkin-dependencies-*.jar
+
+# cron related files
+!docker/periodic/**
+!docker/bin/start-zipkin-dependencies

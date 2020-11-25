@@ -23,15 +23,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.ContainerLaunchException;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import zipkin2.storage.cassandra.CassandraStorage.SessionFactory;
 
@@ -58,7 +56,7 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
   static final Logger LOGGER = LoggerFactory.getLogger(CassandraStorageExtension.class);
   static final int CASSANDRA_PORT = 9042;
   final DockerImageName image;
-  CassandraContainer container;
+  GenericContainer<?> container;
   CqlSession globalSession;
 
   CassandraStorageExtension(DockerImageName image) {
@@ -74,8 +72,9 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
     if (!"true".equals(System.getProperty("docker.skip"))) {
       try {
         LOGGER.info("Starting docker image " + image);
-        container =
-          new CassandraContainer(image.asCanonicalNameString()).withExposedPorts(CASSANDRA_PORT);
+        container = new GenericContainer<>(image)
+          .withExposedPorts(CASSANDRA_PORT)
+          .waitingFor(Wait.forHealthcheck());
         container.start();
       } catch (RuntimeException e) {
         LOGGER.warn("Couldn't start docker image " + image + ": " + e.getMessage(), e);
@@ -146,25 +145,6 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
       return;
     }
     if (globalSession != null) globalSession.close();
-  }
-
-  static final class CassandraContainer extends GenericContainer<CassandraContainer> {
-    CassandraContainer(String image) {
-      super(image);
-    }
-
-    @Override protected void waitUntilContainerStarted() {
-      Unreliables.retryUntilSuccess(120, TimeUnit.SECONDS, () -> {
-        if (!isRunning()) throw new ContainerLaunchException("Container failed to start");
-
-        String contactPoint = getContainerIpAddress() + ":" + getMappedPort(9042);
-        try (CqlSession session = tryToInitializeSession(contactPoint)) {
-          session.execute("SELECT now() FROM system.local");
-          logger().info("Obtained a connection to container ({})", contactPoint);
-          return null; // unused value
-        }
-      });
-    }
   }
 
   static void blockWhileInFlight(CassandraStorage storage) {

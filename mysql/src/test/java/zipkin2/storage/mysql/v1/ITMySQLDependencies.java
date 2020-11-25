@@ -30,7 +30,7 @@ import static zipkin2.storage.ITDependencies.aggregateLinks;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITMySQLDependencies {
   @RegisterExtension MySQLStorageExtension backend = new MySQLStorageExtension(
-    DockerImageName.parse("ghcr.io/openzipkin/zipkin-mysql:2.22.1"));
+    DockerImageName.parse("ghcr.io/openzipkin/zipkin-mysql:2.23.0"));
 
   MySQLStorage.Builder newStorageBuilder() {
     return backend.computeStorageBuilder();
