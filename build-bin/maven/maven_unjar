@@ -26,7 +26,7 @@ set -eu
 # the artifact you are looking for.
 #
 # Ex.
-# !./module/target/zipkin-module-xray-*-module.jar
+# !./module/target/zipkin-module-*-module.jar
 
 group_id=${1?group_id is required}
 artifact_id=${2?artifact_id is required}

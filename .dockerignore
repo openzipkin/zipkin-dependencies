@@ -7,7 +7,7 @@
 !build-bin/maven/maven_opts
 !build-bin/maven/maven_unjar
 
-# Allow on-demand "mvn package"
+# Allow on-demand "mvn package". <modules> referenced in pom.xml must be added even if not built
 !cassandra3/src/main/**
 !elasticsearch/src/main/**
 !main/src/main/**
