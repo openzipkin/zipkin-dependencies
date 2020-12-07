@@ -62,7 +62,7 @@
     <!-- integration tests -->
     <dependency>
       <groupId>com.linecorp.armeria</groupId>
-      <artifactId>armeria-junit4</artifactId>
+      <artifactId>armeria-junit5</artifactId>
       <version>${armeria.version}</version>
       <scope>test</scope>
     </dependency>
