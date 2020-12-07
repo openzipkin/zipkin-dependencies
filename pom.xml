@@ -14,7 +14,9 @@
     the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.zipkin.dependencies</groupId>
@@ -40,7 +42,7 @@
     <main.signature.artifact>java18</main.signature.artifact>
 
     <!-- override to set exclusions per-project -->
-    <errorprone.args />
+    <errorprone.args/>
     <errorprone.version>2.4.0</errorprone.version>
     <javac.version>9+181-r4173-1</javac.version>
 
@@ -49,14 +51,13 @@
     <spark.version>2.4.7</spark.version>
 
     <!-- When updating, also update IT*.java -->
-    <zipkin.version>2.23.0</zipkin.version>
-    <armeria.version>1.2.0</armeria.version>
-    <jackson.version>2.11.3</jackson.version>
+    <zipkin.version>2.23.1</zipkin.version>
+    <armeria.version>1.3.0</armeria.version>
+    <jackson.version>2.12.0</jackson.version>
 
     <spark-cassandra-connector.version>2.5.1</spark-cassandra-connector.version>
     <java-driver.version>4.9.0</java-driver.version>
 
-    <junit.version>4.13.1</junit.version>
     <junit-jupiter.version>5.7.0</junit-jupiter.version>
     <assertj.version>3.18.1</assertj.version>
     <testcontainers.version>1.15.0</testcontainers.version>
@@ -184,41 +185,8 @@
     </dependency>
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <!--
-      Current versions of JUnit5 provide the above junit-jupiter artifact for convenience but we may
-      still have transitive dependencies on these older artifacts and have to make sure they're all
-      using the same version.
-    -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
       <version>${junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>

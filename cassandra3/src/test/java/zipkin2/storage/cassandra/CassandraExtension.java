@@ -26,16 +26,18 @@ import java.util.Optional;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 import zipkin2.storage.cassandra.CassandraStorage.SessionFactory;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.testcontainers.utility.DockerImageName.parse;
 import static zipkin2.Call.propagateIfFatal;
 import static zipkin2.storage.cassandra.Schema.TABLE_AUTOCOMPLETE_TAGS;
 import static zipkin2.storage.cassandra.Schema.TABLE_DEPENDENCY;
@@ -45,7 +47,8 @@ import static zipkin2.storage.cassandra.Schema.TABLE_SPAN;
 import static zipkin2.storage.cassandra.Schema.TABLE_TRACE_BY_SERVICE_REMOTE_SERVICE;
 import static zipkin2.storage.cassandra.Schema.TABLE_TRACE_BY_SERVICE_SPAN;
 
-public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCallback {
+public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
+  static final Logger LOGGER = LoggerFactory.getLogger(CassandraExtension.class);
   static final List<String> SEARCH_TABLES = asList(
     TABLE_AUTOCOMPLETE_TAGS,
     TABLE_SERVICE_REMOTE_SERVICES,
@@ -53,15 +56,9 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
     TABLE_TRACE_BY_SERVICE_REMOTE_SERVICE,
     TABLE_TRACE_BY_SERVICE_SPAN
   );
-  static final Logger LOGGER = LoggerFactory.getLogger(CassandraStorageExtension.class);
-  static final int CASSANDRA_PORT = 9042;
-  final DockerImageName image;
-  GenericContainer<?> container;
-  CqlSession globalSession;
 
-  CassandraStorageExtension(DockerImageName image) {
-    this.image = image;
-  }
+  CassandraContainer container = new CassandraContainer();
+  CqlSession globalSession;
 
   @Override public void beforeAll(ExtensionContext context) {
     if (context.getRequiredTestClass().getEnclosingClass() != null) {
@@ -69,24 +66,9 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
       return;
     }
 
-    if (!"true".equals(System.getProperty("docker.skip"))) {
-      try {
-        LOGGER.info("Starting docker image " + image);
-        container = new GenericContainer<>(image)
-          .withExposedPorts(CASSANDRA_PORT)
-          .waitingFor(Wait.forHealthcheck());
-        container.start();
-      } catch (RuntimeException e) {
-        LOGGER.warn("Couldn't start docker image " + image + ": " + e.getMessage(), e);
-      }
-    } else {
-      LOGGER.info("Skipping startup of docker " + image);
-    }
-
-    assumeTrue(container != null, "Docker not available");
-
-    globalSession = tryToInitializeSession(contactPoint());
+    container.start();
     LOGGER.info("Using contactPoint " + contactPoint());
+    globalSession = tryToInitializeSession(contactPoint());
   }
 
   // Builds a session without trying to use a namespace or init UDTs
@@ -113,7 +95,7 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
   }
 
   String contactPoint() {
-    return container.getContainerIpAddress() + ":" + container.getMappedPort(CASSANDRA_PORT);
+    return container.getHost() + ":" + container.getMappedPort(9042);
   }
 
   void clear(CassandraStorage storage) {
@@ -182,5 +164,17 @@ public class CassandraStorageExtension implements BeforeAllCallback, AfterAllCal
       if (inFlight > 0) return true;
     }
     return false;
+  }
+
+  // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
+  static final class CassandraContainer extends GenericContainer<CassandraContainer> {
+    CassandraContainer() {
+      super(parse("ghcr.io/openzipkin/zipkin-cassandra:2.23.1"));
+      if ("true".equals(System.getProperty("docker.skip"))) {
+        throw new TestAbortedException("${docker.skip} == true");
+      }
+      waitStrategy = Wait.forHealthcheck();
+      withLogConsumer(new Slf4jLogConsumer(LOGGER));
+    }
   }
 }
