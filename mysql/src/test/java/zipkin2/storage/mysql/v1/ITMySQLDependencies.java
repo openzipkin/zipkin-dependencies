@@ -20,20 +20,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.utility.DockerImageName;
 import zipkin2.Span;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;
 
-import static org.testcontainers.containers.MySQLContainer.MYSQL_PORT;
 import static zipkin2.storage.ITDependencies.aggregateLinks;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITMySQLDependencies {
-  @RegisterExtension MySQLStorageExtension backend = new MySQLStorageExtension(
-    DockerImageName.parse("ghcr.io/openzipkin/zipkin-mysql:2.23.0"));
+  @RegisterExtension MySQLExtension mysql = new MySQLExtension();
 
   MySQLStorage.Builder newStorageBuilder() {
-    return backend.computeStorageBuilder();
+    return mysql.computeStorageBuilder();
   }
 
   @Nested
@@ -80,7 +77,8 @@ class ITMySQLDependencies {
       MySQLDependenciesJob.builder()
         .user("zipkin")
         .password("zipkin")
-        .port(backend.container.getMappedPort(MYSQL_PORT))
+        .host(mysql.host())
+        .port(mysql.port())
         .db("zipkin")
         .day(day).build().run();
     }

@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.testcontainers.utility.DockerImageName;
 import zipkin2.Span;
 import zipkin2.dependencies.cassandra3.CassandraDependenciesJob;
 
@@ -28,18 +27,17 @@ import static zipkin2.storage.ITDependencies.aggregateLinks;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITCassandraDependencies {
-  @RegisterExtension CassandraStorageExtension backend = new CassandraStorageExtension(
-    DockerImageName.parse("ghcr.io/openzipkin/zipkin-cassandra:2.23.0"));
+  @RegisterExtension CassandraExtension cassandra = new CassandraExtension();
 
   @Nested
   class ITDependencies extends zipkin2.storage.ITDependencies<CassandraStorage> {
 
     @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {
-      return backend.newStorageBuilder();
+      return cassandra.newStorageBuilder();
     }
 
     @Override public void clear() {
-      backend.clear(storage);
+      cassandra.clear(storage);
     }
 
     @Override protected void processDependencies(List<Span> spans) throws Exception {
@@ -51,11 +49,11 @@ class ITCassandraDependencies {
   class ITDependenciesHeavy extends zipkin2.storage.ITDependenciesHeavy<CassandraStorage> {
 
     @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {
-      return backend.newStorageBuilder();
+      return cassandra.newStorageBuilder();
     }
 
     @Override public void clear() {
-      backend.clear(storage);
+      cassandra.clear(storage);
     }
 
     @Override protected void processDependencies(List<Span> spans) throws Exception {
@@ -71,7 +69,7 @@ class ITCassandraDependencies {
     for (List<Span> nextChunk : Lists.partition(spans, 100)) {
       storage.spanConsumer().accept(nextChunk).execute();
       // Now, block until writes complete, notably so we can read them.
-      CassandraStorageExtension.blockWhileInFlight(storage);
+      CassandraExtension.blockWhileInFlight(storage);
     }
 
     // aggregate links in memory to determine which days they are in
@@ -89,6 +87,6 @@ class ITCassandraDependencies {
         .run();
     }
 
-    CassandraStorageExtension.blockWhileInFlight(storage);
+    CassandraExtension.blockWhileInFlight(storage);
   }
 }

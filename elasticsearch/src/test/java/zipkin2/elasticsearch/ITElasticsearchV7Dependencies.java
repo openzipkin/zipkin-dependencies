@@ -16,14 +16,11 @@ package zipkin2.elasticsearch;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import static org.testcontainers.utility.DockerImageName.parse;
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITElasticsearchV7Dependencies extends ITElasticsearchDependencies {
-  @RegisterExtension ElasticsearchStorageExtension backend = new ElasticsearchStorageExtension(
-    parse("ghcr.io/openzipkin/zipkin-elasticsearch7:2.23.0"));
+  @RegisterExtension ElasticsearchExtension elasticsearch = new ElasticsearchExtension(7);
 
-  @Override ElasticsearchStorageExtension backend() {
-    return backend;
+  @Override ElasticsearchExtension elasticsearch() {
+    return elasticsearch;
   }
 }

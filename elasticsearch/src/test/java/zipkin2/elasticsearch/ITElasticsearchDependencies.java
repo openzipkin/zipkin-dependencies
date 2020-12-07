@@ -24,14 +24,14 @@ import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
 import static zipkin2.storage.ITDependencies.aggregateLinks;
 
 abstract class ITElasticsearchDependencies {
-  abstract ElasticsearchStorageExtension backend();
+  abstract ElasticsearchExtension elasticsearch();
 
   String index;
 
   ElasticsearchStorage.Builder newStorageBuilder(TestInfo testInfo) {
     index = testInfo.getTestClass().get().getName().toLowerCase();
     if (index.length() > 48) index = index.substring(index.length() - 48);
-    return backend().computeStorageBuilder().index(index);
+    return elasticsearch().computeStorageBuilder().index(index);
   }
 
   @Nested
@@ -79,7 +79,7 @@ abstract class ITElasticsearchDependencies {
     for (long day : days) {
       ElasticsearchDependenciesJob.builder()
         .index(index)
-        .hosts(backend().hostPort())
+        .hosts(elasticsearch().hostPort())
         .day(day)
         .build()
         .run();
