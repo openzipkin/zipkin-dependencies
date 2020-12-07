@@ -14,11 +14,11 @@
 package zipkin2.storage.mysql.v1;
 
 import java.sql.SQLException;
-import org.junit.AssumptionViolatedException;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.mariadb.jdbc.MariaDbDataSource;
+import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -80,7 +80,7 @@ class MySQLExtension implements BeforeAllCallback, AfterAllCallback {
     MySQLContainer() {
       super(parse("ghcr.io/openzipkin/zipkin-mysql:2.23.1"));
       if ("true".equals(System.getProperty("docker.skip"))) {
-        throw new AssumptionViolatedException("${docker.skip} == true");
+        throw new TestAbortedException("${docker.skip} == true");
       }
       waitStrategy = Wait.forHealthcheck();
       withLogConsumer(new Slf4jLogConsumer(LOGGER));
