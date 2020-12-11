@@ -51,6 +51,11 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
@@ -120,6 +125,13 @@
                 <filter>
                   <!-- org.elasticsearch.spark.sql.SparkSQLCompatibilityLevel -->
                   <artifact>org.elasticsearch:elasticsearch-spark-20_${scala.binary.version}</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <!-- com.datastax.oss.driver.internal.core.metrics.DropwizardMetricsFactory -->
+                  <artifact>com.datastax.oss:java-driver-core-shaded</artifact>
                   <includes>
                     <include>**</include>
                   </includes>
