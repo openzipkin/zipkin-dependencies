@@ -10,4 +10,4 @@ case ${version} in
     ;;
 esac
 
-build-bin/docker/docker_push openzipkin/zipkin-aws ${version}
+build-bin/docker/docker_push openzipkin/zipkin-dependencies ${version}
