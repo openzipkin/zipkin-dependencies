@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2020 The OpenZipkin Authors
+# Copyright 2016-2021 The OpenZipkin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -51,21 +51,22 @@ LABEL org.opencontainers.image.source=https://github.com/openzipkin/zipkin-depen
 
 # Adds coreutils to allow date formatting of 'yesterday'
 RUN apk add --no-cache coreutils
+
+# Create custom user and ensure the process doesn't run as root
+ARG USER=zipkin-dependencies
+RUN adduser -g '' -h ${PWD} -D ${USER}
+USER ${USER}
+
 # Enable cron by running with entrypoint: crond -f -d 8
 # * Bundling this configuration is a convenience, noting not everyone will use cron
 # * Cron invokes this job hourly to process today's spans and daily to process yesterday's
-COPY docker/periodic/ /etc/periodic/
+COPY --chown=${USER} docker/periodic/ /etc/periodic/
 
 # Adds ENTRYPOINT script into the default search path
-COPY --from=install /code/docker/bin/start-zipkin-dependencies /usr/local/bin/
+COPY --from=install --chown=${USER} /code/docker/bin/start-zipkin-dependencies /usr/local/bin/
 
 # All content including binaries and logs write under WORKDIR
-ARG USER=zipkin-dependencies
 WORKDIR /${USER}
-
-# Ensure the process doesn't run as root
-RUN adduser -g '' -h ${PWD} -D ${USER}
-USER ${USER}
 
 # Copy binaries and config we installed earlier
 COPY --from=install --chown=${USER} /install/* ./classes/
