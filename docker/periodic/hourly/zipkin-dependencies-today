@@ -13,4 +13,4 @@
 # the License.
 #
 
-java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp -cp classes zipkin2.dependencies.ZipkinDependenciesJob
+start-zipkin-dependencies
