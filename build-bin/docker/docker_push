@@ -27,7 +27,7 @@ set -ue
 
 docker_image=${1?docker_image is required, notably without a tag. Ex openzipkin/zipkin}
 version=${2:-master}
-export DOCKER_BUILDKIT=0
+export DOCKER_BUILDKIT=1
 
 case ${version} in
   master )
@@ -114,4 +114,3 @@ else
     docker manifest push -p ${tag}
   done
 fi
-
