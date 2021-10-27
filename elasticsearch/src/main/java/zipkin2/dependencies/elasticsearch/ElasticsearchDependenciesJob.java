@@ -158,7 +158,10 @@ public final class ElasticsearchDependenciesJob {
     if (builder.username != null) conf.set("es.net.http.auth.user", builder.username);
     if (builder.password != null) conf.set("es.net.http.auth.pass", builder.password);
     conf.set("es.nodes", parseHosts(builder.hosts));
-    if (builder.hosts.contains("https")) conf.set("es.net.ssl", "true");
+    if (builder.hosts.contains("https")) {
+      conf.set("es.net.ssl", "true");
+      conf.set("es.net.ssl.cert.allow.self.signed", getEnv("ES_SSL_NO_VERIFY", "false"));
+    }
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
       log.debug("Spark conf properties: {}={}", entry.getKey(), entry.getValue());
