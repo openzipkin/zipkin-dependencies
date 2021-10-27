@@ -106,6 +106,7 @@ Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatibl
     * `ES_USERNAME` and `ES_PASSWORD`: Elasticsearch basic authentication. Use when X-Pack security
                                        (formerly Shield) is in place. By default no username or
                                        password is provided to elasticsearch.
+    * `ES_SSL_NO_VERIFY`: When true, disables the verification of server's key certificate chain. This is not appropriate for production. Defaults to false.
 
 Example usage:
 
