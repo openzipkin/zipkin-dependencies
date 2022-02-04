@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2022 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,16 +14,17 @@
 package zipkin2.dependencies.cassandra3;
 
 import com.datastax.spark.connector.japi.CassandraRow;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import scala.Serializable;
 import zipkin2.DependencyLink;
 import zipkin2.Span;
 
 final class CassandraRowsToDependencyLinks
-  implements Serializable, Function<Iterable<CassandraRow>, Iterable<DependencyLink>> {
+  implements Serializable, FlatMapFunction<Iterable<CassandraRow>, DependencyLink> {
   private static final long serialVersionUID = 0L;
 
   @Nullable final Runnable logInitializer;
@@ -34,7 +35,7 @@ final class CassandraRowsToDependencyLinks
     this.spansToDependencyLinks = new SpansToDependencyLinks(logInitializer, startTs, endTs);
   }
 
-  @Override public Iterable<DependencyLink> call(Iterable<CassandraRow> rows) {
+  @Override public Iterator<DependencyLink> call(Iterable<CassandraRow> rows) {
     if (logInitializer != null) logInitializer.run();
     // use a hash set to dedupe any redundantly accepted spans
     Set<Span> sameTraceId = new LinkedHashSet<>();
