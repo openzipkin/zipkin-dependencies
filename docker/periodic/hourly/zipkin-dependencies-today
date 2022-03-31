@@ -13,4 +13,5 @@
 # the License.
 #
 
+cd /zipkin-dependencies
 start-zipkin-dependencies

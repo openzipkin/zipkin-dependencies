@@ -208,6 +208,8 @@ public final class ElasticsearchDependenciesJob {
             dependencyLinkResource,
             Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
       }
+    } catch (Exception e) {
+      log.warn("Failed to process spans from {}", spanResource, e);
     } finally {
       sc.stop();
     }
