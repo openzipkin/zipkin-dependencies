@@ -13,9 +13,11 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 
 ## Versions
 
-* `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 3.11
 * `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 5.6
+* `STORAGE_TYPE=h2` : requires H2 2.0.206+; tested against H2 2.0.206
+* `STORAGE_TYPE=postgresql` : requires PostgreSQL 9+; tested against PostgreSQL 9
 * `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 5+; tested against last minor release of 6.x and 7.x
+* `STORAGE_TYPE=banyandb` : requires BanyanDB 0.5.0+; tested against BanyanDB 0.5.0
 
 ## Quick-start
 
