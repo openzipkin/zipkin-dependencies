@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -51,7 +51,6 @@ public final class ElasticsearchDependenciesJob {
 
   public static final class Builder {
 
-    String index = getEnv("ES_INDEX", "zipkin");
     String hosts = getEnv("ES_HOSTS", "127.0.0.1");
     String username = getEnv("ES_USERNAME", null);
     String password = getEnv("ES_PASSWORD", null);
@@ -87,12 +86,6 @@ public final class ElasticsearchDependenciesJob {
     /** When set, this indicates which jars to distribute to the cluster. */
     public Builder jars(String... jars) {
       this.jars = jars;
-      return this;
-    }
-
-    /** The index prefix to use when generating daily index names. Defaults to "zipkin" */
-    public Builder index(String index) {
-      this.index = checkNotNull(index, "index");
       return this;
     }
 
@@ -142,16 +135,15 @@ public final class ElasticsearchDependenciesJob {
     return prop != null && !prop.isEmpty() ? "file:" + prop : prop;
   }
 
-  final String index;
+  final long day;
   final String dateStamp;
   final SparkConf conf;
   @Nullable final Runnable logInitializer;
 
   ElasticsearchDependenciesJob(Builder builder) {
-    this.index = builder.index;
-    String dateSeparator = getEnv("ES_DATE_SEPARATOR", "-");
-    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd".replace("-", dateSeparator));
+    SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    this.day = builder.day;
     this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true).setMaster(builder.sparkMaster).setAppName(getClass().getName());
     if (builder.jars != null) conf.setJars(builder.jars);
@@ -167,14 +159,9 @@ public final class ElasticsearchDependenciesJob {
   }
 
   public void run() {
-    run( // single-type index
-      index + ":span-" + dateStamp + "/span",
-      index + ":dependency-" + dateStamp + "/dependency",
-      SpanBytesDecoder.JSON_V2);
-
     run( // single-type index with ES 7+
-      index + "-span-" + dateStamp,
-      index + "-dependency-" + dateStamp,
+      "sw_zipkin_span-" + dateStamp,
+      "sw_metrics-all-" + dateStamp,
       SpanBytesDecoder.JSON_V2);
 
     log.info("Done");
@@ -197,7 +184,7 @@ public final class ElasticsearchDependenciesJob {
                 .errorCount(l.errorCount() + r.errorCount())
                 .build())
               .values()
-              .map(DEPENDENCY_LINK_JSON);
+              .map(createDependencyLinkJson(day, dateStamp));
 
       if (links.isEmpty()) {
         log.info("No dependency links could be processed from spans in index {}", spanResource);
@@ -217,15 +204,19 @@ public final class ElasticsearchDependenciesJob {
    * Same as {@linkplain DependencyLink}, except it adds an ID field so the job can be re-run,
    * overwriting a prior run's value for the link.
    */
-  static final Function<DependencyLink, Map<String, Object>> DEPENDENCY_LINK_JSON = l -> {
-    Map<String, Object> result = new LinkedHashMap<>();
-    result.put("id", l.parent() + "|" + l.child());
-    result.put("parent", l.parent());
-    result.put("child", l.child());
-    result.put("callCount", l.callCount());
-    result.put("errorCount", l.errorCount());
-    return result;
-  };
+  static Function<DependencyLink, Map<String, Object>> createDependencyLinkJson(long day, String dayStamp) {
+    return l -> {
+      Map<String, Object> result = new LinkedHashMap<>();
+      result.put("id", dayStamp + "_" + l.parent() + "_" + l.child());
+      result.put("analyze_day", day);
+      result.put("metric_table", "zipkin_dependency");
+      result.put("parent", l.parent());
+      result.put("child", l.child());
+      result.put("call_count", l.callCount());
+      result.put("error_count", l.errorCount());
+      return result;
+    };
+  }
 
   private static String getEnv(String key, String defaultValue) {
     String result = System.getenv(key);
@@ -262,7 +253,7 @@ public final class ElasticsearchDependenciesJob {
       reader.beginObject();
       while (reader.hasNext()) {
         String nextName = reader.nextName();
-        if (nextName.equals("traceId")) {
+        if (nextName.equals("trace_id")) {
           String traceId = reader.nextString();
           return traceId.length() > 16 ? traceId.substring(traceId.length() - 16) : traceId;
         } else {

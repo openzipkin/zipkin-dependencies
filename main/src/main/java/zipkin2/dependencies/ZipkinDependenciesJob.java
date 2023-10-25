@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -22,7 +22,10 @@ import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.TimeZone;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
+import zipkin2.dependencies.h2.H2DependenciesJob;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;
+import zipkin2.dependencies.postgres.PostgresDependenciesJob;
+import zipkin2.dependencies.banyandb.BanyanDBDependenciesJob;
 
 public final class ZipkinDependenciesJob {
   /** Runs with defaults, starting today */
@@ -69,8 +72,35 @@ public final class ZipkinDependenciesJob {
           .build()
           .run();
         break;
+      case "h2":
+        H2DependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .conf(sparkConf)
+            .build()
+            .run();
+        break;
+      case "postgresql":
+        PostgresDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .conf(sparkConf)
+            .build()
+            .run();
+        break;
       case "elasticsearch":
         ElasticsearchDependenciesJob.builder()
+          .logInitializer(logInitializer)
+          .jars(jarPath)
+          .day(day)
+          .conf(sparkConf)
+          .build()
+          .run();
+        break;
+      case "banyandb":
+        BanyanDBDependenciesJob.builder()
           .logInitializer(logInitializer)
           .jars(jarPath)
           .day(day)

@@ -24,9 +24,10 @@
 
   <modules>
     <module>cassandra3</module>
-    <module>mysql</module>
+    <module>jdbc</module>
     <module>elasticsearch</module>
     <module>main</module>
+    <module>banyandb</module>
   </modules>
 
   <properties>

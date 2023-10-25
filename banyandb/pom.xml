@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>zipkin-dependencies-parent</artifactId>
+    <groupId>io.zipkin.dependencies</groupId>
+    <version>2.6.5-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>zipkin-dependencies-banyandb</artifactId>
+  <name>Zipkin Dependencies: BanyanDB</name>
+
+  <properties>
+    <main.basedir>${project.basedir}/..</main.basedir>
+
+    <banyandb-java-client.version>0.5.0</banyandb-java-client.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.skywalking</groupId>
+      <artifactId>banyandb-java-client</artifactId>
+      <version>${banyandb-java-client.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>32.1.3-jre</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.21.8</version>
+    </dependency>
+  </dependencies>
+
+</project>
