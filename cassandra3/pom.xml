@@ -36,6 +36,11 @@
       <artifactId>spark-cassandra-connector_${scala.binary.version}</artifactId>
       <version>${spark-cassandra-connector.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>32.1.3-jre</version>
+    </dependency>
 
     <!-- integration tests -->
     <dependency>

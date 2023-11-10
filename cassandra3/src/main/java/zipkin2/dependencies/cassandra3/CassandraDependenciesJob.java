@@ -60,7 +60,7 @@ public final class CassandraDependenciesJob {
   public static final class Builder {
 
     final Map<String, String> sparkProperties = new LinkedHashMap<>();
-    String keyspace = getEnv("CASSANDRA_KEYSPACE", "zipkin2");
+    String keyspace = getEnv("CASSANDRA_KEYSPACE", "zipkin");
     String contactPoints = getEnv("CASSANDRA_CONTACT_POINTS", "localhost");
     String localDc = getEnv("CASSANDRA_LOCAL_DC", "datacenter1");
     // local[*] master lets us run & test the job locally without setting a Spark cluster
@@ -170,16 +170,16 @@ public final class CassandraDependenciesJob {
   }
 
   public void run() {
-    long microsLower = day * 1000;
-    long microsUpper = (day * 1000) + TimeUnit.DAYS.toMicros(1) - 1;
+    long milliLower = day;
+    long milliUpper = day + TimeUnit.DAYS.toMillis(1) - 1;
 
-    log.info("Running Dependencies job for {}: {} ≤ Span.timestamp {}", dateStamp, microsLower,
-      microsUpper);
+    log.info("Running Dependencies job for {}: {} ≤ Span.timestamp {}", dateStamp, milliLower,
+      milliUpper);
 
     SparkContext sc = new SparkContext(conf);
     try {
       JavaRDD<DependencyLink> links = flatMapToLinksByTraceId(
-        javaFunctions(sc).cassandraTable(keyspace, "span"), microsUpper, microsLower).values()
+        javaFunctions(sc).cassandraTable(keyspace, "zipkin_span"), milliUpper, milliLower).values()
         .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
         .reduceByKey((l, r) -> DependencyLink.newBuilder()
           .parent(l.parent())
@@ -194,11 +194,11 @@ public final class CassandraDependenciesJob {
       }
 
       LocalDate localDate = Instant.ofEpochMilli(day).atZone(ZoneOffset.UTC).toLocalDate();
-      log.info("Saving dependency links for {} to {}.dependency", dateStamp, keyspace);
+      log.info("Saving dependency links for {} to {}.zipkin_dependency", dateStamp, keyspace);
       CassandraConnector.apply(conf).withSessionDo(new AbstractFunction1<CqlSession, Void>() {
         @Override public Void apply(CqlSession session) {
-          PreparedStatement prepared = session.prepare("INSERT INTO " + keyspace + ".dependency"
-            + " (day,parent,child,calls,errors)"
+          PreparedStatement prepared = session.prepare("INSERT INTO " + keyspace + ".zipkin_dependency"
+            + " (analyze_day,parent,child,call_count,error_count)"
             + " VALUES (?,?,?,?,?)");
           for (DependencyLink link : links.collect()) {
             int i = 0;
@@ -219,15 +219,15 @@ public final class CassandraDependenciesJob {
   }
 
   JavaPairRDD<String, DependencyLink> flatMapToLinksByTraceId(
-    CassandraTableScanJavaRDD<CassandraRow> spans, long microsUpper, long microsLower) {
+    CassandraTableScanJavaRDD<CassandraRow> spans, long milliUpper, long milliLower) {
     if (strictTraceId) {
       return spans.spanBy(r -> r.getString("trace_id"), String.class)
         .flatMapValues(
-          new CassandraRowsToDependencyLinks(logInitializer, microsLower, microsUpper));
+          new CassandraRowsToDependencyLinks(logInitializer, milliLower, milliUpper));
     }
     return spans.map(CassandraRowToSpan.INSTANCE)
       .groupBy(Span::traceId) // groupBy instead of spanBy because trace_id is mixed length
-      .flatMapValues(new SpansToDependencyLinks(logInitializer, microsLower, microsUpper));
+      .flatMapValues(new SpansToDependencyLinks(logInitializer, milliLower, milliUpper));
   }
 
   static String getEnv(String key, String defaultValue) {
@@ -239,7 +239,7 @@ public final class CassandraDependenciesJob {
     List<String> result = new ArrayList<>();
     for (String contactPoint : contactPoints.split(",", -1)) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
-      result.add(parsed.getHostText());
+      result.add(parsed.getHost());
     }
     return Joiner.on(',').join(result);
   }
