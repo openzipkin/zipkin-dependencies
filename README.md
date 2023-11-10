@@ -13,7 +13,7 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 
 ## Versions
 
-* `STORAGE_TYPE=cassandra` : requires Cassandra 3.11.3+; tested against the latest patch of 3.11
+* `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 3.11
 * `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 5.6
 * `STORAGE_TYPE=h2` : requires H2 2.0.206+; tested against H2 2.0.206
 * `STORAGE_TYPE=postgresql` : requires PostgreSQL 9+; tested against PostgreSQL 9
@@ -28,12 +28,12 @@ The quickest way to get started is to fetch the [latest released job](https://se
 
 ```bash
 $ curl -sSL https://zipkin.io/quickstart.sh | bash -s io.zipkin.dependencies:zipkin-dependencies:LATEST zipkin-dependencies.jar
-$ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar
+$ STORAGE_TYPE=cassandra3 java -jar zipkin-dependencies.jar
 ```
 
 You can also start Zipkin Dependencies via [Docker](https://github.com/openzipkin/docker-zipkin-dependencies).
 ```bash
-$ docker run --env STORAGE_TYPE=cassandra --env CASSANDRA_CONTACT_POINTS=host1,host2 openzipkin/zipkin-dependencies
+$ docker run --env STORAGE_TYPE=cassandra3 --env CASSANDRA_CONTACT_POINTS=host1,host2 openzipkin/zipkin-dependencies
 ```
 
 ## Usage
@@ -43,9 +43,9 @@ via an argument in YYYY-mm-dd format, like 2016-07-16.
 
 ```bash
 # ex to run the job to process yesterday's traces on OS/X
-$ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar `date -uv-1d +%F`
+$ STORAGE_TYPE=cassandra3 java -jar zipkin-dependencies.jar `date -uv-1d +%F`
 # or on Linux
-$ STORAGE_TYPE=cassandra java -jar zipkin-dependencies.jar `date -u -d '1 day ago' +%F`
+$ STORAGE_TYPE=cassandra3 java -jar zipkin-dependencies.jar `date -u -d '1 day ago' +%F`
 ```
 
 ## Environment Variables
@@ -58,8 +58,8 @@ The following variables are common to all storage layers:
     * `SPARK_CONF`: Extend more spark configuration with value in properties format and separated with comma. Such as `spark.executor.heartbeatInterval=600000,spark.network.timeout=600000`
 
 ### Cassandra
-Cassandra is used when `STORAGE_TYPE=cassandra` or `STORAGE_TYPE=cassandra`.
-* `cassandra` is compatible with Zipkin's [Legacy Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
+Cassandra is used when `STORAGE_TYPE=cassandra3`.
+* `cassandra3` is compatible with Zipkin's [Legacy Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
 
 Here are the variables that apply
 
@@ -73,7 +73,7 @@ Here are the variables that apply
 Example usage:
 
 ```bash
-$ STORAGE_TYPE=cassandra CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -jar zipkin-dependencies.jar
+$ STORAGE_TYPE=cassandra3 CASSANDRA_USERNAME=user CASSANDRA_PASSWORD=pass java -jar zipkin-dependencies.jar
 ```
 
 ### MySQL Storage
@@ -134,7 +134,7 @@ To build the job from source and run against a local cassandra, in Spark's stand
 ```bash
 # Build the spark jobs
 $ ./mvnw -T1C -q --batch-mode -DskipTests -Denforcer.fail=false package
-$ STORAGE_TYPE=cassandra java -jar ./main/target/zipkin-dependencies*.jar
+$ STORAGE_TYPE=cassandra3 java -jar ./main/target/zipkin-dependencies*.jar
 ```
 
 ## Running in a Spark cluster
@@ -153,7 +153,7 @@ Once you've verified your setup is on the correct version, set the `SPARK_MASTER
 
 For example, if you are connecting to spark running on the same host:
 ```bash
-$ STORAGE_TYPE=cassandra SPARK_MASTER=spark://$HOSTNAME:7077 java -jar zipkin-dependencies.jar
+$ STORAGE_TYPE=cassandra3 SPARK_MASTER=spark://$HOSTNAME:7077 java -jar zipkin-dependencies.jar
 ```
 
 Note that the Zipkin team focuses on tracing, not Spark support. If you have Spark cluster related

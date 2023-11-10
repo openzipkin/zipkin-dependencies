@@ -54,7 +54,7 @@ public final class ZipkinDependenciesJob {
     }
 
     switch (storageType) {
-      case "cassandra":
+      case "cassandra3":
         zipkin2.dependencies.cassandra3.CassandraDependenciesJob.builder()
           .logInitializer(logInitializer)
           .jars(jarPath)
@@ -110,7 +110,7 @@ public final class ZipkinDependenciesJob {
         break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType + "\n"
-          + "Options are: cassandra, mysql, h2, postgresql, elasticsearch, banyandb");
+          + "Options are: cassandra3, mysql, h2, postgresql, elasticsearch, banyandb");
     }
   }
 
