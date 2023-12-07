@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2016-2021 The OpenZipkin Authors
+    Copyright 2016-2022 The OpenZipkin Authors
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
     in compliance with the License. You may obtain a copy of the License at
@@ -44,9 +44,8 @@
     <errorprone.version>2.4.0</errorprone.version>
     <javac.version>9+181-r4173-1</javac.version>
 
-    <!-- can't switch to 2.12 until elasticsearch-spark updates -->
-    <scala.binary.version>2.11</scala.binary.version>
-    <spark.version>2.4.7</spark.version>
+    <scala.binary.version>2.12</scala.binary.version>
+    <spark.version>3.0.3</spark.version>
 
     <!-- When updating, also update IT*.java -->
     <zipkin.version>2.23.2</zipkin.version>
@@ -378,10 +377,8 @@
               <!-- Enforcement is only needed when running tests -->
               <skip>${skipTests}</skip>
               <rules>
-                <!-- Spark doesn't support Java 9+ until v3.0
-                     https://issues.apache.org/jira/browse/SPARK-24421 -->
                 <requireJavaVersion>
-                  <version>[1.8,9)</version>
+                  <version>[1.8,12)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -600,6 +597,16 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+
+    <profile>
+      <id>java-8-api</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <properties>
+        <maven.compiler.release>8</maven.compiler.release>
+      </properties>
     </profile>
   </profiles>
 </project>

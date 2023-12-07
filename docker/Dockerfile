@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2021 The OpenZipkin Authors
+# Copyright 2016-2023 The OpenZipkin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -17,7 +17,7 @@
 # Use latest version here: https://github.com/orgs/openzipkin/packages/container/package/java
 # This is defined in many places because Docker has no "env" script functionality unless you use
 # docker-compose: When updating, update everywhere.
-ARG java_version=15.0.1_p9
+ARG java_version=21.0.1_p12
 
 # We copy files from the context into a scratch container first to avoid a problem where docker and
 # docker-compose don't share layer hashes https://github.com/docker/compose/issues/883 normally.
@@ -45,7 +45,7 @@ ENV MAVEN_PROJECT_BASEDIR=/code
 RUN /code/build-bin/maven/maven_build_or_unjar io.zipkin.dependencies zipkin-dependencies ${VERSION}
 
 # Until Elasticsearch upgrades their driver, we are stuck on JRE 8
-FROM ghcr.io/openzipkin/java:8.272.10-jre as zipkin-dependencies
+FROM ghcr.io/openzipkin/java:8.392.08-jre as zipkin-dependencies
 LABEL org.opencontainers.image.description="Zipkin Dependencies Aggregator on OpenJDK and Alpine Linux"
 LABEL org.opencontainers.image.source=https://github.com/openzipkin/zipkin-dependencies
 

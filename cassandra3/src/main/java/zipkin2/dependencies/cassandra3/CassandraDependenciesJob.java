@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2022 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -39,6 +39,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.PairFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
@@ -180,7 +181,8 @@ public final class CassandraDependenciesJob {
     try {
       JavaRDD<DependencyLink> links = flatMapToLinksByTraceId(
         javaFunctions(sc).cassandraTable(keyspace, "span"), microsUpper, microsLower).values()
-        .mapToPair(l -> Tuple2.apply(Tuple2.apply(l.parent(), l.child()), l))
+        .mapToPair((PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>) l ->
+          new Tuple2<Tuple2<String, String>, DependencyLink>(new Tuple2<>(l.parent(), l.child()), l))
         .reduceByKey((l, r) -> DependencyLink.newBuilder()
           .parent(l.parent())
           .child(l.child())
