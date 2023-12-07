@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2022 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,9 +14,10 @@
 package zipkin2.dependencies.elasticsearch;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Serializable;
@@ -27,7 +28,7 @@ import zipkin2.codec.SpanBytesDecoder;
 import zipkin2.internal.DependencyLinker;
 
 final class TraceIdAndJsonToDependencyLinks
-    implements Serializable, Function<Iterable<Tuple2<String, String>>, Iterable<DependencyLink>> {
+  implements Serializable, FlatMapFunction<Iterable<Tuple2<String, String>>, DependencyLink> {
   private static final long serialVersionUID = 0L;
   private static final Logger log = LoggerFactory.getLogger(TraceIdAndJsonToDependencyLinks.class);
 
@@ -40,7 +41,7 @@ final class TraceIdAndJsonToDependencyLinks
   }
 
   @Override
-  public Iterable<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
+  public Iterator<DependencyLink> call(Iterable<Tuple2<String, String>> traceIdJson) {
     if (logInitializer != null) logInitializer.run();
     List<Span> sameTraceId = new ArrayList<>();
     for (Tuple2<String, String> row : traceIdJson) {
@@ -52,6 +53,6 @@ final class TraceIdAndJsonToDependencyLinks
     }
     DependencyLinker linker = new DependencyLinker();
     linker.putTrace(sameTraceId);
-    return linker.link();
+    return linker.link().iterator();
   }
 }

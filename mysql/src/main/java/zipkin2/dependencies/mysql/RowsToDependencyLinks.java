@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 The OpenZipkin Authors
+ * Copyright 2016-2022 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
 import scala.Serializable;
 import zipkin2.DependencyLink;
@@ -26,7 +26,7 @@ import zipkin2.Span;
 import zipkin2.internal.DependencyLinker;
 
 final class RowsToDependencyLinks
-    implements Serializable, Function<Iterable<Row>, Iterable<DependencyLink>> {
+    implements Serializable, FlatMapFunction<Iterable<Row>, DependencyLink> {
   private static final long serialVersionUID = 0L;
 
   @Nullable final Runnable logInitializer;
@@ -37,12 +37,12 @@ final class RowsToDependencyLinks
     this.hasTraceIdHigh = hasTraceIdHigh;
   }
 
-  @Override public Iterable<DependencyLink> call(Iterable<Row> rows) {
+  @Override public Iterator<DependencyLink> call(Iterable<Row> rows) {
     if (logInitializer != null) logInitializer.run();
     Iterator<Iterator<Span>> traces =
         new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
 
-    if (!traces.hasNext()) return Collections.emptyList();
+    if (!traces.hasNext()) return Collections.emptyIterator();
 
     DependencyLinker linker = new DependencyLinker();
     List<Span> nextTrace = new ArrayList<>();
@@ -52,6 +52,6 @@ final class RowsToDependencyLinks
       linker.putTrace(nextTrace);
       nextTrace.clear();
     }
-    return linker.link();
+    return linker.link().iterator();
   }
 }
