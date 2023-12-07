@@ -11,18 +11,15 @@ on:
 
 jobs:
   docker_push:
-    runs-on: ubuntu-20.04  # newest available distribution, aka focal
+    runs-on: ubuntu-22.04  # newest available distribution, aka jellyfish
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1  # only needed to get the sha label
-      - name: Cache Docker
-        uses: actions/cache@v2
-        with:
-          path: ~/.docker
-          key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
-          restore-keys: ${{ runner.os }}-docker
+      # Don't attempt to cache Docker. Sensitive information can be stolen
+      # via forks, and login session ends up in ~/.docker. This is ok because
+      # we publish DOCKER_PARENT_IMAGE to ghcr.io, hence local to the runner.
       - name: Docker Push
         run: |  # GITHUB_REF will be refs/tags/docker-MAJOR.MINOR.PATCH
           build-bin/git/login_git &&

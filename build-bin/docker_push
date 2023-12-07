@@ -10,4 +10,10 @@ case ${version} in
     ;;
 esac
 
+# Don't include s390x until it is explicitly requested, as it is unlikely to
+# work by default.
+# Don't attempt ppc64le until there's a package for recent LTS versions.
+# See https://github.com/openzipkin/zipkin/issues/3443
+export DOCKER_ARCHS="amd64 arm64"
+
 build-bin/docker/docker_push openzipkin/zipkin-dependencies ${version}
