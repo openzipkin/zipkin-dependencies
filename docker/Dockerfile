@@ -57,7 +57,7 @@ ARG USER=zipkin-dependencies
 RUN adduser -g '' -h ${PWD} -D ${USER}
 USER ${USER}
 
-# Enable cron by running with entrypoint: crond -f -d 8
+# Enable cron by running with entrypoint: crond -f -d 8 (change --user root)
 # * Bundling this configuration is a convenience, noting not everyone will use cron
 # * Cron invokes this job hourly to process today's spans and daily to process yesterday's
 COPY --chown=${USER} docker/periodic/ /etc/periodic/
