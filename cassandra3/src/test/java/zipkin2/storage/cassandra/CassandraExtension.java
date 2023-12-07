@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -57,7 +57,7 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
     TABLE_TRACE_BY_SERVICE_SPAN
   );
 
-  CassandraContainer container = new CassandraContainer();
+  final CassandraContainer container = new CassandraContainer();
   CqlSession globalSession;
 
   @Override public void beforeAll(ExtensionContext context) {
@@ -169,10 +169,11 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class CassandraContainer extends GenericContainer<CassandraContainer> {
     CassandraContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-cassandra:2.23.2"));
+      super(parse("ghcr.io/openzipkin/zipkin-cassandra:2.24.4"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }
+      addExposedPort(9042);
       waitStrategy = Wait.forHealthcheck();
       withLogConsumer(new Slf4jLogConsumer(LOGGER));
     }

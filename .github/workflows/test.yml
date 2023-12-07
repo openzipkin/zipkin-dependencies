@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'  # zulu as it supports a wide version range
-          java-version: '8'  # last LTS that works with Spark <3.0
+          java-version: '11'  # Most recent LTS that passes tests
       - name: Test without Docker
         run: build-bin/maven/maven_go_offline && build-bin/test -Ddocker.skip=true
   test_docker:
@@ -68,7 +68,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'  # zulu as it supports a wide version range
-          java-version: '8'  # last LTS that works with Spark <3.0
+          java-version: '11'  # Most recent LTS that passes tests
       - name: Test with Docker
         run: |
           build-bin/configure_test &&

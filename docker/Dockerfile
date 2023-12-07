@@ -44,8 +44,7 @@ ENV VERSION=$version
 ENV MAVEN_PROJECT_BASEDIR=/code
 RUN /code/build-bin/maven/maven_build_or_unjar io.zipkin.dependencies zipkin-dependencies ${VERSION}
 
-# Until Elasticsearch upgrades their driver, we are stuck on JRE 8
-FROM ghcr.io/openzipkin/java:8.392.08-jre as zipkin-dependencies
+FROM ghcr.io/openzipkin/java:11.0.21_p9-jre as zipkin-dependencies
 LABEL org.opencontainers.image.description="Zipkin Dependencies Aggregator on OpenJDK and Alpine Linux"
 LABEL org.opencontainers.image.source=https://github.com/openzipkin/zipkin-dependencies
 
