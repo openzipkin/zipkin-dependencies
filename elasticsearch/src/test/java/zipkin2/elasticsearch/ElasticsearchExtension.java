@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,10 +14,16 @@
 package zipkin2.elasticsearch;
 
 import com.linecorp.armeria.client.ClientFactory;
+import com.linecorp.armeria.client.ClientOptions;
+import com.linecorp.armeria.client.ClientOptionsBuilder;
 import com.linecorp.armeria.client.WebClient;
 import com.linecorp.armeria.client.WebClientBuilder;
+import com.linecorp.armeria.client.logging.ContentPreviewingClient;
 import com.linecorp.armeria.client.logging.LoggingClient;
+import com.linecorp.armeria.client.logging.LoggingClientBuilder;
+import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.common.logging.LogLevel;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -30,6 +36,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import zipkin2.elasticsearch.ElasticsearchStorage.Builder;
 
 import static org.testcontainers.utility.DockerImageName.parse;
+import static zipkin2.elasticsearch.IgnoredDeprecationWarnings.IGNORE_THESE_WARNINGS;
 
 class ElasticsearchExtension implements BeforeAllCallback, AfterAllCallback {
   static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchExtension.class);
@@ -66,12 +73,36 @@ class ElasticsearchExtension implements BeforeAllCallback, AfterAllCallback {
       //
       // TODO: find or raise a bug with Elastic
       .factory(ClientFactory.builder().useHttp2Preface(false).build());
+    builder.decorator((delegate, ctx, req) -> {
+      final HttpResponse response = delegate.execute(ctx, req);
+      return HttpResponse.from(response.aggregate().thenApply(r -> {
+        // ES will return a 'warning' response header when using deprecated api, detect this and
+        // fail early so we can do something about it.
+        // Example usage: https://github.com/elastic/elasticsearch/blob/3049e55f093487bb582a7e49ad624961415ba31c/x-pack/plugin/security/src/internalClusterTest/java/org/elasticsearch/integration/IndexPrivilegeIntegTests.java#L559
+        final String warningHeader = r.headers().get("warning");
+        if (warningHeader != null) {
+          if (IGNORE_THESE_WARNINGS.stream().noneMatch(p -> p.matcher(warningHeader).find())) {
+            throw new IllegalArgumentException("Detected usage of deprecated API for request "
+              + req.toString() + ":\n" + warningHeader);
+          }
+        }
+        // Convert AggregatedHttpResponse back to HttpResponse.
+        return r.toHttpResponse();
+      }));
+    });
 
+    // When ES_DEBUG=true log full headers, request and response body to the category
+    // com.linecorp.armeria.client.logging
     if (Boolean.parseBoolean(System.getenv("ES_DEBUG"))) {
-      builder.decorator(c -> LoggingClient.builder()
+      ClientOptionsBuilder options = ClientOptions.builder();
+      LoggingClientBuilder loggingBuilder = LoggingClient.builder()
         .requestLogLevel(LogLevel.INFO)
-        .successfulResponseLogLevel(LogLevel.INFO).build(c));
+        .successfulResponseLogLevel(LogLevel.INFO);
+      options.decorator(loggingBuilder.newDecorator());
+      options.decorator(ContentPreviewingClient.newDecorator(Integer.MAX_VALUE));
+      builder.options(options.build());
     }
+
     WebClient client = builder.build();
     return ElasticsearchStorage.newBuilder(new ElasticsearchStorage.LazyHttpClient() {
       @Override public WebClient get() {
@@ -95,10 +126,11 @@ class ElasticsearchExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class ElasticsearchContainer extends GenericContainer<ElasticsearchContainer> {
     ElasticsearchContainer(int majorVersion) {
-      super(parse("ghcr.io/openzipkin/zipkin-elasticsearch" + majorVersion + ":2.23.2"));
+      super(parse("ghcr.io/openzipkin/zipkin-elasticsearch" + majorVersion + ":2.24.4"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }
+      addExposedPort(9200);
       waitStrategy = Wait.forHealthcheck();
       withLogConsumer(new Slf4jLogConsumer(LOGGER));
     }
