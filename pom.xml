@@ -56,8 +56,8 @@
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>2.24.4</zipkin.version>
-    <armeria.version>1.26.3</armeria.version>
+    <zipkin.version>2.25.1</zipkin.version>
+    <armeria.version>1.26.4</armeria.version>
     <jackson.version>2.16.0</jackson.version>
     <assertj.version>3.24.2</assertj.version>
     <slf4j.version>1.7.36</slf4j.version>
