@@ -78,7 +78,7 @@ class MySQLExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class MySQLContainer extends GenericContainer<MySQLContainer> {
     MySQLContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-mysql:2.25.1"));
+      super(parse("ghcr.io/openzipkin/zipkin-mysql:2.25.2"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }

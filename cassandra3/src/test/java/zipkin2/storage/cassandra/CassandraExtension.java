@@ -169,7 +169,7 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class CassandraContainer extends GenericContainer<CassandraContainer> {
     CassandraContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-cassandra:2.25.1"));
+      super(parse("ghcr.io/openzipkin/zipkin-cassandra:2.25.2"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }
