@@ -33,6 +33,8 @@ You can also start Zipkin Dependencies via [Docker](https://github.com/openzipki
 $ docker run --env STORAGE_TYPE=cassandra3 --env CASSANDRA_CONTACT_POINTS=host1,host2 openzipkin/zipkin-dependencies
 ```
 
+For a more complete example, take a look at the [docker-compose example](docker/examples/README.md).
+
 ## Usage
 
 By default, this job parses all traces since midnight UTC. You can parse traces for a different day
