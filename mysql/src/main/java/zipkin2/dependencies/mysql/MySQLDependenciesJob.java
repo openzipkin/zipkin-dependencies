@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -159,7 +159,8 @@ public final class MySQLDependenciesJob {
     this.url = new StringBuilder("jdbc:mysql://")
         .append(builder.host).append(":").append(builder.port)
         .append("/").append(builder.db)
-        .append("?autoReconnect=true")
+        .append("?permitMysqlScheme") // spark doesn't understand "mariadb"
+        .append("&autoReconnect=true")
         .append("&useSSL=").append(builder.useSsl).toString();
     this.user = builder.user;
     this.password = builder.password;

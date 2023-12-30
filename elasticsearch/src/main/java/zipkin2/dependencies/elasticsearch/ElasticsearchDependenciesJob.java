@@ -168,12 +168,7 @@ public final class ElasticsearchDependenciesJob {
   }
 
   public void run() {
-    run( // single-type index
-      index + ":span-" + dateStamp + "/span",
-      index + ":dependency-" + dateStamp + "/dependency",
-      SpanBytesDecoder.JSON_V2);
-
-    run( // single-type index with ES 7+
+    run(
       index + "-span-" + dateStamp,
       index + "-dependency-" + dateStamp,
       SpanBytesDecoder.JSON_V2);
