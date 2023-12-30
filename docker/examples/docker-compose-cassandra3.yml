@@ -1,0 +1,58 @@
+#
+# Copyright 2016-2023 The OpenZipkin Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
+#
+
+# This file uses the version 2 docker-compose file format, described here:
+# https://docs.docker.com/compose/compose-file/#version-2
+#
+# It extends the default configuration from docker-compose.yml to run the
+# zipkin-cassandra container instead of the zipkin-mysql container.
+
+version: '2.4'
+
+services:
+  storage:
+    image: ghcr.io/openzipkin/zipkin-cassandra:${TAG:-latest}
+    # Uncomment to use DSE instead (minimum version 5.1)
+    # image: datastax/dse-server:5.1.20
+    # environment:
+    #  - DS_LICENSE=accept
+    container_name: cassandra
+    # Uncomment to expose the storage port for testing
+    # ports:
+    #   - 9042:9042
+
+  # Use Cassandra instead of in-memory storage
+  zipkin:
+    extends:
+      file: docker-compose.yml
+      service: zipkin
+    environment:
+      - STORAGE_TYPE=cassandra3
+      # When using the test docker image, or have schema pre-installed, you don't need to ensure it
+      - CASSANDRA_ENSURE_SCHEMA=false
+      # When overriding this value, note the minimum supported version is 3.11.3
+      - CASSANDRA_CONTACT_POINTS=cassandra
+      # Uncomment to configure authentication
+      # - CASSANDRA_USERNAME=cassandra
+      # - CASSANDRA_PASSWORD=cassandra
+    # Uncomment to enable request logging (TRACE shows query values)
+    # command: --logging.level.com.datastax.oss.driver.internal.core.tracker.RequestLogger=TRACE
+
+  dependencies:
+    extends:
+      file: docker-compose.yml
+      service: dependencies
+    environment:
+      - STORAGE_TYPE=${STORAGE_TYPE:-cassandra3}
+      - CASSANDRA_CONTACT_POINTS=cassandra
