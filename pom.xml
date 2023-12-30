@@ -50,7 +50,9 @@
 
     <!-- Use a common scala binary version, and the highest spark patch version.
          Scala 2.13 is held back due to spark version conflicts until Elastic
-         updates their version. -->
+         updates their version. Once 2.13 works, we can also use JDK 17 per
+         https://issues.apache.org/jira/browse/SPARK-33772 and possibly 12 per
+         https://issues.apache.org/jira/browse/SPARK-43831 -->
     <scala.binary.version>2.12</scala.binary.version>
     <!-- Latest patch of highest common minor. 3.3, not 3.4 until ES updates.
          See https://github.com/elastic/elasticsearch-hadoop/issues/2187 -->
