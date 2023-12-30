@@ -19,7 +19,7 @@
 
   <groupId>io.zipkin.dependencies</groupId>
   <artifactId>zipkin-dependencies-parent</artifactId>
-  <version>2.7.4-SNAPSHOT</version>
+  <version>3.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -36,35 +36,53 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <main.basedir>${project.basedir}</main.basedir>
-    <main.java.version>1.8</main.java.version>
-    <main.signature.artifact>java18</main.signature.artifact>
+
+    <!-- All source is Java 11+ -->
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <!-- We don't use animal-sniffer anymore as release obviates it.
+         See https://github.com/mojohaus/animal-sniffer/issues/62 -->
+    <maven.compiler.release>11</maven.compiler.release>
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.23.0</errorprone.version>
+    <errorprone.version>2.24.0</errorprone.version>
 
-    <!-- TODO: can't update to 2.13 without updating ES driver -->
+    <!-- Use a common scala binary version, and the highest spark patch version.
+         Scala 2.13 is held back due to spark version conflicts until Elastic
+         updates their version. -->
     <scala.binary.version>2.12</scala.binary.version>
-    <!-- TODO: can't update further without updating ES driver -->
-    <spark.version>3.0.3</spark.version>
+    <!-- Latest patch of highest common minor. 3.3, not 3.4 until ES updates.
+         See https://github.com/elastic/elasticsearch-hadoop/issues/2187 -->
+    <spark.version>3.3.4</spark.version>
 
-    <spark-cassandra-connector.version>2.5.1</spark-cassandra-connector.version>
-    <java-driver.version>4.9.0</java-driver.version>
+    <!-- This dependency is in elasticsearch-hadoop -->
+    <elasticsearch-spark.version>8.11.3</elasticsearch-spark.version>
+
+    <!-- Use latest Cassandra connector matching minor versioned of spark. -->
+    <spark-cassandra-connector.version>3.3.0</spark-cassandra-connector.version>
+    <!-- Note: Zipkin uses the Apache java-driver. Watch for the connector to
+         change from DataStax to this. -->
+    <java-driver.version>4.17.0</java-driver.version>
+
+    <!-- Use zipkin's version of MariaDB client -->
+    <mariadb-java-client.version>3.3.2</mariadb-java-client.version>
 
     <junit-jupiter.version>5.10.1</junit-jupiter.version>
     <testcontainers.version>1.19.3</testcontainers.version>
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>2.25.2</zipkin.version>
+    <zipkin.version>2.26.0</zipkin.version>
     <armeria.version>1.26.4</armeria.version>
-    <jackson.version>2.16.0</jackson.version>
+    <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
+    <netty.version>4.1.100.Final</netty.version>
+    <jackson.version>2.16.1</jackson.version>
     <assertj.version>3.24.2</assertj.version>
     <slf4j.version>1.7.36</slf4j.version>
 
     <license.skip>${skipTests}</license.skip>
 
-    <animal-sniffer-maven-plugin.version>1.23</animal-sniffer-maven-plugin.version>
     <go-offline-maven-plugin.version>1.2.8</go-offline-maven-plugin.version>
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.3</license-maven-plugin.version>
@@ -137,6 +155,14 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_${scala.binary.version}</artifactId>
@@ -213,13 +239,6 @@
           <configuration>
             <!-- Add dependencies indirectly referenced by build plugins -->
             <dynamicDependencies>
-              <DynamicDependency>
-                <groupId>org.codehaus.mojo.signature</groupId>
-                <artifactId>${main.signature.artifact}</artifactId>
-                <version>1.0</version>
-                <type>signature</type>
-                <repositoryType>MAIN</repositoryType>
-              </DynamicDependency>
               <DynamicDependency>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin-git</artifactId>
@@ -299,10 +318,7 @@
         <version>${maven-compiler-plugin.version}</version>
         <inherited>true</inherited>
         <configuration>
-          <source>${main.java.version}</source>
-          <target>${main.java.version}</target>
           <fork>true</fork>
-          <release>8</release>
           <showWarnings>true</showWarnings>
         </configuration>
       </plugin>
@@ -333,29 +349,6 @@
           <!-- Ensures root cause ends up in the console -->
           <trimStackTrace>false</trimStackTrace>
         </configuration>
-      </plugin>
-
-      <!-- Ensure no Java 9+ api usage -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <version>${animal-sniffer-maven-plugin.version}</version>
-        <configuration>
-          <checkTestClasses>false</checkTestClasses>
-          <skip>${skipTests}</skip>
-          <signature>
-            <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>${main.signature.artifact}</artifactId>
-            <version>1.0</version>
-          </signature>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
 
       <plugin>
@@ -481,8 +474,6 @@
             <version>${maven-compiler-plugin.version}</version>
             <inherited>true</inherited>
             <configuration>
-              <source>${main.java.version}</source>
-              <target>${main.java.version}</target>
               <fork>true</fork>
               <showWarnings>true</showWarnings>
             </configuration>

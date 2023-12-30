@@ -20,7 +20,7 @@
   <parent>
     <groupId>io.zipkin.dependencies</groupId>
     <artifactId>zipkin-dependencies-parent</artifactId>
-    <version>2.7.4-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>zipkin-dependencies-mysql</artifactId>
@@ -28,12 +28,6 @@
 
   <properties>
     <main.basedir>${project.basedir}/..</main.basedir>
-    <!-- MySQL connector is GPL, even if it has an OSS exception.
-         https://www.mysql.com/about/legal/licensing/foss-exception/
-
-         MariaDB has a friendlier license, LGPL, which is less scary in audits.
-    -->
-    <mariadb-java-client.version>2.7.11</mariadb-java-client.version>
   </properties>
 
   <dependencies>

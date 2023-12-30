@@ -54,10 +54,11 @@ class MySQLExtension implements BeforeAllCallback, AfterAllCallback {
     final MariaDbDataSource dataSource;
 
     try {
-      dataSource = new MariaDbDataSource(host(), port(), "zipkin");
+      dataSource = new MariaDbDataSource(String.format(
+        "jdbc:mysql://%s:%s/zipkin?permitMysqlScheme&autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8",
+        host(), port()));
       dataSource.setUser("zipkin");
       dataSource.setPassword("zipkin");
-      dataSource.setProperties("autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8");
     } catch (SQLException e) {
       throw new AssertionError(e);
     }
@@ -78,7 +79,7 @@ class MySQLExtension implements BeforeAllCallback, AfterAllCallback {
   // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
   static final class MySQLContainer extends GenericContainer<MySQLContainer> {
     MySQLContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-mysql:2.25.2"));
+      super(parse("ghcr.io/openzipkin/zipkin-mysql:2.26.0"));
       if ("true".equals(System.getProperty("docker.skip"))) {
         throw new TestAbortedException("${docker.skip} == true");
       }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2023 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -14,6 +14,7 @@
 package zipkin2.dependencies.elasticsearch;
 
 import java.io.IOException;
+import java.util.Base64;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.elasticsearch.hadoop.EsHadoopException;
@@ -24,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START;
 import static okhttp3.tls.internal.TlsUtil.localhost;
-import static org.apache.commons.net.util.Base64.encodeBase64String;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -65,8 +65,9 @@ class ElasticsearchDependenciesJobTest {
     assertThatThrownBy(job::run)
       .isInstanceOf(EsHadoopException.class);
 
+    String encoded = Base64.getEncoder().encodeToString("foo:bar".getBytes(UTF_8));
     assertThat(es.takeRequest().getHeader("Authorization"))
-      .isEqualTo("Basic " + encodeBase64String("foo:bar".getBytes(UTF_8)).trim());
+      .isEqualTo("Basic " + encoded.trim());
   }
 
   @Test void authWorksWithSsl() throws Exception {
@@ -88,8 +89,9 @@ class ElasticsearchDependenciesJobTest {
     assertThatThrownBy(job::run)
       .isInstanceOf(EsHadoopException.class);
 
+    String encoded = Base64.getEncoder().encodeToString("foo:bar".getBytes(UTF_8));
     assertThat(es.takeRequest().getHeader("Authorization"))
-      .isEqualTo("Basic " + encodeBase64String("foo:bar".getBytes("UTF-8")).trim());
+      .isEqualTo("Basic " + encoded.trim());
   }
 
   @Test void parseHosts_default() {

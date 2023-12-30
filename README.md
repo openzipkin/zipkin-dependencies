@@ -13,13 +13,13 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 
 ## Versions
 
-* `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 3.11
-* `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 5.6
-* `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 5+; tested against last minor release of 6.x and 7.x
+* `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 4.0
+* `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 10.11
+* `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 7+; tested against last minor release of 7.x and 8.x
 
 ## Quick-start
 
-Due to [SPARK-26134](https://issues.apache.org/jira/browse/SPARK-26134), Zipkin Dependencies currently requires Java 1.8 or 9 to run.
+Zipkin Dependencies requires Java 11+ to run.
 
 The quickest way to get started is to fetch the [latest released job](https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST) as a self-contained jar. For example:
 
@@ -144,7 +144,7 @@ You can use the following command to display what this project is built against:
 ```bash
 $ SPARK_VERSION=$(./mvnw help:evaluate -Dexpression=spark.version -q -DforceStdout)
 $ echo $SPARK_VERSION
-2.4.0
+3.3.4
 ```
 
 Once you've verified your setup is on the correct version, set the `SPARK_MASTER` variable:
