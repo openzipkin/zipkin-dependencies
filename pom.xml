@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright 2016-2023 The OpenZipkin Authors
+    Copyright 2016-2024 The OpenZipkin Authors
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
     in compliance with the License. You may obtain a copy of the License at
@@ -19,7 +19,7 @@
 
   <groupId>io.zipkin.dependencies</groupId>
   <artifactId>zipkin-dependencies-parent</artifactId>
-  <version>3.0.1-SNAPSHOT</version>
+  <version>3.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -44,15 +44,24 @@
          See https://github.com/mojohaus/animal-sniffer/issues/62 -->
     <maven.compiler.release>11</maven.compiler.release>
 
+    <maven.compiler.testSource>11</maven.compiler.testSource>
+    <maven.compiler.testTarget>11</maven.compiler.testTarget>
+    <!-- We don't use animal-sniffer anymore as release obviates it.
+         See https://github.com/mojohaus/animal-sniffer/issues/62 -->
+    <maven.compiler.testRelease>11</maven.compiler.testRelease>
+
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.24.0</errorprone.version>
+    <errorprone.version>2.24.1</errorprone.version>
 
     <!-- Use a common scala binary version, and the highest spark patch version.
          Scala 2.13 is held back due to spark version conflicts until Elastic
          updates their version. Once 2.13 works, we can also use JDK 17 per
          https://issues.apache.org/jira/browse/SPARK-33772 and possibly 12 per
-         https://issues.apache.org/jira/browse/SPARK-43831 -->
+         https://issues.apache.org/jira/browse/SPARK-43831
+
+         Another way is for datastax to add 3.3 on Scala 2.13 per
+         https://datastax-oss.atlassian.net/browse/SPARKC-709 -->
     <scala.binary.version>2.12</scala.binary.version>
     <!-- Latest patch of highest common minor. 3.3, not 3.4 until ES updates.
          See https://github.com/elastic/elasticsearch-hadoop/issues/2187 -->
@@ -75,7 +84,7 @@
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>2.26.0</zipkin.version>
+    <zipkin.version>3.0.1</zipkin.version>
     <armeria.version>1.26.4</armeria.version>
     <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
     <netty.version>4.1.100.Final</netty.version>
