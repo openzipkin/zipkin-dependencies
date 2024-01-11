@@ -81,6 +81,12 @@
               <filters>
                 <!-- Prevent minification from excluding classes looked up by name -->
                 <filter>
+                  <artifact>org.apache.logging.log4j:*</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
                   <artifact>org.apache.hadoop:hadoop-common</artifact>
                   <includes>
                     <include>**</include>
