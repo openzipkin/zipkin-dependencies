@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.storage.cassandra;
+package zipkin2.storage.mysql.v1;
 
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -19,22 +19,22 @@ import org.junit.jupiter.api.TestInfo;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
-import zipkin2.storage.ITDependencies;
+import zipkin2.storage.ITDependenciesHeavy;
 
 @Tag("docker")
 @Testcontainers(disabledWithoutDocker = true)
-class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
-  @Container static CassandraContainer cassandra = new CassandraContainer();
+class ITMySQLDependenciesHeavy extends ITDependenciesHeavy<MySQLStorage> {
+  @Container static MySQLContainer mysql = new MySQLContainer();
 
-  @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {
-    return cassandra.newStorageBuilder();
+  @Override protected MySQLStorage.Builder newStorageBuilder(TestInfo testInfo) {
+    return mysql.newStorageBuilder();
   }
 
   @Override public void clear() {
-    cassandra.clear(storage);
+    storage.clear();
   }
 
   @Override protected void processDependencies(List<Span> spans) throws Exception {
-    cassandra.processDependencies(storage, spans);
+    mysql.processDependencies(storage, spans);
   }
 }

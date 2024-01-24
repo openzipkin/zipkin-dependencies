@@ -19,11 +19,11 @@ import org.junit.jupiter.api.TestInfo;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
-import zipkin2.storage.ITDependencies;
+import zipkin2.storage.ITDependenciesHeavy;
 
 @Tag("docker")
 @Testcontainers(disabledWithoutDocker = true)
-class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
+class ITCassandraDependenciesHeavy extends ITDependenciesHeavy<CassandraStorage> {
   @Container static CassandraContainer cassandra = new CassandraContainer();
 
   @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {

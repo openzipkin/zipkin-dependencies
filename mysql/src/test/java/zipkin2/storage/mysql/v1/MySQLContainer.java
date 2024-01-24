@@ -13,44 +13,38 @@
  */
 package zipkin2.storage.mysql.v1;
 
+import java.io.IOException;
 import java.sql.SQLException;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import java.util.List;
+import java.util.Set;
 import org.mariadb.jdbc.MariaDbDataSource;
-import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import zipkin2.Span;
+import zipkin2.dependencies.mysql.MySQLDependenciesJob;
 
 import static org.testcontainers.utility.DockerImageName.parse;
+import static zipkin2.storage.ITDependencies.aggregateLinks;
 
-class MySQLExtension implements BeforeAllCallback, AfterAllCallback {
-  static final Logger LOGGER = LoggerFactory.getLogger(MySQLExtension.class);
+final class MySQLContainer extends GenericContainer<MySQLContainer> {
+  static final Logger LOGGER = LoggerFactory.getLogger(MySQLContainer.class);
 
-  final MySQLContainer container = new MySQLContainer();
+  MySQLContainer() {
+    super(parse("ghcr.io/openzipkin/zipkin-mysql:3.0.5"));
+    addExposedPort(3306);
+    waitStrategy = Wait.forHealthcheck();
+    withLogConsumer(new Slf4jLogConsumer(LOGGER));
+  }
 
-  @Override public void beforeAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
-
-    container.start();
+  @Override public void start() {
+    super.start();
     LOGGER.info("Using hostPort " + host() + ":" + port());
   }
 
-  @Override public void afterAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
-    container.stop();
-  }
-
-  MySQLStorage.Builder computeStorageBuilder() {
+  MySQLStorage.Builder newStorageBuilder() {
     final MariaDbDataSource dataSource;
 
     try {
@@ -69,23 +63,29 @@ class MySQLExtension implements BeforeAllCallback, AfterAllCallback {
   }
 
   String host() {
-    return container.getHost();
+    return getHost();
   }
 
   int port() {
-    return container.getMappedPort(3306);
+    return getMappedPort(3306);
   }
 
-  // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
-  static final class MySQLContainer extends GenericContainer<MySQLContainer> {
-    MySQLContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-mysql:3.0.1"));
-      if ("true".equals(System.getProperty("docker.skip"))) {
-        throw new TestAbortedException("${docker.skip} == true");
-      }
-      addExposedPort(3306);
-      waitStrategy = Wait.forHealthcheck();
-      withLogConsumer(new Slf4jLogConsumer(LOGGER));
+  /** This processes the job as if it were a batch. For each day we had traces, run the job again. */
+  void processDependencies(MySQLStorage storage, List<Span> spans) throws IOException {
+    storage.spanConsumer().accept(spans).execute();
+
+    // aggregate links in memory to determine which days they are in
+    Set<Long> days = aggregateLinks(spans).keySet();
+
+    // process the job for each day of links.
+    for (long day : days) {
+      MySQLDependenciesJob.builder()
+        .user("zipkin")
+        .password("zipkin")
+        .host(host())
+        .port(port())
+        .db("zipkin")
+        .day(day).build().run();
     }
   }
 }

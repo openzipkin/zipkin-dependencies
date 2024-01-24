@@ -35,26 +35,31 @@ jobs:
           distribution: 'zulu'  # zulu as it supports a wide version range
           java-version: '11'  # Most recent LTS that passes tests
       - name: Test without Docker
-        run: build-bin/maven/maven_go_offline && build-bin/test -Ddocker.skip=true
+        run: build-bin/maven/maven_go_offline && build-bin/test -DexcludedGroups=docker
   test_docker:
+    name: test_docker (${{ matrix.name }})
     runs-on: ubuntu-22.04 # newest available distribution, aka jellyfish
     if: "!contains(github.event.head_commit.message, 'maven-release-plugin')"
     strategy:
       matrix:
         include:
           - name: zipkin-dependencies-cassandra3
-          - name: zipkin-dependencies-elasticsearch
+            module: zipkin-dependencies-cassandra3
+            groups: docker
+          - name: zipkin-dependencies-elasticsearch-v7
+            module: zipkin-dependencies-elasticsearch
+            groups: docker,elasticsearch7
+          - name: zipkin-dependencies-elasticsearch-v8
+            module: zipkin-dependencies-elasticsearch
+            groups: docker,elasticsearch8
           - name: zipkin-dependencies-mysql
+            module: zipkin-dependencies-mysql
+            groups: docker
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # -Dlicense.skip=true so we don't need a full clone
-      # Remove apt repos that are known to break from time to time.
-      # See https://github.com/actions/virtual-environments/issues/323
-      - name: Remove broken apt repos
-        run: |
-          for apt_file in `grep -lr microsoft /etc/apt/sources.list.d/`; do sudo rm $apt_file; done
+          fetch-depth: 1  # -Dlicense.skip=true, so we don't need a full clone
       - name: Cache local Maven repository
         uses: actions/cache@v3
         with:
@@ -71,5 +76,10 @@ jobs:
           java-version: '11'  # Most recent LTS that passes tests
       - name: Test with Docker
         run: |
-          build-bin/configure_test &&
-          build-bin/test -pl :${{ matrix.name }} --am -Dlicense.skip=true
+          build-bin/docker/configure_docker &&
+          build-bin/maven/maven_go_offline &&
+          build-bin/maven/maven_build -pl :${{ matrix.module }} --am &&
+          build-bin/test -Dgroups=${{ matrix.groups }} -pl :${{ matrix.module }}
+        env:
+          MAVEN_GOAL: install  # docker build needs dependencies in mavenLocal
+          MAVEN_CONFIG: '-Dlicense.skip=true'  # license check already run
