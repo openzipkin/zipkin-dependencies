@@ -19,19 +19,19 @@ import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metrics.DefaultNodeMetric;
 import com.datastax.oss.driver.api.core.metrics.Metrics;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.opentest4j.TestAbortedException;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import zipkin2.Span;
+import zipkin2.dependencies.cassandra3.CassandraDependenciesJob;
 import zipkin2.storage.cassandra.CassandraStorage.SessionFactory;
 
 import static java.util.Arrays.asList;
@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.testcontainers.utility.DockerImageName.parse;
 import static zipkin2.Call.propagateIfFatal;
+import static zipkin2.storage.ITDependencies.aggregateLinks;
 import static zipkin2.storage.cassandra.Schema.TABLE_AUTOCOMPLETE_TAGS;
 import static zipkin2.storage.cassandra.Schema.TABLE_DEPENDENCY;
 import static zipkin2.storage.cassandra.Schema.TABLE_SERVICE_REMOTE_SERVICES;
@@ -47,8 +48,8 @@ import static zipkin2.storage.cassandra.Schema.TABLE_SPAN;
 import static zipkin2.storage.cassandra.Schema.TABLE_TRACE_BY_SERVICE_REMOTE_SERVICE;
 import static zipkin2.storage.cassandra.Schema.TABLE_TRACE_BY_SERVICE_SPAN;
 
-public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
-  static final Logger LOGGER = LoggerFactory.getLogger(CassandraExtension.class);
+final class CassandraContainer extends GenericContainer<CassandraContainer> {
+  static final Logger LOGGER = LoggerFactory.getLogger(CassandraContainer.class);
   static final List<String> SEARCH_TABLES = asList(
     TABLE_AUTOCOMPLETE_TAGS,
     TABLE_SERVICE_REMOTE_SERVICES,
@@ -57,16 +58,17 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
     TABLE_TRACE_BY_SERVICE_SPAN
   );
 
-  final CassandraContainer container = new CassandraContainer();
+  CassandraContainer() {
+    super(parse("ghcr.io/openzipkin/zipkin-cassandra:3.0.5"));
+    addExposedPort(9042);
+    waitStrategy = Wait.forHealthcheck();
+    withLogConsumer(new Slf4jLogConsumer(LOGGER));
+  }
+
   CqlSession globalSession;
 
-  @Override public void beforeAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
-
-    container.start();
+  @Override public void start() {
+    super.start();
     LOGGER.info("Using contactPoint " + contactPoint());
     globalSession = tryToInitializeSession(contactPoint());
   }
@@ -80,7 +82,9 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
       session.execute("SELECT now() FROM system.local");
     } catch (Throwable e) {
       propagateIfFatal(e);
-      if (session != null) session.close();
+      if (session != null) {
+        session.close();
+      }
       assumeTrue(false, e.getMessage());
     }
     return session;
@@ -95,16 +99,20 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
   }
 
   String contactPoint() {
-    return container.getHost() + ":" + container.getMappedPort(9042);
+    return getHost() + ":" + getMappedPort(9042);
   }
 
   void clear(CassandraStorage storage) {
     // Clear any key cache
     CassandraSpanConsumer spanConsumer = storage.spanConsumer;
-    if (spanConsumer != null) spanConsumer.clear();
+    if (spanConsumer != null) {
+      spanConsumer.clear();
+    }
 
     CqlSession session = storage.session.session;
-    if (session == null) session = globalSession;
+    if (session == null) {
+      session = globalSession;
+    }
 
     List<String> toTruncate = new ArrayList<>(SEARCH_TABLES);
     toTruncate.add(TABLE_DEPENDENCY);
@@ -121,12 +129,12 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
     blockWhileInFlight(storage);
   }
 
-  @Override public void afterAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
+  @Override
+  public void stop() {
+    if (globalSession != null) {
+      globalSession.close();
     }
-    if (globalSession != null) globalSession.close();
+    super.stop();
   }
 
   static void blockWhileInFlight(CassandraStorage storage) {
@@ -135,7 +143,9 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
     boolean wasInFlight = false;
     while (true) {
       if (!poolInFlight(session)) {
-        if (wasInFlight) sleep(100); // give a little more to avoid flakey tests
+        if (wasInFlight) {
+          sleep(100); // give a little more to avoid flakey tests
+        }
         return;
       }
       wasInFlight = true;
@@ -161,21 +171,39 @@ public class CassandraExtension implements BeforeAllCallback, AfterAllCallback {
       int inFlight = metrics.flatMap(m -> m.getNodeMetric(node, DefaultNodeMetric.IN_FLIGHT))
         .map(m -> ((Gauge<Integer>) m).getValue())
         .orElse(0);
-      if (inFlight > 0) return true;
+      if (inFlight > 0) {
+        return true;
+      }
     }
     return false;
   }
 
-  // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
-  static final class CassandraContainer extends GenericContainer<CassandraContainer> {
-    CassandraContainer() {
-      super(parse("ghcr.io/openzipkin/zipkin-cassandra:3.0.1"));
-      if ("true".equals(System.getProperty("docker.skip"))) {
-        throw new TestAbortedException("${docker.skip} == true");
-      }
-      addExposedPort(9042);
-      waitStrategy = Wait.forHealthcheck();
-      withLogConsumer(new Slf4jLogConsumer(LOGGER));
+  /**
+   * This processes the job as if it were a batch. For each day we had traces, run the job again.
+   */
+  void processDependencies(CassandraStorage storage, List<Span> spans) throws Exception {
+    // TODO: this avoids overrunning the cluster with BusyPoolException
+    for (List<Span> nextChunk : Lists.partition(spans, 100)) {
+      storage.spanConsumer().accept(nextChunk).execute();
+      // Now, block until writes complete, notably so we can read them.
+      blockWhileInFlight(storage);
     }
+
+    // aggregate links in memory to determine which days they are in
+    Set<Long> days = aggregateLinks(spans).keySet();
+
+    // process the job for each day of links.
+    for (long day : days) {
+      CassandraDependenciesJob.builder()
+        .keyspace(storage.keyspace)
+        .localDc(storage.localDc)
+        .contactPoints(storage.contactPoints)
+        .strictTraceId(false)
+        .day(day)
+        .build()
+        .run();
+    }
+
+    blockWhileInFlight(storage);
   }
 }

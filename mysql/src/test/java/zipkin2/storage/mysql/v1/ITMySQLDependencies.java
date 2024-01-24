@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 The OpenZipkin Authors
+ * Copyright 2016-2024 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -13,74 +13,28 @@
  */
 package zipkin2.storage.mysql.v1;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
-import zipkin2.dependencies.mysql.MySQLDependenciesJob;
+import zipkin2.storage.ITDependencies;
 
-import static zipkin2.storage.ITDependencies.aggregateLinks;
+@Tag("docker")
+@Testcontainers(disabledWithoutDocker = true)
+class ITMySQLDependencies extends ITDependencies<MySQLStorage> {
+  @Container static MySQLContainer mysql = new MySQLContainer();
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ITMySQLDependencies {
-  @RegisterExtension MySQLExtension mysql = new MySQLExtension();
-
-  MySQLStorage.Builder newStorageBuilder() {
-    return mysql.computeStorageBuilder();
+  @Override protected MySQLStorage.Builder newStorageBuilder(TestInfo testInfo) {
+    return mysql.newStorageBuilder();
   }
 
-  @Nested
-  class ITDependencies extends zipkin2.storage.ITDependencies<MySQLStorage> {
-
-    @Override protected MySQLStorage.Builder newStorageBuilder(TestInfo testInfo) {
-      return ITMySQLDependencies.this.newStorageBuilder();
-    }
-
-    @Override public void clear() {
-      storage.clear();
-    }
-
-    @Override protected void processDependencies(List<Span> spans) throws Exception {
-      ITMySQLDependencies.this.processDependencies(storage, spans);
-    }
+  @Override public void clear() {
+    storage.clear();
   }
 
-  @Nested
-  class ITDependenciesHeavy extends zipkin2.storage.ITDependenciesHeavy<MySQLStorage> {
-
-    @Override protected MySQLStorage.Builder newStorageBuilder(TestInfo testInfo) {
-      return ITMySQLDependencies.this.newStorageBuilder();
-    }
-
-    @Override public void clear() {
-      storage.clear();
-    }
-
-    @Override protected void processDependencies(List<Span> spans) throws Exception {
-      ITMySQLDependencies.this.processDependencies(storage, spans);
-    }
-  }
-
-  /** This processes the job as if it were a batch. For each day we had traces, run the job again. */
-  void processDependencies(MySQLStorage storage, List<Span> spans) throws IOException {
-    storage.spanConsumer().accept(spans).execute();
-
-    // aggregate links in memory to determine which days they are in
-    Set<Long> days = aggregateLinks(spans).keySet();
-
-    // process the job for each day of links.
-    for (long day : days) {
-      MySQLDependenciesJob.builder()
-        .user("zipkin")
-        .password("zipkin")
-        .host(mysql.host())
-        .port(mysql.port())
-        .db("zipkin")
-        .day(day).build().run();
-    }
+  @Override protected void processDependencies(List<Span> spans) throws Exception {
+    mysql.processDependencies(storage, spans);
   }
 }

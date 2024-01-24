@@ -11,30 +11,33 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.storage.cassandra;
+package zipkin2.storage.elasticsearch;
 
+import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInfo;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
-import zipkin2.storage.ITDependencies;
+import zipkin2.elasticsearch.ElasticsearchStorage;
+import zipkin2.storage.ITDependenciesHeavy;
 
 @Tag("docker")
+@Tag("elasticsearch7")
 @Testcontainers(disabledWithoutDocker = true)
-class ITCassandraDependencies extends ITDependencies<CassandraStorage> {
-  @Container static CassandraContainer cassandra = new CassandraContainer();
+class ITElasticsearchDependenciesHeavyV7 extends ITDependenciesHeavy<ElasticsearchStorage> {
+  @Container static ElasticsearchContainer elasticsearch = new ElasticsearchContainer(7);
 
-  @Override protected CassandraStorage.Builder newStorageBuilder(TestInfo testInfo) {
-    return cassandra.newStorageBuilder();
+  @Override protected ElasticsearchStorage.Builder newStorageBuilder(TestInfo testInfo) {
+    return elasticsearch.newStorageBuilder();
   }
 
-  @Override public void clear() {
-    cassandra.clear(storage);
+  @Override public void clear() throws IOException {
+    storage.clear();
   }
 
   @Override protected void processDependencies(List<Span> spans) throws Exception {
-    cassandra.processDependencies(storage, spans);
+    elasticsearch.processDependencies(storage, spans);
   }
 }

@@ -11,7 +11,7 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package zipkin2.elasticsearch;
+package zipkin2.storage.elasticsearch;
 
 import com.linecorp.armeria.client.ClientFactory;
 import com.linecorp.armeria.client.ClientOptions;
@@ -23,50 +23,38 @@ import com.linecorp.armeria.client.logging.LoggingClient;
 import com.linecorp.armeria.client.logging.LoggingClientBuilder;
 import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.common.logging.LogLevel;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.opentest4j.TestAbortedException;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import zipkin2.elasticsearch.ElasticsearchStorage.Builder;
+import zipkin2.Span;
+import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
+import zipkin2.elasticsearch.ElasticsearchStorage;
 
 import static org.testcontainers.utility.DockerImageName.parse;
-import static zipkin2.elasticsearch.IgnoredDeprecationWarnings.IGNORE_THESE_WARNINGS;
+import static zipkin2.storage.ITDependencies.aggregateLinks;
 
-class ElasticsearchExtension implements BeforeAllCallback, AfterAllCallback {
-  static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchExtension.class);
+class ElasticsearchContainer extends GenericContainer<ElasticsearchContainer> {
+  static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchContainer.class);
 
-  final ElasticsearchContainer container;
-
-  ElasticsearchExtension(int majorVersion) {
-    container = new ElasticsearchContainer(majorVersion);
+  ElasticsearchContainer(int majorVersion) {
+    super(parse("ghcr.io/openzipkin/zipkin-elasticsearch" + majorVersion + ":3.0.5"));
+    addExposedPort(9200);
+    waitStrategy = Wait.forHealthcheck();
+    withLogConsumer(new Slf4jLogConsumer(LOGGER));
   }
 
-  @Override public void beforeAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
-
-    container.start();
+  @Override public void start() {
+    super.start();
     LOGGER.info("Using baseUrl http://" + hostPort());
   }
 
-  @Override public void afterAll(ExtensionContext context) {
-    if (context.getRequiredTestClass().getEnclosingClass() != null) {
-      // Only run once in outermost scope.
-      return;
-    }
+  ElasticsearchStorage.Builder newStorageBuilder() {
 
-    container.stop();
-  }
-
-  Builder computeStorageBuilder() {
     WebClientBuilder builder = WebClient.builder("http://" + hostPort())
       // Elasticsearch 7 never returns a response when receiving an HTTP/2 preface instead of the
       // more valid behavior of returning a bad request response, so we can't use the preface.
@@ -75,15 +63,15 @@ class ElasticsearchExtension implements BeforeAllCallback, AfterAllCallback {
       .factory(ClientFactory.builder().useHttp2Preface(false).build());
     builder.decorator((delegate, ctx, req) -> {
       final HttpResponse response = delegate.execute(ctx, req);
-      return HttpResponse.from(response.aggregate().thenApply(r -> {
+      return HttpResponse.of(response.aggregate().thenApply(r -> {
         // ES will return a 'warning' response header when using deprecated api, detect this and
-        // fail early so we can do something about it.
+        // fail early, so we can do something about it.
         // Example usage: https://github.com/elastic/elasticsearch/blob/3049e55f093487bb582a7e49ad624961415ba31c/x-pack/plugin/security/src/internalClusterTest/java/org/elasticsearch/integration/IndexPrivilegeIntegTests.java#L559
         final String warningHeader = r.headers().get("warning");
         if (warningHeader != null) {
-          if (IGNORE_THESE_WARNINGS.stream().noneMatch(p -> p.matcher(warningHeader).find())) {
-            throw new IllegalArgumentException("Detected usage of deprecated API for request "
-              + req.toString() + ":\n" + warningHeader);
+          if (IgnoredDeprecationWarnings.IGNORE_THESE_WARNINGS.stream().noneMatch(p -> p.matcher(warningHeader).find())) {
+            throw new IllegalArgumentException(
+              "Detected usage of deprecated API for request " + req + ":\n" + warningHeader);
           }
         }
         // Convert AggregatedHttpResponse back to HttpResponse.
@@ -116,23 +104,25 @@ class ElasticsearchExtension implements BeforeAllCallback, AfterAllCallback {
       @Override public String toString() {
         return client.uri().toString();
       }
-    }).index("zipkin-test").flushOnWrites(true);
+    }).flushOnWrites(true);
   }
 
   String hostPort() {
-    return container.getHost() + ":" + container.getMappedPort(9200);
+    return getHost() + ":" + getMappedPort(9200);
   }
 
-  // mostly waiting for https://github.com/testcontainers/testcontainers-java/issues/3537
-  static final class ElasticsearchContainer extends GenericContainer<ElasticsearchContainer> {
-    ElasticsearchContainer(int majorVersion) {
-      super(parse("ghcr.io/openzipkin/zipkin-elasticsearch" + majorVersion + ":3.0.1"));
-      if ("true".equals(System.getProperty("docker.skip"))) {
-        throw new TestAbortedException("${docker.skip} == true");
-      }
-      addExposedPort(9200);
-      waitStrategy = Wait.forHealthcheck();
-      withLogConsumer(new Slf4jLogConsumer(LOGGER));
+  /**
+   * This processes the job as if it were a batch. For each day we had traces, run the job again.
+   */
+  void processDependencies(ElasticsearchStorage storage, List<Span> spans) throws IOException {
+    storage.spanConsumer().accept(spans).execute();
+
+    // aggregate links in memory to determine which days they are in
+    Set<Long> days = aggregateLinks(spans).keySet();
+
+    // process the job for each day of links.
+    for (long day : days) {
+      ElasticsearchDependenciesJob.builder().hosts(hostPort()).day(day).build().run();
     }
   }
 }

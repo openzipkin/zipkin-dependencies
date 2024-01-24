@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2023 The OpenZipkin Authors
+# Copyright 2016-2024 The OpenZipkin Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -19,7 +19,7 @@
 # docker-compose: When updating, update everywhere.
 #
 # TODO: temporarily 11 until we can update to spark on scala 2.13
-ARG java_version=11.0.21_p9
+ARG java_version=11.0.22_p7
 
 # We copy files from the context into a scratch container first to avoid a problem where docker and
 # docker-compose don't share layer hashes https://github.com/docker/compose/issues/883 normally.
@@ -48,7 +48,7 @@ RUN /code/build-bin/maven/maven_build_or_unjar io.zipkin.dependencies zipkin-dep
 
 # Try -jre again once Spark dependencies are up to date. Spark 3.0 uses old Hadoop in the
 # Elasticsearch driver which needs com.sun.security.auth.module.UnixLoginModule.
-FROM ghcr.io/openzipkin/java:11.0.21_p9 as zipkin-dependencies
+FROM ghcr.io/openzipkin/java:11.0.22_p7 as zipkin-dependencies
 LABEL org.opencontainers.image.description="Zipkin Dependencies Aggregator on OpenJDK and Alpine Linux"
 LABEL org.opencontainers.image.source=https://github.com/openzipkin/zipkin-dependencies
 
