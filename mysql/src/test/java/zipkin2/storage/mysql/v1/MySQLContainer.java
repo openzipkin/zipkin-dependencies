@@ -33,7 +33,7 @@ final class MySQLContainer extends GenericContainer<MySQLContainer> {
   static final Logger LOGGER = LoggerFactory.getLogger(MySQLContainer.class);
 
   MySQLContainer() {
-    super(parse("ghcr.io/openzipkin/zipkin-mysql:3.0.5"));
+    super(parse("ghcr.io/openzipkin/zipkin-mysql:3.0.6"));
     addExposedPort(3306);
     waitStrategy = Wait.forHealthcheck();
     withLogConsumer(new Slf4jLogConsumer(LOGGER));

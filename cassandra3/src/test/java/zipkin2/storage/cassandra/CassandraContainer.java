@@ -59,7 +59,7 @@ final class CassandraContainer extends GenericContainer<CassandraContainer> {
   );
 
   CassandraContainer() {
-    super(parse("ghcr.io/openzipkin/zipkin-cassandra:3.0.5"));
+    super(parse("ghcr.io/openzipkin/zipkin-cassandra:3.0.6"));
     addExposedPort(9042);
     waitStrategy = Wait.forHealthcheck();
     withLogConsumer(new Slf4jLogConsumer(LOGGER));
