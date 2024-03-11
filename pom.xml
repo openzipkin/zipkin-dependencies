@@ -52,7 +52,7 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.24.1</errorprone.version>
+    <errorprone.version>2.25.0</errorprone.version>
 
     <!-- Use a common scala binary version, and the highest spark patch version.
          Scala 2.13 is held back due to spark version conflicts until Elastic
@@ -68,7 +68,7 @@
     <spark.version>3.3.4</spark.version>
 
     <!-- This dependency is in elasticsearch-hadoop -->
-    <elasticsearch-spark.version>8.12.1</elasticsearch-spark.version>
+    <elasticsearch-spark.version>8.12.2</elasticsearch-spark.version>
 
     <!-- Use latest Cassandra connector matching minor versioned of spark. -->
     <spark-cassandra-connector.version>3.3.0</spark-cassandra-connector.version>
@@ -77,20 +77,20 @@
     <java-driver.version>4.17.0</java-driver.version>
 
     <!-- Use zipkin's version of MariaDB client -->
-    <mariadb-java-client.version>3.3.2</mariadb-java-client.version>
+    <mariadb-java-client.version>3.3.3</mariadb-java-client.version>
 
     <junit-jupiter.version>5.10.2</junit-jupiter.version>
-    <testcontainers.version>1.19.4</testcontainers.version>
+    <testcontainers.version>1.19.7</testcontainers.version>
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>3.0.6</zipkin.version>
-    <armeria.version>1.27.1</armeria.version>
+    <zipkin.version>3.1.1</zipkin.version>
+    <armeria.version>1.27.2</armeria.version>
     <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
     <netty.version>4.1.106.Final</netty.version>
     <jackson.version>2.16.1</jackson.version>
     <assertj.version>3.25.3</assertj.version>
-    <slf4j.version>1.7.32</slf4j.version>
+    <slf4j.version>2.0.12</slf4j.version>
 
     <license.skip>${skipTests}</license.skip>
 
