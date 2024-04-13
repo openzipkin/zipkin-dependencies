@@ -42,7 +42,7 @@ class ElasticsearchContainer extends GenericContainer<ElasticsearchContainer> {
   static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchContainer.class);
 
   ElasticsearchContainer(int majorVersion) {
-    super(parse("ghcr.io/openzipkin/zipkin-elasticsearch" + majorVersion + ":3.1.1"));
+    super(parse("ghcr.io/openzipkin/zipkin-elasticsearch" + majorVersion + ":3.2.1"));
     addExposedPort(9200);
     waitStrategy = Wait.forHealthcheck();
     withLogConsumer(new Slf4jLogConsumer(LOGGER));
