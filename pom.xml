@@ -52,7 +52,7 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.25.0</errorprone.version>
+    <errorprone.version>2.26.1</errorprone.version>
 
     <!-- Use a common scala binary version, and the highest spark patch version.
          Scala 2.13 is held back due to spark version conflicts until Elastic
@@ -63,12 +63,12 @@
          Another way is for datastax to add 3.3 on Scala 2.13 per
          https://datastax-oss.atlassian.net/browse/SPARKC-709 -->
     <scala.binary.version>2.12</scala.binary.version>
-    <!-- Latest patch of highest common minor. 3.3, not 3.4 until ES updates.
+    <!-- Latest patch of highest common minor. 3.3, not 3.5 until ES updates.
          See https://github.com/elastic/elasticsearch-hadoop/issues/2187 -->
     <spark.version>3.3.4</spark.version>
 
     <!-- This dependency is in elasticsearch-hadoop -->
-    <elasticsearch-spark.version>8.12.2</elasticsearch-spark.version>
+    <elasticsearch-spark.version>8.13.2</elasticsearch-spark.version>
 
     <!-- Use latest Cassandra connector matching minor versioned of spark. -->
     <spark-cassandra-connector.version>3.3.0</spark-cassandra-connector.version>
@@ -84,20 +84,21 @@
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>3.1.1</zipkin.version>
-    <armeria.version>1.27.2</armeria.version>
+    <zipkin.version>3.2.1</zipkin.version>
+    <armeria.version>1.28.0</armeria.version>
     <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
-    <netty.version>4.1.106.Final</netty.version>
-    <jackson.version>2.16.1</jackson.version>
+    <netty.version>4.1.108.Final</netty.version>
+    <jackson.version>2.17.0</jackson.version>
     <assertj.version>3.25.3</assertj.version>
-    <slf4j.version>2.0.12</slf4j.version>
+    <slf4j.version>2.0.13</slf4j.version>
 
     <license.skip>${skipTests}</license.skip>
 
     <go-offline-maven-plugin.version>1.2.8</go-offline-maven-plugin.version>
     <!-- TODO: cleanup any redundant ignores now also in the 4.0 release (once final) -->
     <license-maven-plugin.version>4.3</license-maven-plugin.version>
-    <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
+    <maven-bundle-plugin.version>5.1.9</maven-bundle-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
     <maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
     <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
@@ -108,8 +109,8 @@
     <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-    <maven-shade-plugin.version>3.5.1</maven-shade-plugin.version>
-    <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+    <maven-shade-plugin.version>3.5.2</maven-shade-plugin.version>
+    <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
     <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
   </properties>
@@ -538,7 +539,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>3.2.3</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
