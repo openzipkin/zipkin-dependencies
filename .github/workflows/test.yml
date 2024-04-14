@@ -21,8 +21,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # full git history for license check
       - name: Cache local Maven repository
         uses: actions/cache@v3
         with:
@@ -58,8 +56,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1  # -Dlicense.skip=true, so we don't need a full clone
       - name: Cache local Maven repository
         uses: actions/cache@v3
         with:
