@@ -75,8 +75,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # full git history for license check
       - name: Test
         run: |
           build-bin/configure_test
@@ -117,8 +115,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1  # only needed to get the sha label
       - name: Configure Deploy
         run: build-bin/configure_deploy
         env:
