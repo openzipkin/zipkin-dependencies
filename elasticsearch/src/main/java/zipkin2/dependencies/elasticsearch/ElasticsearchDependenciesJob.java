@@ -154,6 +154,9 @@ public final class ElasticsearchDependenciesJob {
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true).setMaster(builder.sparkMaster).setAppName(getClass().getName());
+    if (builder.sparkMaster.startsWith("local[")) {
+      conf.set("spark.driver.bindAddress", "127.0.0.1");
+    }
     if (builder.jars != null) conf.setJars(builder.jars);
     if (builder.username != null) conf.set(ES_NET_HTTP_AUTH_USER, builder.username);
     if (builder.password != null) conf.set(ES_NET_HTTP_AUTH_PASS, builder.password);
@@ -167,33 +170,27 @@ public final class ElasticsearchDependenciesJob {
   }
 
   public void run() {
-    run(
-      index + "-span-" + dateStamp,
-      index + "-dependency-" + dateStamp,
-      SpanBytesDecoder.JSON_V2);
+    String spanResource = index + "-span-" + dateStamp;
+    String dependencyLinkResource = index + "-dependency-" + dateStamp;
+    SpanBytesDecoder decoder = SpanBytesDecoder.JSON_V2;
 
-    log.info("Done");
-  }
-
-  void run(String spanResource, String dependencyLinkResource, SpanBytesDecoder decoder) {
     log.info("Processing spans from {}", spanResource);
-    JavaSparkContext sc = new JavaSparkContext(conf);
-    try {
-      JavaRDD<Map<String, Object>> links =
-        JavaEsSpark.esJsonRDD(sc, spanResource)
-          .groupBy(JSON_TRACE_ID)
-          .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
-          .values()
-          .mapToPair((PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>) l ->
-            new Tuple2<>(new Tuple2<>(l.parent(), l.child()), l))
-          .reduceByKey((l, r) -> DependencyLink.newBuilder()
-            .parent(l.parent())
-            .child(l.child())
-            .callCount(l.callCount() + r.callCount())
-            .errorCount(l.errorCount() + r.errorCount())
-            .build())
-          .values()
-          .map(DEPENDENCY_LINK_JSON);
+    JavaRDD<Map<String, Object>> links;
+    try (JavaSparkContext sc = new JavaSparkContext(conf)) {
+      links = JavaEsSpark.esJsonRDD(sc, spanResource)
+        .groupBy(JSON_TRACE_ID)
+        .flatMapValues(new TraceIdAndJsonToDependencyLinks(logInitializer, decoder))
+        .values()
+        .mapToPair((PairFunction<DependencyLink, Tuple2<String, String>, DependencyLink>) l ->
+          new Tuple2<>(new Tuple2<>(l.parent(), l.child()), l))
+        .reduceByKey((l, r) -> DependencyLink.newBuilder()
+          .parent(l.parent())
+          .child(l.child())
+          .callCount(l.callCount() + r.callCount())
+          .errorCount(l.errorCount() + r.errorCount())
+          .build())
+        .values()
+        .map(DEPENDENCY_LINK_JSON);
 
       if (links.isEmpty()) {
         log.info("No dependency links could be processed from spans in index {}", spanResource);
@@ -204,9 +201,9 @@ public final class ElasticsearchDependenciesJob {
           dependencyLinkResource,
           Collections.singletonMap("es.mapping.id", "id")); // allows overwriting the link
       }
-    } finally {
-      sc.stop();
     }
+
+    log.info("Done");
   }
 
   /**

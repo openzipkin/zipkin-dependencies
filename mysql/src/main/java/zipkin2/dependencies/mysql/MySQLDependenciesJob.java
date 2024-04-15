@@ -158,6 +158,9 @@ public final class MySQLDependenciesJob {
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
+    if (builder.sparkMaster.startsWith("local[")) {
+      conf.set("spark.driver.bindAddress", "127.0.0.1");
+    }
     if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
@@ -195,9 +198,9 @@ public final class MySQLDependenciesJob {
     log.info("Running Dependencies job for {}: start_ts between {} and {}", dateStamp, microsLower,
         microsUpper);
 
-    JavaSparkContext sc = new JavaSparkContext(conf);
-
-    List<DependencyLink> links = new SQLContext(sc).read()
+    List<DependencyLink> links;
+    try (JavaSparkContext sc = new JavaSparkContext(conf)) {
+      links = new SQLContext(sc).read()
         .format("org.apache.spark.sql.execution.datasources.jdbc.JdbcRelationProvider")
         .options(options)
         .load()
@@ -213,8 +216,7 @@ public final class MySQLDependenciesJob {
           .errorCount(l.errorCount() + r.errorCount())
           .build())
         .values().collect();
-
-    sc.stop();
+    }
 
     log.info("Saving with day=" + dateStamp);
     saveToMySQL(links);

@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'  # zulu as it supports a wide version range
-          java-version: '11'  # Most recent LTS that passes tests
+          java-version: '17'  # until Spark 4 per SPARK-43831
       - name: Cache local Maven repository
         uses: actions/cache@v3
         with:
