@@ -28,18 +28,18 @@
 
     <main.basedir>${project.basedir}</main.basedir>
 
-    <!-- All source is Java 11+ -->
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <!-- All source is Java 17+ -->
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <!-- We don't use animal-sniffer anymore as release obviates it.
          See https://github.com/mojohaus/animal-sniffer/issues/62 -->
-    <maven.compiler.release>11</maven.compiler.release>
+    <maven.compiler.release>17</maven.compiler.release>
 
-    <maven.compiler.testSource>11</maven.compiler.testSource>
-    <maven.compiler.testTarget>11</maven.compiler.testTarget>
+    <maven.compiler.testSource>17</maven.compiler.testSource>
+    <maven.compiler.testTarget>17</maven.compiler.testTarget>
     <!-- We don't use animal-sniffer anymore as release obviates it.
          See https://github.com/mojohaus/animal-sniffer/issues/62 -->
-    <maven.compiler.testRelease>11</maven.compiler.testRelease>
+    <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
     <!-- Spark 3.4 module config from:
          https://github.com/apache/spark/blob/branch-3.4/launcher/src/main/java/org/apache/spark/launcher/JavaModuleOptions.java#L29 -->

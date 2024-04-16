@@ -185,13 +185,15 @@ public final class MySQLDependenciesJob {
     String fields = "s.trace_id, s.parent_id, s.id, a.a_key, a.endpoint_service_name, a.a_type";
     if (hasTraceIdHigh) fields = "s.trace_id_high, " + fields;
     String groupByFields = fields.replace("s.parent_id, ", "");
-    String linksQuery = String.format(
-        "select distinct %s "+
-            "from zipkin_spans s left outer join zipkin_annotations a on " +
-            "  (s.trace_id = a.trace_id and s.id = a.span_id " +
-            "     and a.a_key in ('lc', 'ca', 'cs', 'sa', 'sr', 'ma', 'ms', 'mr', 'error')) " +
-            "where s.start_ts between %s and %s group by %s",
-        fields, microsLower, microsUpper, groupByFields);
+    String linksQuery = (
+      """
+      select distinct %s \
+      from zipkin_spans s left outer join zipkin_annotations a on \
+        (s.trace_id = a.trace_id and s.id = a.span_id \
+           and a.a_key in ('lc', 'ca', 'cs', 'sa', 'sr', 'ma', 'ms', 'mr', 'error')) \
+      where s.start_ts between %s and %s group by %s\
+      """).formatted(
+      fields, microsLower, microsUpper, groupByFields);
 
     options.put("dbtable", "(" + linksQuery + ") as link_spans");
 

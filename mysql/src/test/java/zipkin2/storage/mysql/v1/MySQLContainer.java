@@ -39,8 +39,8 @@ final class MySQLContainer extends GenericContainer<MySQLContainer> {
     final MariaDbDataSource dataSource;
 
     try {
-      dataSource = new MariaDbDataSource(String.format(
-        "jdbc:mysql://%s:%s/zipkin?permitMysqlScheme&autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8",
+      dataSource = new MariaDbDataSource(
+        "jdbc:mysql://%s:%s/zipkin?permitMysqlScheme&autoReconnect=true&useUnicode=yes&characterEncoding=UTF-8".formatted(
         host(), port()));
       dataSource.setUser("zipkin");
       dataSource.setPassword("zipkin");
