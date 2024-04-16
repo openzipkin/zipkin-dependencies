@@ -98,7 +98,7 @@
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>3.2.1</zipkin.version>
+    <zipkin.version>3.3.0</zipkin.version>
     <armeria.version>1.28.0</armeria.version>
     <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
     <netty.version>4.1.108.Final</netty.version>
