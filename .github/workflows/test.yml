@@ -1,42 +1,61 @@
-# yamllint --format github .github/workflows/test.yml
 ---
 name: test
 
 # We don't test documentation-only commits.
-on:
-  # We run tests on non-tagged pushes to master that aren't a commit made by the release plugin
-  push:
-    tags: ''
-    branches: master
-    paths-ignore: '**/*.md'
-  # We also run tests on pull requests targeted at the master branch.
-  pull_request:
-    branches: master
-    paths-ignore: '**/*.md'
+on:  # yamllint disable-line rule:truthy
+  push:  # non-tagged pushes to master
+    branches:
+      - master
+    tags-ignore:
+      - '*'
+    paths-ignore:
+      - '**/*.md'
+      - './build-bin/*lint'
+      - ./build-bin/mlc_config.json
+  pull_request:  # pull requests targeted at the master branch.
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - './build-bin/*lint'
+      - ./build-bin/mlc_config.json
 
 jobs:
   test:
+    name: test (JDK 17)
     runs-on: ubuntu-22.04  # newest available distribution, aka jellyfish
+    # skip commits made by the release plugin
     if: "!contains(github.event.head_commit.message, 'maven-release-plugin')"
+    strategy:
+      fail-fast: false  # don't fail fast as some failures are LTS specific
+      matrix:  # match with maven-enforcer-plugin rules in pom.xml
+        include:
+          - java_version: 17  # earliest LTS supported by Spring Boot 3
+            maven_args: -Prelease -Dgpg.skip
+          - java_version: 21  # Most recent LTS
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Cache local Maven repository
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
       - name: Setup java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'  # zulu as it supports a wide version range
           java-version: '17'  # until Spark 4 per SPARK-43831
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          # yamllint disable-line rule:line-length
+          key: ${{ runner.os }}-jdk-17-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-jdk-17-maven-
       - name: Test without Docker
-        run: build-bin/maven/maven_go_offline && build-bin/test -DexcludedGroups=docker
+        run: |
+          build-bin/maven/maven_go_offline &&
+          build-bin/test -DexcludedGroups=docker
+
   test_docker:
-    name: test_docker (${{ matrix.name }})
-    runs-on: ubuntu-22.04 # newest available distribution, aka jellyfish
+    runs-on: ubuntu-22.04  # newest available distribution, aka jellyfish
+    # skip commits made by the release plugin
     if: "!contains(github.event.head_commit.message, 'maven-release-plugin')"
     strategy:
       matrix:
@@ -59,20 +78,21 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Cache local Maven repository
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
-      # Don't attempt to cache Docker. Sensitive information can be stolen
-      # via forks, and login session ends up in ~/.docker. This is ok because
-      # we publish DOCKER_PARENT_IMAGE to ghcr.io, hence local to the runner.
       - name: Setup java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'  # zulu as it supports a wide version range
           java-version: '17'  # until Spark 4 per SPARK-43831
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          # yamllint disable-line rule:line-length
+          key: ${{ runner.os }}-jdk-17-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-jdk-17-maven-
+      # Don't attempt to cache Docker. Sensitive information can be stolen
+      # via forks, and login session ends up in ~/.docker. This is ok because
+      # we publish DOCKER_PARENT_IMAGE to ghcr.io, hence local to the runner.
       - name: Test with Docker
         run: |
           build-bin/docker/configure_docker &&

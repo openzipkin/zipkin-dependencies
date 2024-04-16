@@ -1,20 +1,31 @@
-# yamllint --format github .github/workflows/test_readme.yml
 ---
 name: test_readme
 
 # These test build commands mentioned in various README.md files.
 #
-# This doesn't literally scrape the README.md, so we don't test documentation-only commits.
-on:
-  # We run tests on only on pull requests targeted at the master branch.
-  # * This skips master pushes as it is rare things not done in PRs break, and conserves resources
-  pull_request:
-    branches: master
-    paths-ignore: '**/*.md'
+# We don't test documentation-only commits.
+on:  # yamllint disable-line rule:truthy
+  push:  # non-tagged pushes to master
+    branches:
+      - master
+    tags-ignore:
+      - '*'
+    paths-ignore:
+      - '**/*.md'
+      - './build-bin/*lint'
+      - ./build-bin/mlc_config.json
+  pull_request:  # pull requests targeted at the master branch.
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
+      - './build-bin/*lint'
+      - ./build-bin/mlc_config.json
 
 jobs:
-  zipkin-dependencies:
+  zipkin-server:
     runs-on: ubuntu-22.04  # newest available distribution, aka jellyfish
+    # skip commits made by the release plugin
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -24,16 +35,16 @@ jobs:
           distribution: 'zulu'  # zulu as it supports a wide version range
           java-version: '17'  # until Spark 4 per SPARK-43831
       - name: Cache local Maven repository
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+          key: ${{ runner.os }}-jdk-17-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-jdk-17-maven-
       # Don't attempt to cache Docker. Sensitive information can be stolen
       # via forks, and login session ends up in ~/.docker. This is ok because
       # we publish DOCKER_PARENT_IMAGE to ghcr.io, hence local to the runner.
       - name: README.md  # Tests the build which is re-used for docker
-        run: ./mvnw -T1C -q --batch-mode -DskipTests -Denforcer.fail=false package
+        run: ./mvnw -T1C -q --batch-mode -DskipTests package
       - name: docker/README.md
         run: build-bin/docker/docker_build openzipkin/zipkin-dependencies:test
         env:
