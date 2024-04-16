@@ -5,4 +5,4 @@
 #
 
 cd /zipkin-dependencies
-start-zipkin-dependencies `date -ud yesterday +%F`
+start-zipkin-dependencies `dateadd now -1d | dconv -f '%Y-%m-%d'`
