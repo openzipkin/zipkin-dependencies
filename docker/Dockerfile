@@ -43,8 +43,9 @@ FROM ghcr.io/openzipkin/java:11.0.22_p7 as zipkin-dependencies
 LABEL org.opencontainers.image.description="Zipkin Dependencies Aggregator on OpenJDK and Alpine Linux"
 LABEL org.opencontainers.image.source=https://github.com/openzipkin/zipkin-dependencies
 
-# Adds coreutils to allow date formatting of 'yesterday'
-RUN apk add --no-cache coreutils
+# Adds dateutils to allow date formatting. Don't use coreutils until below:
+# https://gitlab.alpinelinux.org/alpine/aports/-/issues/16002
+RUN apk add --no-cache dateutils
 
 # Create custom user and ensure the process doesn't run as root
 ARG USER=zipkin-dependencies
