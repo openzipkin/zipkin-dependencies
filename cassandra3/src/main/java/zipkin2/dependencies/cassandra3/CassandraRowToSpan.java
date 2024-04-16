@@ -7,12 +7,12 @@ package zipkin2.dependencies.cassandra3;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.UDTValue;
 import com.datastax.spark.connector.types.TypeConverter;
+import java.io.Serializable;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Serializable;
 import zipkin2.Endpoint;
 import zipkin2.Span;
 

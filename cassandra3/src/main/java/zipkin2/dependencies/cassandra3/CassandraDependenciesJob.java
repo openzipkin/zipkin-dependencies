@@ -150,6 +150,9 @@ public final class CassandraDependenciesJob {
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));
     this.conf = new SparkConf(true).setMaster(builder.sparkMaster).setAppName(getClass().getName());
+    if (builder.sparkMaster.startsWith("local[")) {
+      conf.set("spark.driver.bindAddress", "127.0.0.1");
+    }
     conf.set("spark.cassandra.connection.host", parseHosts(builder.contactPoints));
     conf.set("spark.cassandra.connection.port", parsePort(builder.contactPoints));
     conf.set("spark.cassandra.connection.localDC", builder.localDc);
@@ -232,7 +235,7 @@ public final class CassandraDependenciesJob {
     List<String> result = new ArrayList<>();
     for (String contactPoint : contactPoints.split(",", -1)) {
       HostAndPort parsed = HostAndPort.fromString(contactPoint);
-      result.add(parsed.getHostText());
+      result.add(parsed.getHost());
     }
     return Joiner.on(',').join(result);
   }

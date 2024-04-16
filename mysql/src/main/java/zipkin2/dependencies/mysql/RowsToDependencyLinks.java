@@ -4,6 +4,7 @@
  */
 package zipkin2.dependencies.mysql;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -11,13 +12,12 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Row;
-import scala.Serializable;
 import zipkin2.DependencyLink;
 import zipkin2.Span;
 import zipkin2.internal.DependencyLinker;
 
 final class RowsToDependencyLinks
-    implements Serializable, FlatMapFunction<Iterable<Row>, DependencyLink> {
+  implements Serializable, FlatMapFunction<Iterable<Row>, DependencyLink> {
   private static final long serialVersionUID = 0L;
 
   @Nullable final Runnable logInitializer;
@@ -31,7 +31,7 @@ final class RowsToDependencyLinks
   @Override public Iterator<DependencyLink> call(Iterable<Row> rows) {
     if (logInitializer != null) logInitializer.run();
     Iterator<Iterator<Span>> traces =
-        new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
+      new DependencyLinkSpanIterator.ByTraceId(rows.iterator(), hasTraceIdHigh);
 
     if (!traces.hasNext()) return Collections.emptyIterator();
 

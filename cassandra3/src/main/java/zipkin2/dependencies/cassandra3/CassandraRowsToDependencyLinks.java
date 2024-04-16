@@ -5,12 +5,12 @@
 package zipkin2.dependencies.cassandra3;
 
 import com.datastax.spark.connector.japi.CassandraRow;
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import scala.Serializable;
 import zipkin2.DependencyLink;
 import zipkin2.Span;
 

@@ -11,7 +11,7 @@
   <parent>
     <groupId>io.zipkin.dependencies</groupId>
     <artifactId>zipkin-dependencies-parent</artifactId>
-    <version>3.1.6-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>zipkin-dependencies</artifactId>
@@ -78,18 +78,6 @@
                   </includes>
                 </filter>
                 <filter>
-                  <artifact>org.apache.hadoop:hadoop-common</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>log4j:log4j</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
                   <artifact>io.netty:*</artifact>
                   <includes>
                     <include>**</include>
@@ -128,22 +116,15 @@
                   </includes>
                 </filter>
                 <filter>
+                  <!-- jnr.posix.POSIXHandler -->
+                  <artifact>com.github.jnr:jnr-posix</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
                   <!-- com.datastax.oss.driver.internal.core.metrics.DropwizardMetricsFactory -->
                   <artifact>com.datastax.oss:java-driver-core-shaded</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <!-- elasticsearch -->
-                  <artifact>commons-httpclient:commons-httpclient</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <!-- org.apache.xerces.jaxp.DocumentBuilderFactoryImpl -->
-                  <artifact>xerces:xercesImpl</artifact>
                   <includes>
                     <include>**</include>
                   </includes>

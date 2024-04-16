@@ -158,6 +158,9 @@ public final class MySQLDependenciesJob {
     this.conf = new SparkConf(true)
         .setMaster(builder.sparkMaster)
         .setAppName(getClass().getName());
+    if (builder.sparkMaster.startsWith("local[")) {
+      conf.set("spark.driver.bindAddress", "127.0.0.1");
+    }
     if (builder.jars != null) conf.setJars(builder.jars);
     for (Map.Entry<String, String> entry : builder.sparkProperties.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
@@ -182,22 +185,24 @@ public final class MySQLDependenciesJob {
     String fields = "s.trace_id, s.parent_id, s.id, a.a_key, a.endpoint_service_name, a.a_type";
     if (hasTraceIdHigh) fields = "s.trace_id_high, " + fields;
     String groupByFields = fields.replace("s.parent_id, ", "");
-    String linksQuery = String.format(
-        "select distinct %s "+
-            "from zipkin_spans s left outer join zipkin_annotations a on " +
-            "  (s.trace_id = a.trace_id and s.id = a.span_id " +
-            "     and a.a_key in ('lc', 'ca', 'cs', 'sa', 'sr', 'ma', 'ms', 'mr', 'error')) " +
-            "where s.start_ts between %s and %s group by %s",
-        fields, microsLower, microsUpper, groupByFields);
+    String linksQuery = (
+      """
+      select distinct %s \
+      from zipkin_spans s left outer join zipkin_annotations a on \
+        (s.trace_id = a.trace_id and s.id = a.span_id \
+           and a.a_key in ('lc', 'ca', 'cs', 'sa', 'sr', 'ma', 'ms', 'mr', 'error')) \
+      where s.start_ts between %s and %s group by %s\
+      """).formatted(
+      fields, microsLower, microsUpper, groupByFields);
 
     options.put("dbtable", "(" + linksQuery + ") as link_spans");
 
     log.info("Running Dependencies job for {}: start_ts between {} and {}", dateStamp, microsLower,
         microsUpper);
 
-    JavaSparkContext sc = new JavaSparkContext(conf);
-
-    List<DependencyLink> links = new SQLContext(sc).read()
+    List<DependencyLink> links;
+    try (JavaSparkContext sc = new JavaSparkContext(conf)) {
+      links = new SQLContext(sc).read()
         .format("org.apache.spark.sql.execution.datasources.jdbc.JdbcRelationProvider")
         .options(options)
         .load()
@@ -213,8 +218,7 @@ public final class MySQLDependenciesJob {
           .errorCount(l.errorCount() + r.errorCount())
           .build())
         .values().collect();
-
-    sc.stop();
+    }
 
     log.info("Saving with day=" + dateStamp);
     saveToMySQL(links);
