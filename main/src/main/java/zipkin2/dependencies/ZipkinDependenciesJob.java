@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.TimeZone;
 import zipkin2.dependencies.elasticsearch.ElasticsearchDependenciesJob;
+import zipkin2.dependencies.opensearch.OpensearchDependenciesJob;
 import zipkin2.dependencies.mysql.MySQLDependenciesJob;
 
 public final class ZipkinDependenciesJob {
@@ -69,9 +70,18 @@ public final class ZipkinDependenciesJob {
           .build()
           .run();
         break;
+      case "opensearch":
+          OpensearchDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .conf(sparkConf)
+            .build()
+            .run();
+          break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType + "\n"
-          + "Options are: cassandra3, mysql, elasticsearch");
+          + "Options are: cassandra3, mysql, elasticsearch, opensearch");
     }
   }
 

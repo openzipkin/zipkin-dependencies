@@ -16,6 +16,7 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 * `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 4.0
 * `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 10.11
 * `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 7+; tested against last minor release of 7.x and 8.x
+* `STORAGE_TYPE=opensearch` : requires OpenSearch 2+; tested against last minor release of 2.x
 
 ## Quick-start
 
@@ -115,6 +116,31 @@ Example usage:
 $ STORAGE_TYPE=elasticsearch ES_HOSTS=host1,host2 java -jar zipkin-dependencies.jar
 # To override the http port, add it to the host string
 $ STORAGE_TYPE=elasticsearch ES_HOSTS=host1:9201 java -jar zipkin-dependencies.jar
+```
+
+### OpenSearch Storage
+OpenSearch is used when `STORAGE_TYPE=opensearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
+
+    * `OS_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
+    * `OS_DATE_SEPARATOR`: The separator used when generating dates in index.
+                           Defaults to '-' so the queried index look like zipkin-yyyy-DD-mm
+                           Could for example be changed to '.' to give zipkin-yyyy.MM.dd
+    * `OS_HOSTS`: A comma separated list of OpenSearch hosts advertising http. Defaults to
+                  localhost. Add port section if not listening on port 9200. Only one of these hosts
+                  needs to be available to fetch the remaining nodes in the cluster. It is
+                  recommended to set this to all the master nodes of the cluster. Use url format for
+                  SSL. For example, "https://yourhost:8888"
+    * `OS_NODES_WAN_ONLY`: Set to true to only use the values set in OS_HOSTS, for example if your
+                           OpenSearch cluster is in Docker. Defaults to false
+    * `OS_USERNAME` and `OS_PASSWORD`: OpenSearch basic authentication. Use when security plugin
+                                       is in place. By default no username or password is provided to OpenSearch.
+
+Example usage:
+
+```bash
+$ STORAGE_TYPE=opensearch OS_HOSTS=host1,host2 java -jar zipkin-dependencies.jar
+# To override the http port, add it to the host string
+$ STORAGE_TYPE=opensearch OS_HOSTS=host1:9201 java -jar zipkin-dependencies.jar
 ```
 
 #### Custom certificates
