@@ -53,10 +53,10 @@ public final class OpensearchDependenciesJob {
 
   public static final class Builder {
 
-    String index = getEnv("OS_INDEX", "zipkin");
-    String hosts = getEnv("OS_HOSTS", "127.0.0.1");
-    String username = getEnv("OS_USERNAME", null);
-    String password = getEnv("OS_PASSWORD", null);
+    String index = getEnv("ES_INDEX", "zipkin");
+    String hosts = getEnv("ES_HOSTS", "127.0.0.1");
+    String username = getEnv("ES_USERNAME", null);
+    String password = getEnv("ES_PASSWORD", null);
 
     final Map<String, String> sparkProperties = new LinkedHashMap<>();
 
@@ -64,7 +64,7 @@ public final class OpensearchDependenciesJob {
       sparkProperties.put("spark.ui.enabled", "false");
       // don't die if there are no spans
       sparkProperties.put(OPENSEARCH_INDEX_READ_MISSING_AS_EMPTY, "true");
-      sparkProperties.put(OPENSEARCH_NODES_WAN_ONLY, getEnv("OS_NODES_WAN_ONLY", "false"));
+      sparkProperties.put(OPENSEARCH_NODES_WAN_ONLY, getEnv("ES_NODES_WAN_ONLY", "false"));
       sparkProperties.put(OPENSEARCH_NET_SSL_KEYSTORE_LOCATION,
         getSystemPropertyAsFileResource("javax.net.ssl.keyStore"));
       sparkProperties.put(OPENSEARCH_NET_SSL_KEYSTORE_PASS,
@@ -149,7 +149,7 @@ public final class OpensearchDependenciesJob {
 
   OpensearchDependenciesJob(Builder builder) {
     this.index = builder.index;
-    String dateSeparator = getEnv("OS_DATE_SEPARATOR", "-");
+    String dateSeparator = getEnv("ES_DATE_SEPARATOR", "-");
     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd".replace("-", dateSeparator));
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     this.dateStamp = df.format(new Date(builder.day));

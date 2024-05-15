@@ -62,15 +62,15 @@ public final class ZipkinDependenciesJob {
           .run();
         break;
       case "elasticsearch":
-        ElasticsearchDependenciesJob.builder()
-          .logInitializer(logInitializer)
-          .jars(jarPath)
-          .day(day)
-          .conf(sparkConf)
-          .build()
-          .run();
-        break;
-      case "opensearch":
+        if (ZipkinElasticsearchStorage.flavor().equalsIgnoreCase("elasticsearch")) {
+          ElasticsearchDependenciesJob.builder()
+            .logInitializer(logInitializer)
+            .jars(jarPath)
+            .day(day)
+            .conf(sparkConf)
+            .build()
+            .run();
+        } else { // "opensearch"
           OpensearchDependenciesJob.builder()
             .logInitializer(logInitializer)
             .jars(jarPath)
@@ -78,13 +78,14 @@ public final class ZipkinDependenciesJob {
             .conf(sparkConf)
             .build()
             .run();
-          break;
+        }
+        break;
       default:
         throw new UnsupportedOperationException("Unsupported STORAGE_TYPE: " + storageType + "\n"
-          + "Options are: cassandra3, mysql, elasticsearch, opensearch");
+          + "Options are: cassandra3, mysql, elasticsearch");
     }
   }
-
+  
   static String[] pathToUberJar() throws UnsupportedEncodingException {
     URL jarFile = ZipkinDependenciesJob.class.getProtectionDomain().getCodeSource().getLocation();
     return new File(jarFile.getPath()).isDirectory() ? null
