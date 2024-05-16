@@ -8,6 +8,7 @@ package zipkin2.dependencies;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -16,6 +17,7 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,8 +26,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,32 +42,52 @@ final class ZipkinElasticsearchStorage {
   static final String PASSWORD = getEnv("ES_PASSWORD", null);
 
   static TrustManager[] TRUST_ALL = new TrustManager [] {
-    new X509TrustManager() {
+    new X509ExtendedTrustManager() {
       @Override
       public X509Certificate[] getAcceptedIssuers() {
         return null;
       }
-      
+        
       @Override
       public void checkClientTrusted(X509Certificate[] certs, String authType) {
       }
-      
+        
       @Override
       public void checkServerTrusted(X509Certificate[] certs, String authType) {
+      }
+
+      @Override
+      public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
+      }
+
+      @Override
+      public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
+      }
+
+      @Override
+      public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
+      }
+
+      @Override
+      public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
       }
     }
   };
   
   static String flavor() {
+    return flavor(HOSTS, USERNAME, PASSWORD);
+  }
+
+  static String flavor(String hosts, String username, String password) {
     final HttpClient.Builder builder = HttpClient
       .newBuilder()
       .connectTimeout(Duration.ofSeconds(5));
 
-    if (USERNAME != null && PASSWORD != null) {
+    if (username != null && password != null) {
       builder.authenticator(new Authenticator() {
          @Override
          protected PasswordAuthentication getPasswordAuthentication() {
-            return new PasswordAuthentication(USERNAME, PASSWORD.toCharArray());
+            return new PasswordAuthentication(username, password.toCharArray());
         }
       });
     }
@@ -75,7 +98,7 @@ final class ZipkinElasticsearchStorage {
 
       final HttpClient client = builder.sslContext(sslContext).build();
       try {
-        for (String host: parseHosts(HOSTS)) {
+        for (String host: parseHosts(hosts)) {
           final HttpRequest request = HttpRequest.newBuilder().GET().uri(URI.create(host)).build();
           try {
             final HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
@@ -136,9 +159,5 @@ final class ZipkinElasticsearchStorage {
     }
 
     return list.toArray(new String[0]);
-  }
-  
-  public static void main(String[] s) {
-      System.out.println(flavor());
   }
 }

@@ -45,6 +45,13 @@
       <artifactId>zipkin-dependencies-opensearch</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>com.linecorp.armeria</groupId>
+      <artifactId>armeria-junit5</artifactId>
+      <version>${armeria.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

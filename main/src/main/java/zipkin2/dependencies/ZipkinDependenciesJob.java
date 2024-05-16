@@ -85,7 +85,7 @@ public final class ZipkinDependenciesJob {
           + "Options are: cassandra3, mysql, elasticsearch");
     }
   }
-  
+
   static String[] pathToUberJar() throws UnsupportedEncodingException {
     URL jarFile = ZipkinDependenciesJob.class.getProtectionDomain().getCodeSource().getLocation();
     return new File(jarFile.getPath()).isDirectory() ? null
