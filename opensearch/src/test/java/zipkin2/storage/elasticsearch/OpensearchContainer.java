@@ -47,11 +47,7 @@ class OpensearchContainer extends GenericContainer<OpensearchContainer> {
   ElasticsearchStorage.Builder newStorageBuilder() {
 
     WebClientBuilder builder = WebClient.builder("http://" + hostPort())
-      // Elasticsearch 7 never returns a response when receiving an HTTP/2 preface instead of the
-      // more valid behavior of returning a bad request response, so we can't use the preface.
-      //
-      // TODO: find or raise a bug with Elastic
-      .factory(ClientFactory.builder().useHttp2Preface(false).build());
+      .factory(ClientFactory.builder().build());
     builder.decorator((delegate, ctx, req) -> {
       final HttpResponse response = delegate.execute(ctx, req);
       return HttpResponse.of(response.aggregate().thenApply(r -> {
