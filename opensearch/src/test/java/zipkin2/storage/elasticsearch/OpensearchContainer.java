@@ -46,8 +46,7 @@ class OpensearchContainer extends GenericContainer<OpensearchContainer> {
 
   ElasticsearchStorage.Builder newStorageBuilder() {
 
-    WebClientBuilder builder = WebClient.builder("http://" + hostPort())
-      .factory(ClientFactory.builder().build());
+    WebClientBuilder builder = WebClient.builder("http://" + hostPort());
     builder.decorator((delegate, ctx, req) -> {
       final HttpResponse response = delegate.execute(ctx, req);
       return HttpResponse.of(response.aggregate().thenApply(r -> {
