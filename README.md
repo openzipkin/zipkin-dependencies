@@ -15,7 +15,7 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 
 * `STORAGE_TYPE=cassandra3` : requires Cassandra 3.11.3+; tested against the latest patch of 4.0
 * `STORAGE_TYPE=mysql` : requires MySQL 5.6+; tested against MySQL 10.11
-* `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 7+; tested against last minor release of 7.x and 8.x
+* `STORAGE_TYPE=elasticsearch` : requires Elasticsearch 7+ or OpenSearch 2.x; tested against last minor release of Elasticsearch 7.x and 8.x, OpenSearch 2.x
 
 ## Quick-start
 
@@ -92,20 +92,20 @@ $ STORAGE_TYPE=mysql MYSQL_USER=root java -jar zipkin-dependencies.jar
 ```
 
 ### Elasticsearch Storage
-Elasticsearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
+Elasticsearch/OpenSearch is used when `STORAGE_TYPE=elasticsearch`. The schema is compatible with Zipkin's [Elasticsearch storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/elasticsearch).
 
     * `ES_INDEX`: The index prefix to use when generating daily index names. Defaults to zipkin.
     * `ES_DATE_SEPARATOR`: The separator used when generating dates in index.
                            Defaults to '-' so the queried index look like zipkin-yyyy-DD-mm
                            Could for example be changed to '.' to give zipkin-yyyy.MM.dd
-    * `ES_HOSTS`: A comma separated list of elasticsearch hosts advertising http. Defaults to
+    * `ES_HOSTS`: A comma separated list of Elasticsearch / OpenSearch hosts advertising http. Defaults to
                   localhost. Add port section if not listening on port 9200. Only one of these hosts
                   needs to be available to fetch the remaining nodes in the cluster. It is
                   recommended to set this to all the master nodes of the cluster. Use url format for
                   SSL. For example, "https://yourhost:8888"
     * `ES_NODES_WAN_ONLY`: Set to true to only use the values set in ES_HOSTS, for example if your
-                           elasticsearch cluster is in Docker. Defaults to false
-    * `ES_USERNAME` and `ES_PASSWORD`: Elasticsearch basic authentication. Use when X-Pack security
+                           Elasticsearch / OpenSearch cluster is in Docker. Defaults to false
+    * `ES_USERNAME` and `ES_PASSWORD`: Elasticsearch / OpenSearch basic authentication. Use when X-Pack security
                                        (formerly Shield) is in place. By default no username or
                                        password is provided to elasticsearch.
 

@@ -15,6 +15,13 @@ $ STORAGE_TYPE=elasticsearch
 $ docker-compose -f docker-compose.yml -f docker-compose-${STORAGE_TYPE}.yml up
 ```
 
+The `elasticsearch` storage type is also compatible with OpenSearch,
+you can start the example setup like that:
+
+```
+$ docker-compose -f docker-compose.yml -f docker-compose-opensearch.yml up
+```
+
 This starts zipkin, the corresponding storage and makes an example request.
 After that, it runs the dependencies job on-demand.
 

@@ -50,6 +50,9 @@ jobs:
           - name: zipkin-dependencies-elasticsearch-v8
             module: zipkin-dependencies-elasticsearch
             groups: docker,elasticsearch8
+          - name: zipkin-dependencies-opensearch-v2
+            module: zipkin-dependencies-opensearch
+            groups: docker,opensearch2
           - name: zipkin-dependencies-mysql
             module: zipkin-dependencies-mysql
             groups: docker

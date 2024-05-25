@@ -17,6 +17,7 @@
     <module>cassandra3</module>
     <module>mysql</module>
     <module>elasticsearch</module>
+    <module>opensearch</module>
     <module>main</module>
   </modules>
 
@@ -73,6 +74,9 @@
 
     <!-- This dependency is in elasticsearch-hadoop -->
     <elasticsearch-spark.version>8.14.0-SNAPSHOT</elasticsearch-spark.version>
+
+    <!-- This dependency is in opensearch-hadoop -->
+    <opensearch-spark.version>1.2.0</opensearch-spark.version>
 
     <!-- Use latest Cassandra connector matching minor versioned of spark. -->
     <spark-cassandra-connector.version>3.4.1</spark-cassandra-connector.version>

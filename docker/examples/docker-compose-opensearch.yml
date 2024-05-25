@@ -1,0 +1,40 @@
+#
+# Copyright The OpenZipkin Authors
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# This file uses the version 2 docker-compose file format, described here:
+# https://docs.docker.com/compose/compose-file/#version-2
+#
+# It extends the default configuration from docker-compose.yml to run the
+# zipkin-opensearch2 container instead of the zipkin-mysql container.
+
+version: '2.4'
+
+services:
+  storage:
+    image: ghcr.io/openzipkin/zipkin-opensearch2:${TAG:-latest}
+    container_name: opensearch
+    # Uncomment to expose the storage port for testing
+    # ports:
+    #   - 9200:9200
+
+  # Use OpenSearch instead of in-memory storage
+  zipkin:
+    extends:
+      file: docker-compose.yml
+      service: zipkin
+    environment:
+      - STORAGE_TYPE=elasticsearch
+      # Point the zipkin at the storage backend
+      - ES_HOSTS=opensearch:9200
+      # Uncomment to see requests to and from elasticsearch
+      # - ES_HTTP_LOGGING=BODY
+
+  dependencies:
+    extends:
+      file: docker-compose.yml
+      service: dependencies
+    environment:
+      - STORAGE_TYPE=elasticsearch
+      - ES_HOSTS=opensearch
