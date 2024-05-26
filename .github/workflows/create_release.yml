@@ -38,6 +38,7 @@ jobs:
           # * needs repo:status, public_repo
           # * referenced in .settings.xml
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        # TODO: remove -DignoreSnapshots=true after ES 8.14.0 is released
         run: |  # GITHUB_REF will be refs/tags/release-MAJOR.MINOR.PATCH
           build-bin/git/login_git &&
-          build-bin/maven/maven_release $(echo ${GITHUB_REF} | cut -d/ -f 3)
+          build-bin/maven/maven_release $(echo ${GITHUB_REF} | cut -d/ -f 3) -DignoreSnapshots=true

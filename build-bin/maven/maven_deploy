@@ -11,5 +11,4 @@ export MAVEN_OPTS="$($(dirname "$0")/maven_opts)"
 # This script deploys a SNAPSHOT or release version to Sonatype.
 #
 # Note: In CI, `configure_maven_deploy` must be called before invoking this.
-# TODO: remove -DignoreSnapshots=true and add -nsu to the mvn command after ES 8.14.0 is released
-./mvnw --batch-mode -s ./.settings.xml -Prelease -DignoreSnapshots=true -DskipTests clean deploy $@
+./mvnw --batch-mode -s ./.settings.xml -Prelease -nsu -DskipTests clean deploy $@
