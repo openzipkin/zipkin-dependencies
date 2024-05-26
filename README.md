@@ -57,9 +57,7 @@ The following variables are common to all storage layers:
     * `SPARK_CONF`: Extend more spark configuration with value in properties format and separated with comma. Such as `spark.executor.heartbeatInterval=600000,spark.network.timeout=600000`
 
 ### Cassandra
-Cassandra is used when `STORAGE_TYPE=cassandra` or `STORAGE_TYPE=cassandra3`.
-* `cassandra` is compatible with Zipkin's [Legacy Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
-* `cassandra3` is compatible with Zipkin's [Cassandra v3 storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/zipkin2_cassandra).
+Cassandra is used when  `STORAGE_TYPE=cassandra3`. The schema is compatible with Zipkin's [Cassandra storage component](https://github.com/openzipkin/zipkin/tree/master/zipkin-storage/cassandra).
 
 Here are the variables that apply
 
