@@ -10,7 +10,6 @@ if [ "${version}" = "master" ]; then
   version=$(sed -En 's/.*<version>(.*)<\/version>.*/\1/p' pom.xml| head -1)
 fi
 
-# TODO: remove -DignoreSnapshots=true after ES 8.14.0 is released
-build-bin/maven/maven_deploy -DignoreSnapshots=true
+build-bin/maven/maven_deploy
 export RELEASE_FROM_MAVEN_BUILD=true
 build-bin/docker_push ${version}
