@@ -31,5 +31,4 @@ if [ "$commit_local_release_branch" != "$commit_remote_release_branch" ]; then
 fi
 
 # Prepare and push release commits and the version tag (N.N.N), which triggers deployment.
-# TODO: remove -DignoreSnapshots=true after ES 8.14.0 is released
-./mvnw --batch-mode -nsu -DignoreSnapshots=true -DreleaseVersion=${release_version} -Denforcer.fail=false -Darguments="-DskipTests -Denforcer.fail=false" release:prepare
+./mvnw --batch-mode -nsu -DreleaseVersion=${release_version} -Denforcer.fail=false -Darguments="-DskipTests -Denforcer.fail=false" release:prepare
