@@ -99,6 +99,7 @@
     <scala.version>2.13.14</scala.version>
     <snappy-java.version>1.1.10.5</snappy-java.version>
     <zookeeper.version>3.9.2</zookeeper.version>
+    <aircompressor.version>0.27</aircompressor.version>
 
     <junit-jupiter.version>5.10.3</junit-jupiter.version>
     <testcontainers.version>1.20.1</testcontainers.version>
@@ -263,6 +264,11 @@
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
         <version>${zookeeper.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.airlift</groupId>
+        <artifactId>aircompressor</artifactId>
+        <version>${aircompressor.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
