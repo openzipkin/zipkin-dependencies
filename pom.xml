@@ -66,7 +66,7 @@
 
     <!-- override to set exclusions per-project -->
     <errorprone.args />
-    <errorprone.version>2.27.1</errorprone.version>
+    <errorprone.version>2.29.2</errorprone.version>
 
     <!-- Use a common scala binary version, and the highest spark patch. -->
     <scala.binary.version>2.13</scala.binary.version>
@@ -76,7 +76,7 @@
     <okhttp.version>4.12.0</okhttp.version>
 
     <!-- This dependency is in elasticsearch-hadoop -->
-    <elasticsearch-spark.version>8.14.0-SNAPSHOT</elasticsearch-spark.version>
+    <elasticsearch-spark.version>8.14.3</elasticsearch-spark.version>
 
     <!-- This dependency is in opensearch-hadoop -->
     <opensearch-spark.version>1.2.0</opensearch-spark.version>
@@ -88,29 +88,29 @@
     <java-driver.version>4.17.0</java-driver.version>
 
     <!-- Use zipkin's version of MariaDB client -->
-    <mariadb-java-client.version>3.4.0</mariadb-java-client.version>
+    <mariadb-java-client.version>3.4.1</mariadb-java-client.version>
 
     <!-- CVE fix versions: re-evaluate after spark bumps -->
     <avro.version>1.11.3</avro.version>
     <commons-compress.version>1.26.2</commons-compress.version>
-    <guava.version>33.2.0-jre</guava.version>
+    <guava.version>33.2.1-jre</guava.version>
     <ivy.version>2.5.2</ivy.version>
-    <protobuf.version>3.25.3</protobuf.version>
+    <protobuf.version>3.25.4</protobuf.version>
     <scala.version>2.13.14</scala.version>
     <snappy-java.version>1.1.10.5</snappy-java.version>
     <zookeeper.version>3.9.2</zookeeper.version>
 
-    <junit-jupiter.version>5.10.2</junit-jupiter.version>
-    <testcontainers.version>1.19.8</testcontainers.version>
+    <junit-jupiter.version>5.10.3</junit-jupiter.version>
+    <testcontainers.version>1.20.1</testcontainers.version>
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
-    <zipkin.version>3.4.0</zipkin.version>
-    <armeria.version>1.28.4</armeria.version>
+    <zipkin.version>3.4.1</zipkin.version>
+    <armeria.version>1.29.4</armeria.version>
     <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
-    <netty.version>4.1.110.Final</netty.version>
-    <jackson.version>2.17.1</jackson.version>
-    <assertj.version>3.25.3</assertj.version>
+    <netty.version>4.1.112.Final</netty.version>
+    <jackson.version>2.17.2</jackson.version>
+    <assertj.version>3.26.3</assertj.version>
     <slf4j.version>2.0.13</slf4j.version>
 
     <license.skip>${skipTests}</license.skip>
@@ -121,11 +121,11 @@
     <maven-bundle-plugin.version>5.1.9</maven-bundle-plugin.version>
     <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
-    <maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
+    <maven-dependency-plugin.version>3.7.1</maven-dependency-plugin.version>
     <maven-deploy-plugin.version>3.1.2</maven-deploy-plugin.version>
     <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
     <!-- Use same version as https://github.com/openzipkin/docker-java -->
-    <maven-help-plugin.version>3.4.0</maven-help-plugin.version>
+    <maven-help-plugin.version>3.4.1</maven-help-plugin.version>
     <maven-install-plugin.version>3.1.2</maven-install-plugin.version>
     <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
     <maven-jar-plugin.version>3.4.1</maven-jar-plugin.version>
@@ -185,20 +185,6 @@
     <system>Github</system>
     <url>https://github.com/openzipkin/zipkin-dependencies/issues</url>
   </issueManagement>
-
-  <!-- TODO: Remove on Elasticsearch 8.14.0 -->
-  <repositories>
-    <repository>
-      <id>sonatype-snapshots</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <dependencyManagement>
     <dependencies>

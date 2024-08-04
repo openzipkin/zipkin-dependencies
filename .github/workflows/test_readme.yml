@@ -24,7 +24,7 @@ on:  # yamllint disable-line rule:truthy
 
 jobs:
   zipkin-server:
-    runs-on: ubuntu-22.04  # newest available distribution, aka jellyfish
+    runs-on: ubuntu-24.04  # newest available distribution, aka noble
     # skip commits made by the release plugin
     steps:
       - name: Checkout Repository
