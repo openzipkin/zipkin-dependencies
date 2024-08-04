@@ -10,7 +10,7 @@
 # docker-compose: When updating, update everywhere.
 #
 # Note: JDK 17 until Spark 4 per SPARK-43831
-ARG java_version=17.0.11_p9
+ARG java_version=17.0.12_p7
 
 # We copy files from the context into a scratch container first to avoid a problem where docker and
 # docker-compose don't share layer hashes https://github.com/docker/compose/issues/883 normally.
@@ -39,7 +39,7 @@ RUN /code/build-bin/maven/maven_build_or_unjar io.zipkin.dependencies zipkin-dep
 
 # Try -jre again once Spark 4.0 is released. Spark 3.x uses old Hadoop in the
 # Elasticsearch driver which needs com.sun.security.auth.module.UnixLoginModule
-FROM ghcr.io/openzipkin/java:17.0.11_p9 as zipkin-dependencies
+FROM ghcr.io/openzipkin/java:17.0.12_p7 as zipkin-dependencies
 LABEL org.opencontainers.image.description="Zipkin Dependencies Aggregator on OpenJDK and Alpine Linux"
 LABEL org.opencontainers.image.source=https://github.com/openzipkin/zipkin-dependencies
 

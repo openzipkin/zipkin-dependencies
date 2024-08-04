@@ -37,7 +37,7 @@ if [ -n "${DOCKER_TARGET}" ]; then
 fi
 
 # When non-empty, becomes the base layer including tag appropriate for the image being built.
-# e.g. ghcr.io/openzipkin/java:21.0.2_p13-jre
+# e.g. ghcr.io/openzipkin/java:21.0.4_p7-jre
 #
 # This is not required to be a base (FROM scratch) image like ghcr.io/openzipkin/alpine:3.12.3
 # See https://docs.docker.com/glossary/#parent-image
