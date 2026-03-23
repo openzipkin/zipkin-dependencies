@@ -1,9 +1,6 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "https://oss.sonatype.org/content/repositories/snapshots"
-    },
-    {
       "pattern": "http://localhost:9411/zipkin/dependency"
     },
     {

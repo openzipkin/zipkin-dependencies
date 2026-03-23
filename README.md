@@ -1,6 +1,6 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin)
 [![Build Status](https://travis-ci.org/openzipkin/zipkin-dependencies.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin-dependencies)
-[![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.dependencies/zipkin-dependencies.svg)](https://search.maven.org/search?q=g:io.zipkin.dependencies%20AND%20a:zipkin-dependencies)
+[![Maven Central](https://img.shields.io/maven-central/v/io.zipkin.dependencies/zipkin-dependencies.svg)](https://central.sonatype.com/search?q=zipkin-dependencies&namespace=io.zipkin.dependencies)
 
 # zipkin-dependencies
 
@@ -21,7 +21,7 @@ are supported, including Cassandra, MySQL and Elasticsearch.
 
 Until [SPARK-43831](https://issues.apache.org/jira/browse/SPARK-43831), Zipkin Dependencies requires Java 17 to run.
 
-The quickest way to get started is to fetch the [latest released job](https://search.maven.org/remote_content?g=io.zipkin.dependencies&a=zipkin-dependencies&v=LATEST) as a self-contained jar. For example:
+The quickest way to get started is to fetch the [latest released job](https://central.sonatype.com/search?q=zipkin-dependencies&namespace=io.zipkin.dependencies&sort=published) as a self-contained jar. For example:
 
 ```bash
 $ curl -sSL https://zipkin.io/quickstart.sh | bash -s io.zipkin.dependencies:zipkin-dependencies:LATEST zipkin-dependencies.jar
@@ -174,10 +174,10 @@ All artifacts publish to the group ID "io.zipkin.dependencies". We use a common
 release version for all components.
 
 ### Library Releases
-Releases are at [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.zipkin.dependencies%22)
+Releases are at [Maven Central](https://central.sonatype.com/search?q=zipkin-dependencies&namespace=io.zipkin.dependencies)
 
 ### Library Snapshots
-Snapshots are uploaded to [Sonatype](https://oss.sonatype.org/content/repositories/snapshots) after
+Snapshots are uploaded to [Sonatype](https://central.sonatype.com/repository/maven-snapshots/) after
 commits to master.
 
 ### Docker Images

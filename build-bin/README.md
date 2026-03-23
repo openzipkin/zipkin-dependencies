@@ -61,14 +61,19 @@ Actions includes the ability to skip documentation-only jobs.
 
 Here's a partial `test.yml` including only the aspects mentioned above.
 ```yaml
-on:
-  push:
-    tags: ''
-    branches: master
-    paths-ignore: '**/*.md'
-  pull_request:
-    branches: master
-    paths-ignore: '**/*.md'
+on:  # yamllint disable-line rule:truthy
+  push:  # non-tagged pushes to master
+    branches:
+      - master
+    tags-ignore:
+      - '*'
+    paths-ignore:
+      - '**/*.md'
+  pull_request:  # pull requests targeted at the master branch.
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.md'
 
 jobs:
   test:
@@ -105,22 +110,26 @@ Here's a partial `deploy.yml` including only the aspects mentioned above. Notice
 explicitly defined and `on.tags` is a [glob pattern](https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet).
 
 ```yaml
-on:
+on:  # yamllint disable-line rule:truthy
   push:
-    tags: '[0-9]+.[0-9]+.[0-9]+**'  # e.g. 8.272.10 or 15.0.1_p9
-    branches: master
+    branches:
+      - master
+    # Don't deploy tags because the same commit for MAJOR.MINOR.PATCH is also
+    # on master: Redundant deployment of a release version will fail uploading.
+    tags-ignore:
+      - '*'
 
 jobs:
   deploy:
+    runs-on: ubuntu-24.04  # newest available distribution, aka noble
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Configure Deploy
-        run: build-bin/configure_deploy
+      - name: Deploy
         env:
           GH_USER: ${{ secrets.GH_USER }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - name: Deploy
-        # GITHUB_REF will be refs/heads/master or refs/tags/1.2.3
-        run: build-bin/deploy $(echo ${GITHUB_REF} | cut -d/ -f 3)
+        run: |  # GITHUB_REF = refs/heads/master or refs/tags/MAJOR.MINOR.PATCH
+          build-bin/configure_deploy &&
+          build-bin/deploy $(echo ${GITHUB_REF} | cut -d/ -f 3)
 ```
