@@ -42,8 +42,8 @@
          See https://github.com/mojohaus/animal-sniffer/issues/62 -->
     <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
-    <!-- Spark 3.4 module config from:
-         https://github.com/apache/spark/blob/branch-3.4/launcher/src/main/java/org/apache/spark/launcher/JavaModuleOptions.java#L29 -->
+    <!-- Spark 3.5 module config from:
+         https://github.com/apache/spark/blob/branch-3.5/launcher/src/main/java/org/apache/spark/launcher/JavaModuleOptions.java#L29 -->
     <maven.test.argLine>
       -XX:+IgnoreUnrecognizedVMOptions
       --add-opens=java.base/java.lang=ALL-UNNAMED
@@ -71,7 +71,7 @@
 
     <!-- Use a common scala binary version, and the highest spark patch. -->
     <scala.binary.version>2.13</scala.binary.version>
-    <spark.version>3.4.3</spark.version>
+    <spark.version>3.5.8</spark.version>
 
     <!-- Used in opensearch and elasticsearch -->
     <okhttp.version>4.12.0</okhttp.version>
@@ -83,33 +83,33 @@
     <opensearch-spark.version>1.2.0</opensearch-spark.version>
 
     <!-- Use latest Cassandra connector matching minor versioned of spark. -->
-    <spark-cassandra-connector.version>3.4.1</spark-cassandra-connector.version>
-    <!-- Connector 3.5+ switches to Apache java-driver; update when Spark 4 -->
-    <java-driver.version>4.17.0</java-driver.version>
+    <spark-cassandra-connector.version>3.5.1</spark-cassandra-connector.version>
+    <java-driver.version>4.19.2</java-driver.version>
 
     <!-- Use zipkin's version of MariaDB client -->
     <mariadb-java-client.version>3.5.7</mariadb-java-client.version>
 
     <!-- CVE fix versions: re-evaluate after spark bumps -->
-    <avro.version>1.11.5</avro.version>
+    <aircompressor.version>2.0.3</aircompressor.version>
     <commons-compress.version>1.28.0</commons-compress.version>
     <guava.version>33.5.0-jre</guava.version>
     <ivy.version>2.5.3</ivy.version>
+    <lz4-java.version>1.8.1</lz4-java.version>
     <protobuf.version>3.25.8</protobuf.version>
     <scala.version>2.13.18</scala.version>
-    <snappy-java.version>1.1.10.8</snappy-java.version>
     <zookeeper.version>3.9.5</zookeeper.version>
-    <aircompressor.version>0.27</aircompressor.version>
 
+    <!-- Use BOM to align JUnit versions, as armeria 1.32 pulls older junit-jupiter-api -->
     <junit-jupiter.version>5.14.3</junit-jupiter.version>
     <testcontainers.version>2.0.4</testcontainers.version>
 
     <!-- These need to match zipkin, so that tests don't have classpath
          conflicts. When updating, also update IT*.java -->
     <zipkin.version>3.6.0</zipkin.version>
-    <armeria.version>1.37.0</armeria.version>
-    <!-- Match Armeria version to avoid conflicts including running tests in the IDE -->
-    <netty.version>4.2.10.Final</netty.version>
+    <!-- 1.33+ needs netty 4.2, can't use until Spark supports it -->
+    <armeria.version>1.32.5</armeria.version>
+    <!-- 4.2+ breaks Spark's internal networking, can't use until Spark supports it -->
+    <netty.version>4.1.131.Final</netty.version>
     <jackson.version>2.21.1</jackson.version>
     <assertj.version>3.27.7</assertj.version>
     <slf4j.version>2.0.17</slf4j.version>
@@ -195,6 +195,22 @@
       </dependency>
 
       <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit-jupiter.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>com.linecorp.armeria</groupId>
+        <artifactId>armeria-bom</artifactId>
+        <version>${armeria.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
         <groupId>org.apache.spark</groupId>
         <artifactId>spark-core_${scala.binary.version}</artifactId>
         <version>${spark.version}</version>
@@ -209,7 +225,7 @@
       </dependency>
 
       <dependency>
-        <groupId>com.datastax.oss</groupId>
+        <groupId>org.apache.cassandra</groupId>
         <artifactId>java-driver-bom</artifactId>
         <version>${java-driver.version}</version>
         <type>pom</type>
@@ -218,9 +234,19 @@
 
       <!-- CVE fix versions -->
       <dependency>
-        <groupId>org.apache.avro</groupId>
-        <artifactId>avro</artifactId>
-        <version>${avro.version}</version>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${protobuf.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.airlift</groupId>
+        <artifactId>aircompressor</artifactId>
+        <version>${aircompressor.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -228,19 +254,19 @@
         <version>${commons-compress.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.ivy</groupId>
         <artifactId>ivy</artifactId>
         <version>${ivy.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>${protobuf.version}</version>
+        <groupId>org.apache.zookeeper</groupId>
+        <artifactId>zookeeper</artifactId>
+        <version>${zookeeper.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${lz4-java.version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
@@ -251,21 +277,6 @@
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-reflect</artifactId>
         <version>${scala.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.xerial.snappy</groupId>
-        <artifactId>snappy-java</artifactId>
-        <version>${snappy-java.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.zookeeper</groupId>
-        <artifactId>zookeeper</artifactId>
-        <version>${zookeeper.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.airlift</groupId>
-        <artifactId>aircompressor</artifactId>
-        <version>${aircompressor.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
