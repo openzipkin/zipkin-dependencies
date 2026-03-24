@@ -8,8 +8,8 @@
 # args override it (Ex. 2020-10-31)
 set -eu
 
-# Spark 3.4 module config from:
-# https://github.com/apache/spark/blob/branch-3.4/launcher/src/main/java/org/apache/spark/launcher/JavaModuleOptions.java#L29
+# Spark 3.5 module config from:
+# https://github.com/apache/spark/blob/branch-3.5/launcher/src/main/java/org/apache/spark/launcher/JavaModuleOptions.java#L29
 exec java ${JAVA_OPTS} -Djava.io.tmpdir=/tmp \
   -XX:+IgnoreUnrecognizedVMOptions \
   --add-opens=java.base/java.lang=ALL-UNNAMED \

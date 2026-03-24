@@ -137,7 +137,7 @@
                 </filter>
                 <filter>
                   <!-- com.datastax.oss.driver.internal.core.metrics.DropwizardMetricsFactory -->
-                  <artifact>com.datastax.oss:java-driver-core-shaded</artifact>
+                  <artifact>org.apache.cassandra:java-driver-core-shaded</artifact>
                   <includes>
                     <include>**</include>
                   </includes>

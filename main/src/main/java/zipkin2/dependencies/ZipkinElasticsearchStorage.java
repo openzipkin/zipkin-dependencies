@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 final class ZipkinElasticsearchStorage {
   private static final Logger LOG = LoggerFactory.getLogger(ZipkinElasticsearchStorage.class);
-  private static final Pattern DISTRIBUTION = Pattern.compile("\"distribution\"\s*[:]\s*\"([^\"]+)\"");
+  private static final Pattern DISTRIBUTION = Pattern.compile("\"distribution\"\\s*[:]\\s*\"([^\"]+)\"");
 
   static final String HOSTS = getEnv("ES_HOSTS", "127.0.0.1");
   static final String USERNAME = getEnv("ES_USERNAME", null);
