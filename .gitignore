@@ -24,3 +24,6 @@ target/
 .classpath
 .project
 .settings/
+
+# flatten-maven-plugin
+.flattened-pom.xml
