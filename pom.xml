@@ -94,6 +94,7 @@
     <commons-compress.version>1.28.0</commons-compress.version>
     <guava.version>33.5.0-jre</guava.version>
     <ivy.version>2.5.3</ivy.version>
+    <!-- 1.9+ changed package from net.jpountz.lz4, incompatible with Spark 3.x -->
     <lz4-java.version>1.8.1</lz4-java.version>
     <protobuf.version>3.25.8</protobuf.version>
     <scala.version>2.13.18</scala.version>
@@ -234,6 +235,11 @@
 
       <!-- CVE fix versions -->
       <dependency>
+        <groupId>org.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${lz4-java.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
@@ -262,11 +268,6 @@
         <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
         <version>${zookeeper.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>at.yawk.lz4</groupId>
-        <artifactId>lz4-java</artifactId>
-        <version>${lz4-java.version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
