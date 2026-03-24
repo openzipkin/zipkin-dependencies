@@ -12,13 +12,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import zipkin2.Span;
 import zipkin2.elasticsearch.ElasticsearchStorage;
-import zipkin2.storage.ITDependencies;
+import zipkin2.storage.ITDependenciesHeavy;
 
 @Tag("docker")
-@Tag("elasticsearch7")
+@Tag("elasticsearch9")
 @Testcontainers(disabledWithoutDocker = true)
-class ITElasticsearchDependenciesV7 extends ITDependencies<ElasticsearchStorage> {
-  @Container static ElasticsearchContainer elasticsearch = new ElasticsearchContainer(7);
+class ITElasticsearchDependenciesHeavyV9 extends ITDependenciesHeavy<ElasticsearchStorage> {
+  @Container static ElasticsearchContainer elasticsearch = new ElasticsearchContainer(9);
 
   @Override protected ElasticsearchStorage.Builder newStorageBuilder(TestInfo testInfo) {
     return elasticsearch.newStorageBuilder();
