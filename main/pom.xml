@@ -115,7 +115,7 @@
                   </includes>
                 </filter>
                 <filter>
-                  <artifact>org.lz4:*</artifact>
+                  <artifact>at.yawk.lz4:*</artifact>
                   <includes>
                     <include>**</include>
                   </includes>
