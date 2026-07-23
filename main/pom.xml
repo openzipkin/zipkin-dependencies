@@ -129,6 +129,14 @@
                   </includes>
                 </filter>
                 <filter>
+                  <!-- org.opensearch.hadoop.thirdparty.apache.commons.httpclient.cookie.IgnoreCookiesSpec -->
+                  <artifact>org.opensearch.client:opensearch-spark-30_${scala.binary.version}
+                  </artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
                   <!-- jnr.posix.POSIXHandler -->
                   <artifact>com.github.jnr:jnr-posix</artifact>
                   <includes>
